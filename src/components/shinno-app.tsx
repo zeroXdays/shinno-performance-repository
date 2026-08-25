@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import { Bluetooth, Loader2, Power, ScanLine, Trash2, Unplug, Car } from "lucide-react";
-import { EffectStrip, PlayingBar } from "@/components/effect-preview";
+import { ModeGlyph, PlayingBar } from "@/components/effect-preview";
 import { ColorWheel } from "@/components/color-wheel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,7 +124,7 @@ export function ShinnoApp() {
                 className={cn(
                   "flex size-11 items-center justify-center rounded-full border",
                   power
-                    ? "border-red-500/40 bg-red-600 text-white"
+                    ? "border-red-500/40 bg-red-600 text-white shadow-[0_0_18px_rgba(225,6,0,0.45)]"
                     : "border-white/15 bg-white/5 text-white/60",
                 )}
                 aria-label={power ? "Turn off" : "Turn on"}
@@ -173,7 +173,7 @@ export function ShinnoApp() {
                   type="button"
                   disabled={!garage.controllers.length}
                   onClick={() => void garage.applyScene(scene)}
-                  className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/80"
+                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/80"
                 >
                   {scene.name}
                 </button>
@@ -240,7 +240,7 @@ function EffectsPanel() {
       {items.length === 0 ? (
         <p className="py-8 text-center text-sm text-white/40">No modes match.</p>
       ) : (
-        <div className="grid max-h-[42vh] grid-cols-2 gap-1.5 overflow-y-auto pr-0.5">
+        <div className="grid max-h-[46vh] grid-cols-3 gap-2 overflow-y-auto pr-0.5">
           {items.map((effect) => (
             <button
               key={effect.id}
@@ -248,14 +248,18 @@ function EffectsPanel() {
               disabled={!garage.selected.length}
               onClick={() => void garage.setEffect(effect.id)}
               className={cn(
-                "rounded-md border px-2.5 py-2 text-left text-sm",
+                "flex flex-col rounded-xl border bg-black/35 p-1.5 text-center",
                 active === effect.id
-                  ? "border-red-500/50 bg-red-500/15 text-white"
-                  : "border-white/10 bg-white/5 text-white/80",
+                  ? "border-red-500/70 shadow-[0_0_18px_rgba(225,6,0,0.25)]"
+                  : "border-white/10",
               )}
             >
-              <EffectStrip effect={effect} speed={speed} className="mb-2 h-7 w-full rounded-sm" />
-              {effect.name}
+              <div className="aspect-square w-full">
+                <ModeGlyph effect={effect} speed={speed} />
+              </div>
+              <span className="mt-1 line-clamp-2 min-h-8 text-[10px] leading-tight text-white/75">
+                {effect.name}
+              </span>
             </button>
           ))}
         </div>
@@ -264,6 +268,10 @@ function EffectsPanel() {
         <div className="mb-1 flex justify-between text-sm text-white/55">
           <span>Speed</span>
           <span className="tabular-nums">{speed}</span>
+        </div>
+        <div className="mb-1 flex justify-between text-[10px] uppercase tracking-wide text-white/35">
+          <span>0 fast</span>
+          <span>100 slow</span>
         </div>
         <Slider
           min={0}

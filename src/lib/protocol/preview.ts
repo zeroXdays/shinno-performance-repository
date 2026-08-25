@@ -32,7 +32,7 @@ const WORD: Record<string, Rgb> = {
   White: WHITE,
 };
 
-type Motion =
+export type Motion =
   | "auto"
   | "magic"
   | "fade"
@@ -101,7 +101,7 @@ function paletteFromName(name: string): Rgb[] {
   return RAINBOW;
 }
 
-function motionFor(effect: LedEffect | undefined): Motion {
+export function motionFor(effect: LedEffect | undefined): Motion {
   const name = effect?.name ?? "";
   const group = effect?.group ?? "basic";
   if (name.includes("Auto Play")) return "auto";
@@ -124,13 +124,20 @@ function motionFor(effect: LedEffect | undefined): Motion {
 }
 
 function reversed(name: string, group: EffectGroup): boolean {
+  // Flush Close/Open are spatial (ends↔center), not a reversed timeline.
+  if (name.includes("Flush") && (name.includes("Close") || name.includes("Open"))) return false;
   return group === "runback" || name.includes("Back") || name.includes("Close");
 }
 
-/** ELK speed byte: 0 is fastest, 100 is slowest. */
+/**
+ * ELK firmware speed byte: 0 = fastest, 100 = slowest.
+ * Higher slider values MUST produce a longer period (slower motion).
+ * Never invert with (1 - t).
+ */
 export function effectPeriodMs(speed: number, group: EffectGroup | Motion): number {
   const t = Math.min(100, Math.max(0, speed)) / 100;
-  if (group === "strobe" || group === "race" || group === "flush") return 220 + t * 900;
+  if (group === "strobe" || group === "race") return 280 + t * 1100;
+  if (group === "flush") return 380 + t * 1400;
   if (group === "run" || group === "runback" || group === "tail" || group === "marquee" || group === "magic") {
     return 420 + t * 1400;
   }
@@ -217,8 +224,9 @@ export function sampleEffect(id: number, elapsedMs: number, speed: number): Rgb 
     return cycle(colors, u, true);
   }
   if (motion === "flush") {
-    const flash = u % 0.2 < 0.08 ? 1 : 0.15 + pulse(u) * 0.4;
-    return scale(cycle(colors, u, false), flash);
+    // One traveling wash per period — not a full-frame blink.
+    const wash = 0.18 + 0.82 * Math.pow(0.5 - 0.5 * Math.cos(u * Math.PI * 2), 1.15);
+    return scale(cycle(colors, u, true), wash);
   }
   if (motion === "wave") {
     return scale(cycle(colors, u, true), pulse(u));
@@ -228,8 +236,7 @@ export function sampleEffect(id: number, elapsedMs: number, speed: number): Rgb 
     return scale(cycle(colors, u * 2, true), spark);
   }
   if (motion === "energy") {
-    const beat = u % 0.14 < 0.05 ? 1 : 0.25 + pulse(u) * 0.5;
-    return scale(cycle(colors, u * 3, false), beat);
+    return scale(cycle(colors, u, true), 0.2 + pulse(u) * 0.8);
   }
   if (motion === "auto") {
     const scene = Math.floor(((elapsedMs / (period * 0.35)) % 4));
@@ -243,3 +250,79 @@ export function sampleEffect(id: number, elapsedMs: number, speed: number): Rgb 
   }
   return cycle(colors, u, true);
 }
+
+export function sampleLed(
+  id: number,
+  index: number,
+  count: number,
+  elapsedMs: number,
+  speed: number,
+): Rgb {
+  const effect = effectById(id);
+  const colors = paletteFor(id);
+  const motion = motionFor(effect);
+  const group = effect?.group ?? "basic";
+  const period = effectPeriodMs(speed, motion);
+  let u = period <= 0 ? 0 : (elapsedMs / period) % 1;
+  if (effect && reversed(effect.name, group)) u = (1 - u + 1) % 1;
+  const s = count <= 1 ? 0 : index / (count - 1);
+  const dist = Math.min(Math.abs(s - u), Math.abs(s - u + 1), Math.abs(s - u - 1));
+  const base = cycle(colors, u, motion !== "jump" && motion !== "race" && motion !== "strobe");
+
+  if (motion === "strobe") {
+    const on = u < 0.42 || (u > 0.5 && u < 0.62);
+    return on ? cycle(colors, s, false) : { r: 0, g: 0, b: 0 };
+  }
+  if (motion === "jump" || motion === "race") {
+    return cycle(colors, u + s * 0.02, false);
+  }
+  if (motion === "tail" || motion === "marquee") {
+    const trail = Math.max(0, 1 - dist / 0.28);
+    return scale(cycle(colors, u, false), 0.06 + trail * trail * 0.94);
+  }
+  if (motion === "run" || motion === "magic") {
+    const head = dist < 0.07 ? 1 : Math.max(0.08, 1 - dist / 0.18);
+    if (effect?.name.includes("Dot") || effect?.name.includes(" in ")) {
+      return dist < 0.08 ? (colors[1] ?? WHITE) : colors[0];
+    }
+    return scale(cycle(colors, u, false), head);
+  }
+  if (motion === "water" || motion === "wave") {
+    const ripple = 0.2 + 0.8 * (0.5 + 0.5 * Math.sin((s + u) * Math.PI * 4));
+    return scale(cycle(colors, s + u, true), ripple);
+  }
+  if (motion === "curtain") {
+    const open = 1 - Math.abs(u * 2 - 1);
+    const fromCenter = Math.abs(s - 0.5) * 2;
+    const lit = effect?.name.includes("Close") ? fromCenter >= 1 - open : fromCenter <= open;
+    return scale(cycle(colors, u, true), lit ? 1 : 0.07);
+  }
+  if (motion === "flow" || motion === "fade" || motion === "gradual") {
+    return cycle(colors, (s + u) % 1, true);
+  }
+  if (motion === "flush") {
+    const name = effect?.name ?? "";
+    const band = 0.34;
+    let trail: number;
+    if (name.includes("Close")) {
+      const fromEnd = Math.min(s, 1 - s) * 2;
+      trail = Math.max(0, 1 - Math.abs(fromEnd - u) / band);
+    } else if (name.includes("Open")) {
+      const fromCenter = Math.abs(s - 0.5) * 2;
+      trail = Math.max(0, 1 - Math.abs(fromCenter - u) / band);
+    } else {
+      trail = Math.max(0, 1 - dist / band);
+    }
+    return scale(cycle(colors, u, true), 0.06 + Math.pow(trail, 1.2) * 0.94);
+  }
+  if (motion === "energy") {
+    const breath = pulse(u);
+    const ridge = Math.pow(Math.max(0, 1 - dist / 0.5), 1.55);
+    return scale(cycle(colors, u, true), Math.min(1, 0.12 + breath * 0.55 + ridge * 0.33));
+  }
+  if (motion === "auto") {
+    return scale(cycle(colors, s + u, true), 0.25 + 0.75 * (1 - dist / 0.5));
+  }
+  return scale(base, 0.35 + 0.65 * (1 - dist / 0.45));
+}
+

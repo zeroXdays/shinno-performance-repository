@@ -5,7 +5,7 @@ import {
   hexFrame,
 } from "./frames.ts";
 import { detectModel, FALLBACK_MODEL } from "./models.ts";
-import { effectPeriodMs, sampleEffect } from "./preview.ts";
+import { effectPeriodMs, sampleEffect, sampleLed } from "./preview.ts";
 import { EFFECTS } from "./effects.ts";
 
 function assert(name: string, actual: string, expected: string) {
@@ -55,5 +55,30 @@ if (!auto || auto.name !== "Auto Play" || auto.group !== "basic") {
   throw new Error("mode 0 should be Auto Play in basic");
 }
 if (EFFECTS.length !== 213) throw new Error(`expected 213 modes got ${EFFECTS.length}`);
+const jumpLedA = sampleLed(193, 0, 20, 0, 50);
+const jumpLedB = sampleLed(193, 10, 20, 0, 50);
+if (!jumpLedA || !jumpLedB) throw new Error("sampleLed should return a color");
+
+for (const motion of ["flush", "strobe", "magic", "energy", "flow"] as const) {
+  const a = effectPeriodMs(0, motion);
+  const b = effectPeriodMs(50, motion);
+  const c = effectPeriodMs(100, motion);
+  if (!(a < b && b < c)) {
+    throw new Error(`${motion}: speed 0 must be fastest (shorter period), 100 slowest, got ${a}/${b}/${c}`);
+  }
+}
+
+const flushId = 181; // 7-Color Flush
+const flushPeriod = effectPeriodMs(40, "flush");
+const flushBand = Array.from({ length: 20 }, (_, i) => sampleLed(flushId, i, 20, flushPeriod * 0.12, 40));
+const flushLit = flushBand.filter((rgb) => rgb.r + rgb.g + rgb.b > 90).length;
+if (flushLit === 20) throw new Error("flush must be a traveling wash, not a full-path blink");
+if (flushLit < 2) throw new Error("flush wash should light a band of LEDs");
+
+const energyA = sampleEffect(212, 0, 50);
+const energyB = sampleEffect(212, effectPeriodMs(50, "energy") * 0.5, 50);
+if (energyA.r + energyA.g + energyA.b === 0 || energyB.r + energyB.g + energyB.b === 0) {
+  throw new Error("energy should pulse, not strobe to black");
+}
 
 console.log("protocol tests passed");
