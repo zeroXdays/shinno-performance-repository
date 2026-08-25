@@ -85,7 +85,8 @@ function pathFor(motion: ReturnType<typeof motionFor>): { x: number; y: number }
     motion === "flow" ||
     motion === "fade" ||
     motion === "gradual" ||
-    motion === "flush"
+    motion === "flush" ||
+    motion === "trans"
   ) {
     return line();
   }

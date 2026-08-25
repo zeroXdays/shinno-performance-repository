@@ -91,4 +91,21 @@ if (sevenKeys.size < 3) {
 const sevenAllRed = sevenBand.every((rgb) => rgb.r > 180 && rgb.g < 90 && rgb.b < 90);
 if (sevenAllRed) throw new Error("7-Color in Red Running must not paint red on red");
 
+const transId = 3; // 7-Color Trans
+const transPeriod = effectPeriodMs(50, "trans");
+const transLeft = sampleLed(transId, 2, 20, transPeriod * 0.12, 50);
+const transRight = sampleLed(transId, 17, 20, transPeriod * 0.12, 50);
+if (transLeft.r === transRight.r && transLeft.g === transRight.g && transLeft.b === transRight.b) {
+  throw new Error("7-Color Trans should wipe — left and right LEDs must differ mid-transition");
+}
+
+const toRed = sampleLed(9, 18, 20, 0, 50);
+const toGreen = sampleLed(11, 18, 20, 0, 50);
+if (!(toRed.r > toRed.g + 40 && toRed.r > toRed.b + 40)) {
+  throw new Error("6-Color to Red should land on a red endcap");
+}
+if (!(toGreen.g > toGreen.r + 20 && toGreen.g > toGreen.b + 20)) {
+  throw new Error("6-Color to Green should land on a green endcap");
+}
+
 console.log("protocol tests passed");

@@ -48,7 +48,8 @@ export type Motion =
   | "race"
   | "gradual"
   | "marquee"
-  | "energy";
+  | "energy"
+  | "trans";
 
 export function effectById(id: number): LedEffect | undefined {
   return EFFECTS.find((effect) => effect.id === id);
@@ -117,7 +118,7 @@ export function motionFor(effect: LedEffect | undefined): Motion {
   if (name.includes("Flush")) return "flush";
   if (name.includes("Wave")) return "wave";
   if (name.includes("Race")) return "race";
-  if (group === "trans") return "fade";
+  if (group === "trans") return "trans";
   if (group === "tail") return "tail";
   if (group === "water") return "water";
   if (group === "curtain") return "curtain";
@@ -150,6 +151,32 @@ export function effectPeriodMs(speed: number, group: EffectGroup | Motion): numb
   if (group === "flow" || group === "trans" || group === "fade" || group === "gradual") return 1400 + t * 3200;
   if (group === "auto") return 2200 + t * 4800;
   return 900 + t * 2200;
+}
+
+function sampleTrans(colors: Rgb[], s: number, u: number, name: string): Rgb {
+  const toTarget = name.includes("6-Color to");
+  const target = colors[colors.length - 1] ?? WHITE;
+  const goal = 0.72;
+  let local = s;
+  let palette = colors;
+  if (toTarget && colors.length > 1) {
+    if (s >= goal) return target;
+    local = s / goal;
+    palette = colors.slice(0, -1);
+  }
+  if (palette.length === 0) return target;
+  if (palette.length === 1) return palette[0];
+
+  const pos = u * palette.length;
+  const i = Math.floor(pos) % palette.length;
+  const t = pos - Math.floor(pos);
+  const from = palette[i];
+  const to = palette[(i + 1) % palette.length];
+  const edge = 0.18;
+  const arrive = Math.max(0, Math.min(1, (t - local) / edge + 0.5));
+  const mixed = mix(from, to, arrive);
+  const front = Math.max(0, 1 - Math.abs(local - t) / 0.09);
+  return scale(mixed, 0.38 + arrive * 0.52 + front * 0.28);
 }
 
 function mix(a: Rgb, b: Rgb, t: number): Rgb {
@@ -247,6 +274,9 @@ export function sampleEffect(id: number, elapsedMs: number, speed: number): Rgb 
   if (motion === "energy") {
     return scale(cycle(colors, u, true), 0.2 + pulse(u) * 0.8);
   }
+  if (motion === "trans") {
+    return sampleTrans(colors, 0.5, u, effect?.name ?? "");
+  }
   if (motion === "auto") {
     const scene = Math.floor(((elapsedMs / (period * 0.35)) % 4));
     if (scene === 1) return cycle(colors, u, false);
@@ -320,6 +350,9 @@ export function sampleLed(
     const fromCenter = Math.abs(s - 0.5) * 2;
     const lit = effect?.name.includes("Close") ? fromCenter >= 1 - open : fromCenter <= open;
     return scale(cycle(colors, u, true), lit ? 1 : 0.07);
+  }
+  if (motion === "trans") {
+    return sampleTrans(colors, s, u, effect?.name ?? "");
   }
   if (motion === "flow" || motion === "fade" || motion === "gradual") {
     return cycle(colors, (s + u) % 1, true);
