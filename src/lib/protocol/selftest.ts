@@ -106,16 +106,26 @@ if (transLeft.r === transRight.r && transLeft.g === transRight.g && transLeft.b 
 }
 
 const magicId = 1; // Magic Forward
+const magicBackId = 2; // Magic Back
 const magicPeriod = effectPeriodMs(50, "magic");
 const magicMid = Array.from({ length: 20 }, (_, i) => sampleLed(magicId, i, 20, magicPeriod * 0.4, 50));
 const magicLit = magicMid.filter((rgb) => rgb.r + rgb.g + rgb.b > 40);
-const magicDark = magicMid.filter((rgb) => rgb.r + rgb.g + rgb.b <= 40);
-if (magicDark.length < 3) throw new Error("Magic Forward should still have unpainted LEDs mid-chase");
+if (magicLit.length < 18) throw new Error("Magic Forward should keep the ring lit — no fill-and-hold gap");
 const magicKeys = new Set(magicLit.map((rgb) => `${rgb.r},${rgb.g},${rgb.b}`));
-if (magicKeys.size < 3) throw new Error("Magic Forward should show several rainbow colors at once on the painted span");
+if (magicKeys.size < 3) throw new Error("Magic Forward should show several rainbow colors at once");
 const magicLate = Array.from({ length: 20 }, (_, i) => sampleLed(magicId, i, 20, magicPeriod * 0.9, 50));
 const magicLateLit = magicLate.filter((rgb) => rgb.r + rgb.g + rgb.b > 40).length;
-if (magicLateLit < 16) throw new Error("Magic Forward should finish with the ring mostly painted");
+if (magicLateLit < 18) throw new Error("Magic Forward should stay continuous at the end of a cycle, not snap dark");
+const magicEarly = sampleLed(magicId, 4, 20, 0, 50);
+const magicMoved = sampleLed(magicId, 4, 20, magicPeriod * 0.2, 50);
+if (magicEarly.r === magicMoved.r && magicEarly.g === magicMoved.g && magicEarly.b === magicMoved.b) {
+  throw new Error("Magic Forward should keep rotating instead of holding a painted ring");
+}
+const magicFwd = sampleLed(magicId, 4, 20, magicPeriod * 0.25, 50);
+const magicBackMirror = sampleLed(magicBackId, 15, 20, magicPeriod * 0.25, 50);
+if (magicFwd.r !== magicBackMirror.r || magicFwd.g !== magicBackMirror.g || magicFwd.b !== magicBackMirror.b) {
+  throw new Error("Magic Back should rotate the same rainbow the other way");
+}
 
 const raceId = 77; // 7-Color Race
 const racePeriod = effectPeriodMs(50, "race");
@@ -144,6 +154,17 @@ if (!(toRed.r > toRed.g + 40 && toRed.r > toRed.b + 40)) {
 }
 if (!(toGreen.g > toGreen.r + 20 && toGreen.g > toGreen.b + 20)) {
   throw new Error("6-Color to Green should land on a green endcap");
+}
+
+for (const effect of EFFECTS) {
+  for (const elapsed of [-2, -0.4, 0, 1, 40, 400, 4000]) {
+    for (let i = 0; i < 20; i++) {
+      const rgb = sampleLed(effect.id, i, 20, elapsed, 50);
+      if (!Number.isFinite(rgb.r) || !Number.isFinite(rgb.g) || !Number.isFinite(rgb.b)) {
+        throw new Error(`${effect.name} LED ${i} at ${elapsed}ms returned a non-finite color`);
+      }
+    }
+  }
 }
 
 console.log("protocol tests passed");

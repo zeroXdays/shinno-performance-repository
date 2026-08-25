@@ -60,7 +60,10 @@ export function rgbCss(rgb: Rgb, alpha = 1): string {
 }
 
 export function paletteFor(id: number): Rgb[] {
-  return paletteFromName(effectById(id)?.name ?? "");
+  const colors = paletteFromName(effectById(id)?.name ?? "").filter(
+    (color): color is Rgb => Boolean(color) && Number.isFinite(color.r),
+  );
+  return colors.length > 0 ? colors : RAINBOW;
 }
 
 function paletteFromName(name: string): Rgb[] {
@@ -138,7 +141,8 @@ function reversed(name: string, group: EffectGroup): boolean {
  * Firmware still uses 0 = fastest; encodeEffectSpeed inverts the byte.
  */
 export function effectPeriodMs(speed: number, group: EffectGroup | Motion): number {
-  const t = 1 - Math.min(100, Math.max(0, speed)) / 100;
+  const ui = Number.isFinite(speed) ? speed : 50;
+  const t = 1 - Math.min(100, Math.max(0, ui)) / 100;
   if (group === "strobe") return 280 + t * 1100;
   if (group === "race") return 1100 + t * 2600;
   if (group === "flush") return 380 + t * 1400;
@@ -179,12 +183,20 @@ function sampleTrans(colors: Rgb[], s: number, u: number, name: string): Rgb {
   return scale(mixed, 0.38 + arrive * 0.52 + front * 0.28);
 }
 
-function mix(a: Rgb, b: Rgb, t: number): Rgb {
-  const u = Math.min(1, Math.max(0, t));
+function wrap(i: number, n: number): number {
+  if (n <= 0 || !Number.isFinite(i)) return 0;
+  const m = i % n;
+  return m < 0 ? m + n : m;
+}
+
+function mix(a: Rgb | undefined, b: Rgb | undefined, t: number): Rgb {
+  const left = a ?? { r: 0, g: 0, b: 0 };
+  const right = b ?? left;
+  const u = Math.min(1, Math.max(0, Number.isFinite(t) ? t : 0));
   return {
-    r: Math.round(a.r + (b.r - a.r) * u),
-    g: Math.round(a.g + (b.g - a.g) * u),
-    b: Math.round(a.b + (b.b - a.b) * u),
+    r: Math.round(left.r + (right.r - left.r) * u),
+    g: Math.round(left.g + (right.g - left.g) * u),
+    b: Math.round(left.b + (right.b - left.b) * u),
   };
 }
 
@@ -198,12 +210,13 @@ function scale(rgb: Rgb, amount: number): Rgb {
 }
 
 function cycle(colors: Rgb[], u: number, smooth: boolean): Rgb {
+  if (colors.length === 0) return { r: 0, g: 0, b: 0 };
   if (colors.length === 1) return colors[0];
   const wrapped = ((u % 1) + 1) % 1;
   const pos = wrapped * colors.length;
-  const i = Math.floor(pos) % colors.length;
-  const next = colors[(i + 1) % colors.length];
-  if (!smooth) return colors[i];
+  const i = wrap(Math.floor(pos), colors.length);
+  const next = colors[wrap(i + 1, colors.length)];
+  if (!smooth) return colors[i] ?? next ?? { r: 0, g: 0, b: 0 };
   return mix(colors[i], next, pos - i);
 }
 
@@ -212,28 +225,25 @@ function pulse(u: number): number {
 }
 
 function sampleMagic(colors: Rgb[], s: number, u: number, reverse: boolean): Rgb {
-  // Rainbow paints onto the ring as a head chases forward, then holds full before resetting.
-  const fill = Math.min(1, u / 0.82);
-  const pos = reverse ? 1 - s : s;
-  if (pos > fill + 0.012) return { r: 0, g: 0, b: 0 };
-  const painted = cycle(colors, pos, false);
-  const head = Math.abs(pos - fill) < 0.055 ? 1 : 0.88;
-  return scale(painted, head);
+  // Rainbow occupies the whole ring and rotates forever — no dark gap, no hold.
+  const along = reverse ? 1 - s : s;
+  return cycle(colors, along - u, false);
 }
 
 function sampleRace(colors: Rgb[], s: number, elapsedMs: number, period: number, reverse: boolean): Rgb {
   // Solid field; the next color runs through and takes over.
   if (colors.length === 0) return { r: 0, g: 0, b: 0 };
   if (colors.length === 1) return colors[0];
-  const takeovers = period <= 0 ? 0 : elapsedMs / period;
+  const elapsed = Number.isFinite(elapsedMs) ? elapsedMs : 0;
+  const takeovers = period <= 0 ? 0 : elapsed / period;
   const i = Math.floor(takeovers);
   const t = takeovers - i;
-  const from = colors[i % colors.length];
-  const to = colors[(i + 1) % colors.length];
+  const from = colors[wrap(i, colors.length)];
+  const to = colors[wrap(i + 1, colors.length)];
   const pos = reverse ? 1 - s : s;
   const edge = 0.05;
-  if (pos < t - edge) return to;
-  if (pos > t + edge) return from;
+  if (pos < t - edge) return to ?? from ?? { r: 0, g: 0, b: 0 };
+  if (pos > t + edge) return from ?? to ?? { r: 0, g: 0, b: 0 };
   const blend = (pos - (t - edge)) / (edge * 2);
   return mix(to, from, blend);
 }
@@ -261,7 +271,7 @@ export function sampleEffect(id: number, elapsedMs: number, speed: number): Rgb 
     const i = Math.floor(takeovers);
     const t = takeovers - i;
     if (colors.length < 2) return colors[0] ?? { r: 0, g: 0, b: 0 };
-    return mix(colors[i % colors.length], colors[(i + 1) % colors.length], t);
+    return mix(colors[wrap(i, colors.length)], colors[wrap(i + 1, colors.length)], t);
   }
   if (motion === "tail") {
     const head = Math.pow(Math.max(0, 1 - ((u * 1.35) % 1) / 0.22), 1.8);
@@ -303,7 +313,7 @@ export function sampleEffect(id: number, elapsedMs: number, speed: number): Rgb 
     return scale(cycle(colors, u, true), pulse(u));
   }
   if (motion === "magic") {
-    return cycle(colors, Math.min(1, u / 0.82) * 0.85, false);
+    return cycle(colors, rev ? -u : u, false);
   }
   if (motion === "energy") {
     return scale(cycle(colors, u, true), 0.2 + pulse(u) * 0.8);
