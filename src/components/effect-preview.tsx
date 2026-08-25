@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useClock } from "@/hooks/use-clock";
+import { useI18n } from "@/lib/i18n";
 import {
   effectById,
   motionFor,
@@ -56,6 +57,7 @@ export function PlayingBar({
   speed: number;
   power: boolean;
 }) {
+  const { t } = useI18n();
   const effect = effectId != null ? effectById(effectId) : undefined;
   return (
     <div className="overflow-hidden rounded-xl border border-white/10 bg-black/40">
@@ -63,11 +65,11 @@ export function PlayingBar({
         {effect && power ? (
           <ModeGlyph effect={effect} speed={speed} />
         ) : (
-          <div className="flex h-full items-center justify-center text-xs text-white/35">Pick a mode</div>
+          <div className="flex h-full items-center justify-center text-xs text-white/35">{t("effects.pick")}</div>
         )}
       </div>
       <p className="px-3 pb-2 text-center text-xs text-white/50">
-        {effect ? effect.name : "The path shows how the animation moves."}
+        {effect ? effect.name : t("effects.path")}
       </p>
     </div>
   );

@@ -88,5 +88,36 @@ export function persistable(controllers: Controller[]): unknown {
     brightness: c.brightness,
     effectId: c.effectId,
     effectSpeed: c.effectSpeed,
+    wantConnected: c.connection === "connected",
   }));
+}
+
+export function hydrateControllers(raw: unknown, rememberConnect = true): Controller[] {
+  if (!Array.isArray(raw)) return [];
+  const next: Controller[] = [];
+  for (const row of raw) {
+    if (!row || typeof row !== "object") continue;
+    const item = row as Partial<Controller> & { wantConnected?: boolean };
+    if (typeof item.id !== "string" || typeof item.advertisedName !== "string") continue;
+    const wantConnected = Boolean(item.wantConnected);
+    const canRestore =
+      rememberConnect && wantConnected && (item.transport ?? "simulator") === "simulator";
+    next.push({
+      ...createController({
+        id: item.id,
+        advertisedName: item.advertisedName,
+        zone: (item.zone as ZoneKind) ?? "custom",
+        modelId: item.modelId ?? "elk-bledom",
+        transport: item.transport ?? "simulator",
+        customName: item.customName,
+      }),
+      power: item.power ?? true,
+      color: item.color ?? { r: 196, g: 18, b: 32 },
+      brightness: item.brightness ?? 80,
+      effectId: item.effectId,
+      effectSpeed: item.effectSpeed ?? 50,
+      connection: canRestore ? "connected" : "disconnected",
+    });
+  }
+  return next;
 }

@@ -28,6 +28,8 @@ Open [http://127.0.0.1:43147](http://127.0.0.1:43147) in Chrome — localhost is
 
 The first load also seeds a demo garage so you can click around with no boxes. **Demo scan** adds simulated controllers only — use **Pair** for live Bluetooth.
 
+The gear in the header opens **Settings**: auto-add and auto-connect, remember last connect state, manual connect, Night / Graphite / Studio themes, English or Spanish (system language by default), how-to-use, privacy policy, user agreement, updates, and feedback. Rename boxes on **Devices**, and use **Remove** to drop a paired controller.
+
 ### iPhone (the real client)
 
 iOS Safari has no Web Bluetooth. Pairing on a phone means the native app:

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { GarageProvider } from "@/lib/garage-context";
+import { ThemeRoot } from "@/lib/theme-root";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,7 +18,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`dark ${geistSans.variable} h-full antialiased`}>
       <body className="min-h-full bg-background font-sans text-foreground">
-        <GarageProvider>{children}</GarageProvider>
+        <GarageProvider>
+          <ThemeRoot>{children}</ThemeRoot>
+        </GarageProvider>
       </body>
     </html>
   );

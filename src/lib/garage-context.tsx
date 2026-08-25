@@ -19,6 +19,7 @@ import {
   guessZone,
   persistable,
   STORAGE_KEY,
+  hydrateControllers,
   type Controller,
   type TabId,
 } from "@/lib/controller";
@@ -33,6 +34,7 @@ import {
 } from "@/lib/protocol";
 import { createDemoControllers } from "@/lib/demo";
 import { SCENES, type Scene } from "@/lib/scenes";
+import { getSettings } from "@/lib/settings";
 
 type Target = "all" | ZoneKind;
 
@@ -59,6 +61,8 @@ interface GarageContextValue {
   stopScan: () => void;
   pair: (discovery: DiscoveredDevice) => Promise<void>;
   forget: (id: string) => Promise<void>;
+  connect: (id: string) => Promise<void>;
+  disconnect: (id: string) => Promise<void>;
   rename: (id: string, name: string) => void;
   setZone: (id: string, zone: ZoneKind) => void;
   setPower: (on: boolean) => Promise<void>;
@@ -78,7 +82,17 @@ export function GarageProvider({ children }: { children: ReactNode }) {
   const writeQueue = useRef(Promise.resolve());
   const colorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [controllers, setControllers] = useState<Controller[]>(() => createDemoControllers());
+  const [controllers, setControllers] = useState<Controller[]>(() => {
+    if (typeof window === "undefined") return createDemoControllers();
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return createDemoControllers();
+      const hydrated = hydrateControllers(JSON.parse(raw), getSettings().rememberConnect);
+      return hydrated.length ? hydrated : createDemoControllers();
+    } catch {
+      return createDemoControllers();
+    }
+  });
   const [discoveries, setDiscoveries] = useState<DiscoveredDevice[]>([]);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -233,35 +247,6 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     setTarget("all");
   }, [controllers, persist]);
 
-  const scan = useCallback(async (mode: "simulator" | "web-bluetooth") => {
-    setScanning(true);
-    setScanError(null);
-    setDiscoveries([]);
-    setTab("scan");
-    const transport = mode === "web-bluetooth" ? (web.current ??= new WebBluetoothTransport()) : sim.current;
-    try {
-      await transport.scan((device) => {
-        setDiscoveries((prev) =>
-          prev.some((d) => d.id === device.id) ? prev : [...prev, device],
-        );
-      });
-    } catch (error) {
-      if (isChooserCancel(error)) {
-        setScanError(null);
-        return;
-      }
-      setScanError(error instanceof Error ? error.message : "Scan failed.");
-    } finally {
-      setScanning(false);
-    }
-  }, []);
-
-  const stopScan = useCallback(() => {
-    sim.current.stopScan();
-    web.current?.stopScan();
-    setScanning(false);
-  }, []);
-
   const pair = useCallback(
     async (discovery: DiscoveredDevice) => {
       if (controllers.some((c) => c.id === discovery.id)) return;
@@ -276,6 +261,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
         transport: discovery.transport,
       });
       setControllers((prev) => {
+        if (prev.some((c) => c.id === discovery.id)) return prev;
         const next = [...prev, controller];
         persist(next);
         return next;
@@ -285,6 +271,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
           ? (web.current ??= new WebBluetoothTransport())
           : sim.current;
       transports.current.set(controller.id, transport);
+      if (!getSettings().autoConnect) return;
       try {
         await ensureConnected(controller);
       } catch {
@@ -293,6 +280,42 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     },
     [controllers, ensureConnected, persist],
   );
+
+  const scan = useCallback(async (mode: "simulator" | "web-bluetooth") => {
+    setScanning(true);
+    setScanError(null);
+    setDiscoveries([]);
+    setTab("scan");
+    const transport = mode === "web-bluetooth" ? (web.current ??= new WebBluetoothTransport()) : sim.current;
+    const found: DiscoveredDevice[] = [];
+    try {
+      await transport.scan((device) => {
+        found.push(device);
+        setDiscoveries((prev) =>
+          prev.some((d) => d.id === device.id) ? prev : [...prev, device],
+        );
+      });
+      if (getSettings().autoAdd) {
+        for (const device of found) {
+          await pair(device);
+        }
+      }
+    } catch (error) {
+      if (isChooserCancel(error)) {
+        setScanError(null);
+        return;
+      }
+      setScanError(error instanceof Error ? error.message : "Scan failed.");
+    } finally {
+      setScanning(false);
+    }
+  }, [pair]);
+
+  const stopScan = useCallback(() => {
+    sim.current.stopScan();
+    web.current?.stopScan();
+    setScanning(false);
+  }, []);
 
   const forget = useCallback(
     async (id: string) => {
@@ -307,6 +330,20 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     },
     [persist, target],
   );
+
+  const connect = useCallback(
+    async (id: string) => {
+      const controller = controllers.find((c) => c.id === id);
+      if (!controller) return;
+      await ensureConnected(controller);
+    },
+    [controllers, ensureConnected],
+  );
+
+  const disconnect = useCallback(async (id: string) => {
+    await transports.current.get(id)?.disconnect(id);
+    patch(id, { connection: "disconnected" });
+  }, [patch]);
 
   const rename = useCallback(
     (id: string, name: string) => patch(id, { customName: name }),
@@ -492,6 +529,8 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     stopScan,
     pair,
     forget,
+    connect,
+    disconnect,
     rename,
     setZone,
     setPower,

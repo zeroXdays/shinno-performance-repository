@@ -124,14 +124,43 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-image:
-      radial-gradient(900px 420px at 50% -8%, rgba(225, 6, 0, 0.22), transparent 58%),
-      radial-gradient(700px 280px at 80% 110%, rgba(40, 80, 120, 0.12), transparent 50%),
-      linear-gradient(#070708, #050506);
+    background-color: #050506;
   }
   html {
     @apply font-sans;
   }
+}
+
+.app-shell {
+  background-color: #070708;
+  background-image:
+    radial-gradient(920px 460px at 50% -12%, rgba(225, 6, 0, 0.2), transparent 58%),
+    radial-gradient(640px 280px at 0% 80%, rgba(80, 90, 120, 0.1), transparent 55%),
+    radial-gradient(520px 240px at 100% 100%, rgba(40, 48, 70, 0.16), transparent 50%),
+    linear-gradient(#09090b, #050506);
+}
+
+.app-shell[data-theme="graphite"] {
+  --card: #14171d;
+  --popover: #171b22;
+  --muted: #1a1e26;
+  --accent: #1a2030;
+  background-color: #0a0c10;
+  background-image:
+    radial-gradient(900px 420px at 50% -10%, rgba(120, 140, 170, 0.16), transparent 58%),
+    linear-gradient(#0c0e12, #07080a);
+}
+
+.app-shell[data-theme="studio"] {
+  --card: #191210;
+  --popover: #1c1412;
+  --muted: #221714;
+  --accent: #2a1612;
+  background-color: #100c0b;
+  background-image:
+    radial-gradient(900px 420px at 50% -10%, rgba(225, 6, 0, 0.16), transparent 58%),
+    radial-gradient(500px 240px at 90% 110%, rgba(180, 120, 60, 0.1), transparent 50%),
+    linear-gradient(#120e0c, #080605);
 }
 
 @media (prefers-reduced-motion: reduce) {
