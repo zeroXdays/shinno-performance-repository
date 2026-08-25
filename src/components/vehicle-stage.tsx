@@ -17,47 +17,58 @@ interface VehicleStageProps {
 }
 
 const PHOTOS: Record<CarId, { src: string; alt: string }> = {
-  q50: { src: "/cars/q50-ink.png", alt: "Infiniti Q50" },
-  q60: { src: "/cars/q60-ink.png", alt: "Infiniti Q60" },
-  q70: { src: "/cars/q70-ink.png", alt: "Infiniti Q70" },
+  q50: { src: "/cars/q50.jpg", alt: "Infiniti Q50" },
+  q60: { src: "/cars/q60.jpg", alt: "Infiniti Q60" },
+  q70: { src: "/cars/q70.jpg", alt: "Infiniti Q70" },
 };
 
-interface ProductSpot {
+type FixtureKind = "emblem" | "badge" | "mirror" | "bumper";
+
+interface Fixture {
   zone: ZoneKind;
-  src: string;
-  left: string;
-  top: string;
-  width: string;
-  rotate?: number;
-  scaleX?: number;
-  leds?: number;
+  kind: FixtureKind;
+  /** Percent of the photo box — measured from the 3/4 studio plates. */
+  left: number;
+  top: number;
+  width: number;
+  rotate: number;
+  /** 1 = as drawn; <1 foreshortens a face that turns away. */
+  scaleX: number;
+  leds: number;
+  /** Flip bumper/mirror housings that point the other way. */
+  mirror?: boolean;
+  caption?: string;
 }
 
-/** Tight product meshes seated on the 3/4 graphic plate. */
-const PRODUCTS: Record<CarId, ProductSpot[]> = {
+/**
+ * Q50 3/4 (1600×1067): oval at ~17–23% × 51–58%, Q50 script under it in the
+ * mesh, passenger sequential on the far mirror (~29×33), driver sequential on
+ * the near mirror cap (~74–80 × 38), bumper bars in the fog recesses.
+ */
+const LAYOUTS: Record<CarId, Fixture[]> = {
   q50: [
-    { zone: "emblem", src: "/products/emblem.png", left: "19.8%", top: "51.6%", width: "7.2%", rotate: 11, scaleX: 0.74 },
-    { zone: "grille", src: "/products/grille-badge.png", left: "29.6%", top: "55.8%", width: "7.2%", rotate: 8, scaleX: 0.84 },
-    { zone: "mirrors", src: "/products/mirror-left.png", left: "19.4%", top: "33.8%", width: "3.1%", rotate: -32, scaleX: 0.86, leds: 9 },
-    { zone: "mirrors", src: "/products/mirror-right.png", left: "25.6%", top: "31.6%", width: "3.9%", rotate: -16, scaleX: 0.94, leds: 9 },
-    { zone: "bumper", src: "/products/bumper-left.png", left: "8.0%", top: "63.2%", width: "7.4%", rotate: -8, scaleX: 0.9, leds: 6 },
-    { zone: "bumper", src: "/products/bumper-right.png", left: "37.0%", top: "62.6%", width: "8.8%", rotate: 5, scaleX: 1, leds: 6 },
+    { zone: "emblem", kind: "emblem", left: 16.9, top: 50.6, width: 6.4, rotate: 8, scaleX: 0.9, leds: 8 },
+    { zone: "grille", kind: "badge", left: 17.6, top: 57.8, width: 7.4, rotate: 6, scaleX: 0.92, leds: 6, caption: "Q50" },
+    { zone: "mirrors", kind: "mirror", left: 26.8, top: 31.4, width: 3.8, rotate: -26, scaleX: 0.78, leds: 9 },
+    { zone: "mirrors", kind: "mirror", left: 72.6, top: 36.2, width: 7.4, rotate: 5, scaleX: 1, leds: 9 },
+    { zone: "bumper", kind: "bumper", left: 5.8, top: 66.4, width: 9.2, rotate: -12, scaleX: 0.86, leds: 5, mirror: true },
+    { zone: "bumper", kind: "bumper", left: 35.2, top: 63.8, width: 13.4, rotate: 7, scaleX: 1, leds: 5 },
   ],
   q60: [
-    { zone: "emblem", src: "/products/emblem.png", left: "16.8%", top: "52.8%", width: "6.8%", rotate: 10, scaleX: 0.74 },
-    { zone: "grille", src: "/products/grille-badge.png", left: "26.2%", top: "57.2%", width: "6.8%", rotate: 7, scaleX: 0.84 },
-    { zone: "mirrors", src: "/products/mirror-left.png", left: "17.6%", top: "31.4%", width: "3.0%", rotate: -28, scaleX: 0.86, leds: 9 },
-    { zone: "mirrors", src: "/products/mirror-right.png", left: "24.2%", top: "29.6%", width: "3.8%", rotate: -12, scaleX: 0.94, leds: 9 },
-    { zone: "bumper", src: "/products/bumper-left.png", left: "6.8%", top: "65.0%", width: "7.0%", rotate: -8, scaleX: 0.9, leds: 6 },
-    { zone: "bumper", src: "/products/bumper-right.png", left: "27.4%", top: "64.0%", width: "8.4%", rotate: 4, scaleX: 1, leds: 6 },
+    { zone: "emblem", kind: "emblem", left: 8.4, top: 52.4, width: 5.8, rotate: 10, scaleX: 0.86, leds: 8 },
+    { zone: "grille", kind: "badge", left: 9.2, top: 59.4, width: 6.6, rotate: 8, scaleX: 0.88, leds: 6, caption: "Q60" },
+    { zone: "mirrors", kind: "mirror", left: 22.4, top: 28.6, width: 3.4, rotate: -24, scaleX: 0.78, leds: 9 },
+    { zone: "mirrors", kind: "mirror", left: 68.8, top: 31.8, width: 6.8, rotate: 4, scaleX: 1, leds: 9 },
+    { zone: "bumper", kind: "bumper", left: 4.8, top: 68.2, width: 8.4, rotate: -10, scaleX: 0.86, leds: 5, mirror: true },
+    { zone: "bumper", kind: "bumper", left: 29.4, top: 65.8, width: 14.2, rotate: 6, scaleX: 1, leds: 5 },
   ],
   q70: [
-    { zone: "emblem", src: "/products/emblem.png", left: "17.6%", top: "54.8%", width: "7.0%", rotate: 9, scaleX: 0.74 },
-    { zone: "grille", src: "/products/grille-badge.png", left: "27.4%", top: "59.4%", width: "7.0%", rotate: 7, scaleX: 0.84 },
-    { zone: "mirrors", src: "/products/mirror-left.png", left: "18.2%", top: "33.0%", width: "3.0%", rotate: -26, scaleX: 0.86, leds: 9 },
-    { zone: "mirrors", src: "/products/mirror-right.png", left: "24.8%", top: "32.4%", width: "3.8%", rotate: -10, scaleX: 0.94, leds: 9 },
-    { zone: "bumper", src: "/products/bumper-left.png", left: "6.4%", top: "66.4%", width: "7.2%", rotate: -6, scaleX: 0.9, leds: 6 },
-    { zone: "bumper", src: "/products/bumper-right.png", left: "31.2%", top: "67.2%", width: "8.6%", rotate: 3, scaleX: 1, leds: 6 },
+    { zone: "emblem", kind: "emblem", left: 10.2, top: 53.6, width: 9.4, rotate: 6, scaleX: 0.9, leds: 8 },
+    { zone: "grille", kind: "badge", left: 12.0, top: 62.0, width: 8.2, rotate: 5, scaleX: 0.92, leds: 6, caption: "Q70" },
+    { zone: "mirrors", kind: "mirror", left: 24.0, top: 32.4, width: 3.6, rotate: -20, scaleX: 0.78, leds: 9 },
+    { zone: "mirrors", kind: "mirror", left: 66.4, top: 34.8, width: 7.0, rotate: 3, scaleX: 1, leds: 9 },
+    { zone: "bumper", kind: "bumper", left: 6.2, top: 69.4, width: 9.0, rotate: -8, scaleX: 0.86, leds: 5, mirror: true },
+    { zone: "bumper", kind: "bumper", left: 33.6, top: 69.2, width: 12.8, rotate: 4, scaleX: 1, leds: 5 },
   ],
 };
 
@@ -67,7 +78,7 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
   const elapsed = useClock(playing);
   const colorOf = (controller?: Controller) => fill(controller, elapsed);
   const photo = PHOTOS[car];
-  const spots = PRODUCTS[car];
+  const fixtures = LAYOUTS[car];
 
   const toggle = (zone: ZoneKind) => {
     onSelect(target === zone ? "all" : zone);
@@ -84,17 +95,17 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
           alt={photo.alt}
           width={1600}
           height={1067}
-          className="relative z-0 h-auto w-full select-none grayscale contrast-125"
+          className="relative z-0 h-auto w-full select-none saturate-[0.15] contrast-110"
           priority
         />
-        {spots.map((spot, i) => (
-          <ProductMesh
-            key={`${spot.zone}-${i}`}
-            spot={spot}
-            controller={zoneCtrl(spot.zone)}
+        {fixtures.map((fixture, i) => (
+          <LightFixture
+            key={`${fixture.zone}-${fixture.kind}-${i}`}
+            fixture={fixture}
+            controller={zoneCtrl(fixture.zone)}
             elapsed={elapsed}
-            selected={target === spot.zone}
-            onToggle={() => toggle(spot.zone)}
+            selected={target === fixture.zone}
+            onToggle={() => toggle(fixture.zone)}
           />
         ))}
       </div>
@@ -132,80 +143,145 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
   );
 }
 
-function ProductMesh({
-  spot,
+function LightFixture({
+  fixture,
   controller,
   elapsed,
   selected,
   onToggle,
 }: {
-  spot: ProductSpot;
+  fixture: Fixture;
   controller?: Controller;
   elapsed: number;
   selected: boolean;
   onToggle: () => void;
 }) {
   const on = Boolean(controller?.power);
-  const leds = spot.leds ?? 1;
   return (
-    <div
-      className="absolute z-10"
+    <button
+      type="button"
+      aria-label={label(fixture.zone)}
+      className={cn(
+        "absolute z-10 origin-center bg-transparent p-0",
+        selected ? "z-20" : "",
+      )}
       style={{
-        isolation: "isolate",
-        left: spot.left,
-        top: spot.top,
-        width: spot.width,
-        transform: `rotate(${spot.rotate ?? 0}deg) scaleX(${spot.scaleX ?? 1})`,
-        transformOrigin: "center center",
+        left: `${fixture.left}%`,
+        top: `${fixture.top}%`,
+        width: `${fixture.width}%`,
+        transform: `rotate(${fixture.rotate}deg) scaleX(${fixture.scaleX * (fixture.mirror ? -1 : 1)})`,
+      }}
+      onClick={(event) => {
+        event.stopPropagation();
+        onToggle();
       }}
     >
-      {/* Product PNGs also drive CSS masks; next/image would rewrite the URL. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={spot.src}
-        alt=""
-        draggable={false}
-        className="relative z-0 h-auto w-full select-none"
+      <span
+        className={cn("block", selected ? "rounded-sm ring-2 ring-white/85 ring-offset-1 ring-offset-black/50" : "")}
         style={{
-          filter: on ? "grayscale(1) contrast(1.12) brightness(1.05)" : "grayscale(1) contrast(1.08) brightness(0.82)",
+          filter: on
+            ? `drop-shadow(0 0 4px ${fill(controller, elapsed)})`
+            : "drop-shadow(0 1px 1px rgba(0,0,0,0.65))",
         }}
-      />
-      {on ? (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-0 z-10"
-          style={{
-            WebkitMaskImage: `url(${spot.src})`,
-            maskImage: `url(${spot.src})`,
-            WebkitMaskSize: "contain",
-            maskSize: "contain",
-            WebkitMaskRepeat: "no-repeat",
-            maskRepeat: "no-repeat",
-            WebkitMaskPosition: "center",
-            maskPosition: "center",
-            background: meshFill(controller, elapsed, leds),
-            opacity: 0.82,
-          }}
-        />
-      ) : null}
-      {on && leds > 1 ? <LedRow controller={controller} elapsed={elapsed} count={leds} /> : null}
-      <button
-        type="button"
-        aria-label={label(spot.zone)}
-        className={cn(
-          "absolute inset-0 z-20 rounded-sm bg-transparent",
-          selected ? "ring-2 ring-white/85 ring-offset-1 ring-offset-black/40" : "hover:ring-1 hover:ring-white/35",
+      >
+        {fixture.kind === "emblem" ? (
+          <EmblemMesh controller={controller} elapsed={elapsed} />
+        ) : fixture.kind === "badge" ? (
+          <BadgeMesh controller={controller} elapsed={elapsed} caption={fixture.caption ?? "Q50"} />
+        ) : fixture.kind === "mirror" ? (
+          <MirrorMesh controller={controller} elapsed={elapsed} count={fixture.leds} />
+        ) : (
+          <BumperMesh controller={controller} elapsed={elapsed} count={fixture.leds} />
         )}
-        onClick={(event) => {
-          event.stopPropagation();
-          onToggle();
-        }}
-      />
-    </div>
+      </span>
+    </button>
   );
 }
 
-function LedRow({
+function EmblemMesh({ controller, elapsed }: { controller?: Controller; elapsed: number }) {
+  const on = Boolean(controller?.power);
+  const leds = 8;
+  return (
+    <svg viewBox="0 0 120 90" className="h-auto w-full" aria-hidden>
+      <defs>
+        <radialGradient id="emblemCarbon" cx="50%" cy="40%" r="70%">
+          <stop offset="0%" stopColor="#3a3a3c" />
+          <stop offset="100%" stopColor="#111113" />
+        </radialGradient>
+      </defs>
+      <ellipse cx="60" cy="45" rx="56" ry="40" fill="url(#emblemCarbon)" />
+      {on
+        ? Array.from({ length: leds }, (_, i) => {
+            const rgb = ledColor(controller, elapsed, i, leds);
+            const a = (-Math.PI / 2 + (i / leds) * Math.PI * 2) % (Math.PI * 2);
+            return (
+              <ellipse
+                key={i}
+                cx={60 + Math.cos(a) * 38}
+                cy={45 + Math.sin(a) * 27}
+                rx="14"
+                ry="11"
+                fill={rgbToCss(rgb, 0.55)}
+              />
+            );
+          })
+        : null}
+      <ellipse
+        cx="60"
+        cy="45"
+        rx="56"
+        ry="40"
+        fill="none"
+        stroke={on ? "rgba(240,240,242,0.92)" : "rgba(196,198,202,0.88)"}
+        strokeWidth="4.2"
+      />
+      <path
+        d="M60 12C46 26 36 40 28 64c6-5 14-9 22-7l10 18 10-18c8-2 16 2 22 7C84 40 74 26 60 12Z"
+        fill={on ? "rgba(236,237,240,0.95)" : "rgba(198,200,204,0.9)"}
+      />
+    </svg>
+  );
+}
+
+function BadgeMesh({
+  controller,
+  elapsed,
+  caption,
+}: {
+  controller?: Controller;
+  elapsed: number;
+  caption: string;
+}) {
+  const on = Boolean(controller?.power);
+  const rgb = controller?.power
+    ? controller.effectId != null
+      ? sampleEffect(controller.effectId, elapsed, controller.effectSpeed)
+      : controller.color
+    : { r: 28, g: 28, b: 30 };
+  const face = on ? rgbToCss(rgb, 0.92) : "#1a1a1c";
+  return (
+    <svg viewBox="0 0 220 70" className="h-auto w-full" aria-hidden>
+      <text
+        x="110"
+        y="54"
+        textAnchor="middle"
+        fontFamily="Arial Black, Arial, sans-serif"
+        fontStyle="italic"
+        fontWeight="900"
+        fontSize="52"
+        letterSpacing="-3"
+        fill={face}
+        stroke="rgba(210,212,216,0.95)"
+        strokeWidth="3.5"
+        paintOrder="stroke fill"
+      >
+        {caption}
+      </text>
+    </svg>
+  );
+}
+
+function MirrorMesh({
   controller,
   elapsed,
   count,
@@ -214,29 +290,69 @@ function LedRow({
   elapsed: number;
   count: number;
 }) {
-  if (!controller?.power) return null;
+  const on = Boolean(controller?.power);
+  const segs = Array.from({ length: count }, (_, i) => i);
   return (
-    <svg className="pointer-events-none absolute inset-[18%_8%] z-10" viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden>
-      {Array.from({ length: count }, (_, i) => {
-        const rgb =
-          controller.effectId != null
-            ? sampleLed(controller.effectId, i, count, elapsed, controller.effectSpeed)
-            : controller.color;
-        const x = count === 1 ? 50 : 8 + (i / (count - 1)) * 84;
+    <svg viewBox="0 0 190 40" className="h-auto w-full" aria-hidden>
+      <path d="M6 28h178c2 0 4 2 4 4v2H4v-2c0-2 1-4 2-4Z" fill="#c5c7cb" opacity="0.85" />
+      <path d="M8 8h174l4 18H4Z" fill="#0c0c0e" />
+      {segs.map((i) => {
+        const x = 10 + i * 19;
+        const lift = Math.sin((i / (count - 1)) * Math.PI) * 1.4;
+        const rgb = ledColor(controller, elapsed, i, count);
         return (
-          <rect
+          <path
             key={i}
-            x={x - 3.1}
-            y={5.5}
-            width="6.2"
-            height="9"
-            rx="1.4"
-            fill={rgbToCss(rgb, 0.55 + (controller.brightness / 100) * 0.45)}
+            d={`M${x} ${10 - lift} h15 l2.4 14 h-19.4 Z`}
+            fill={on ? rgbToCss(rgb, 0.55 + (controller!.brightness / 100) * 0.45) : "#2a2c30"}
+            stroke="#050506"
+            strokeWidth="0.8"
           />
         );
       })}
     </svg>
   );
+}
+
+function BumperMesh({
+  controller,
+  elapsed,
+  count,
+}: {
+  controller?: Controller;
+  elapsed: number;
+  count: number;
+}) {
+  const on = Boolean(controller?.power);
+  return (
+    <svg viewBox="0 0 220 70" className="h-auto w-full" aria-hidden>
+      <path d="M8 18h186c10 0 18 8 20 18 1 6-2 16-14 20H22C8 54 4 40 6 30 7 24 8 18 8 18Z" fill="#0d0e10" stroke="#1c1d20" strokeWidth="1.2" />
+      <path d="M24 46h168" stroke="#2a2c30" strokeWidth="6" />
+      {Array.from({ length: count }, (_, i) => {
+        const x = 36 + i * 34;
+        const rgb = ledColor(controller, elapsed, i, count);
+        return (
+          <g key={i}>
+            <circle cx={x} cy="34" r="11" fill="#16171a" stroke="#2c2e32" strokeWidth="1" />
+            <circle
+              cx={x}
+              cy="34"
+              r="7.2"
+              fill={on ? rgbToCss(rgb, 0.6 + (controller!.brightness / 100) * 0.4) : "#2a2c30"}
+            />
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function ledColor(controller: Controller | undefined, elapsed: number, i: number, count: number) {
+  if (!controller?.power) return { r: 40, g: 40, b: 44 };
+  if (controller.effectId != null) {
+    return sampleLed(controller.effectId, i, count, elapsed, controller.effectSpeed);
+  }
+  return controller.color;
 }
 
 function fill(controller: Controller | undefined, elapsed: number): string {
@@ -246,23 +362,6 @@ function fill(controller: Controller | undefined, elapsed: number): string {
     return rgbToCss(rgb, 0.28 + (controller.brightness / 100) * 0.72);
   }
   return rgbToCss(controller.color, 0.38 + (controller.brightness / 100) * 0.62);
-}
-
-function meshFill(controller: Controller | undefined, elapsed: number, leds: number): string {
-  if (!controller?.power) return "transparent";
-  const alpha = 0.35 + (controller.brightness / 100) * 0.5;
-  if (controller.effectId != null && leds > 1) {
-    const stops = Array.from({ length: leds }, (_, i) => {
-      const rgb = sampleLed(controller.effectId as number, i, leds, elapsed, controller.effectSpeed);
-      return `${rgbToCss(rgb, alpha)} ${(i / (leds - 1)) * 100}%`;
-    });
-    return `linear-gradient(90deg, ${stops.join(", ")})`;
-  }
-  if (controller.effectId != null) {
-    const rgb = sampleEffect(controller.effectId, elapsed, controller.effectSpeed);
-    return rgbToCss(rgb, alpha);
-  }
-  return rgbToCss(controller.color, alpha);
 }
 
 function label(zone: ZoneKind): string {
