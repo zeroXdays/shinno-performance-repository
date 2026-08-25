@@ -32,8 +32,6 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
         {ZONES.filter((zone) => zone.id !== "custom").map((zone) => {
           const controller = zoneCtrl(zone.id);
           const selected = target === zone.id;
-          const on = Boolean(controller?.power);
-          const glow = fill(controller, elapsed);
           return (
             <button
               key={zone.id}
@@ -48,10 +46,7 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
                     : "border-white/5 bg-black/45 opacity-50",
               )}
             >
-              <span
-                className="flex h-[5.5rem] w-full items-center justify-center overflow-hidden"
-                style={{ filter: on ? `drop-shadow(0 0 7px ${glow})` : undefined }}
-              >
+              <span className="flex h-[5.5rem] w-full items-center justify-center overflow-hidden">
                 <ProductIcon
                   zone={zone.id}
                   caption={car.toUpperCase()}
@@ -74,49 +69,44 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
 }
 
 /** Native-pixel LED seats, measured on the product PNGs. */
-const EMBLEM_RING = Array.from({ length: 20 }, (_, i) => {
-  const a = -Math.PI / 2 + (i / 20) * Math.PI * 2;
-  return { cx: 260 + Math.cos(a) * 242, cy: 141 + Math.sin(a) * 118 };
-});
-
 const MIRROR_LEFT = [
-  { x: 51, y: 88 },
-  { x: 93, y: 82 },
-  { x: 132, y: 78 },
-  { x: 165, y: 76 },
-  { x: 220, y: 74 },
-  { x: 275, y: 76 },
-  { x: 325, y: 78 },
-  { x: 389, y: 82 },
-  { x: 451, y: 90 },
-].map((p, i) => ({ ...p, w: 22 - i * 0.4, h: 30 - i * 0.5 }));
+  { x: 78, y: 70, w: 36, h: 28 },
+  { x: 120, y: 78, w: 38, h: 36 },
+  { x: 166, y: 88, w: 40, h: 42 },
+  { x: 209, y: 95, w: 38, h: 42 },
+  { x: 255, y: 96, w: 38, h: 44 },
+  { x: 304, y: 90, w: 40, h: 46 },
+  { x: 349, y: 86, w: 38, h: 42 },
+  { x: 389, y: 82, w: 36, h: 38 },
+  { x: 435, y: 79, w: 34, h: 34 },
+];
 
 const MIRROR_RIGHT = [
-  { x: 67, y: 82 },
-  { x: 127, y: 76 },
-  { x: 185, y: 72 },
-  { x: 234, y: 70 },
-  { x: 272, y: 72 },
-  { x: 314, y: 74 },
-  { x: 357, y: 76 },
-  { x: 390, y: 78 },
-  { x: 430, y: 82 },
-].map((p, i) => ({ ...p, w: 24 - i * 1.2, h: 32 - i * 1.4 }));
+  { x: 80, y: 71, w: 38, h: 34 },
+  { x: 126, y: 73, w: 38, h: 38 },
+  { x: 166, y: 78, w: 38, h: 42 },
+  { x: 212, y: 84, w: 38, h: 44 },
+  { x: 260, y: 87, w: 38, h: 44 },
+  { x: 305, y: 87, w: 38, h: 40 },
+  { x: 348, y: 82, w: 38, h: 40 },
+  { x: 392, y: 72, w: 36, h: 34 },
+  { x: 435, y: 61, w: 32, h: 24 },
+];
 
 const BUMPER_LEFT = [
-  { cx: 175, cy: 208 },
+  { cx: 175, cy: 205 },
   { cx: 230, cy: 208 },
   { cx: 285, cy: 210 },
-  { cx: 340, cy: 212 },
-  { cx: 395, cy: 214 },
+  { cx: 340, cy: 211 },
+  { cx: 399, cy: 211 },
 ];
 
 const BUMPER_RIGHT = [
-  { cx: 150, cy: 208 },
-  { cx: 205, cy: 204 },
-  { cx: 260, cy: 200 },
-  { cx: 318, cy: 196 },
-  { cx: 375, cy: 192 },
+  { cx: 150, cy: 212 },
+  { cx: 205, cy: 208 },
+  { cx: 260, cy: 204 },
+  { cx: 318, cy: 200 },
+  { cx: 377, cy: 197 },
 ];
 
 function ProductIcon({
@@ -174,12 +164,14 @@ function MaskGlow({ src, color }: { src: string; color: string }) {
         mixBlendMode: "screen",
         WebkitMaskImage: `url(${src})`,
         maskImage: `url(${src})`,
+        maskMode: "alpha",
         WebkitMaskRepeat: "no-repeat",
         maskRepeat: "no-repeat",
         WebkitMaskPosition: "center",
         maskPosition: "center",
-        WebkitMaskSize: "contain",
-        maskSize: "contain",
+        WebkitMaskSize: "100% 100%",
+        maskSize: "100% 100%",
+        filter: `drop-shadow(0 0 4px ${color})`,
       }}
     />
   );
@@ -189,10 +181,12 @@ function Overlay({
   width,
   height,
   children,
+  mask,
 }: {
   width: number;
   height: number;
   children: ReactNode;
+  mask?: string;
 }) {
   return (
     <svg
@@ -200,6 +194,17 @@ function Overlay({
       preserveAspectRatio="xMidYMid meet"
       className="pointer-events-none absolute inset-0 h-full w-full"
       aria-hidden
+      style={
+        mask
+          ? {
+              WebkitMaskImage: `url(${mask})`,
+              maskImage: `url(${mask})`,
+              maskMode: "alpha",
+              WebkitMaskSize: "100% 100%",
+              maskSize: "100% 100%",
+            }
+          : undefined
+      }
     >
       {children}
     </svg>
@@ -208,19 +213,10 @@ function Overlay({
 
 function EmblemIcon({ controller, elapsed }: { controller?: Controller; elapsed: number }) {
   const on = Boolean(controller?.power);
-  const n = EMBLEM_RING.length;
-  const rim = on ? rgbToCss(ledColor(controller, elapsed, 0, n), 0.85) : undefined;
+  const rim = on ? rgbToCss(ledColor(controller, elapsed, 0, 24), 0.92) : undefined;
   return (
     <Shot src="/products/emblem.png" width={520} height={282}>
       {on ? <MaskGlow src="/products/emblem-ring.png" color={rim!} /> : null}
-      {on ? (
-        <Overlay width={520} height={282}>
-          {EMBLEM_RING.map((led, i) => {
-            const rgb = ledColor(controller, elapsed, i, n);
-            return <ellipse key={i} cx={led.cx} cy={led.cy} rx="11" ry="7" fill={rgbToCss(rgb, 0.9)} />;
-          })}
-        </Overlay>
-      ) : null}
     </Shot>
   );
 }
@@ -230,6 +226,7 @@ function MirrorsIcon({ controller, elapsed }: { controller?: Controller; elapsed
     <span className="flex h-full w-full items-center justify-center gap-1 px-0.5">
       <MirrorUnit
         src="/products/mirror-left.png"
+        cellsSrc="/products/mirror-left-cells.png"
         width={520}
         height={198}
         cells={MIRROR_LEFT}
@@ -238,6 +235,7 @@ function MirrorsIcon({ controller, elapsed }: { controller?: Controller; elapsed
       />
       <MirrorUnit
         src="/products/mirror-right.png"
+        cellsSrc="/products/mirror-right-cells.png"
         width={520}
         height={187}
         cells={MIRROR_RIGHT}
@@ -250,6 +248,7 @@ function MirrorsIcon({ controller, elapsed }: { controller?: Controller; elapsed
 
 function MirrorUnit({
   src,
+  cellsSrc,
   width,
   height,
   cells,
@@ -257,6 +256,7 @@ function MirrorUnit({
   elapsed,
 }: {
   src: string;
+  cellsSrc: string;
   width: number;
   height: number;
   cells: { x: number; y: number; w: number; h: number }[];
@@ -264,25 +264,29 @@ function MirrorUnit({
   elapsed: number;
 }) {
   const on = Boolean(controller?.power);
+  const wash = on ? rgbToCss(ledColor(controller, elapsed, 0, cells.length), 0.72) : undefined;
   return (
     <Shot src={src} width={width} height={height}>
-      <Overlay width={width} height={height}>
-        {cells.map((cell, i) => {
-          const rgb = ledColor(controller, elapsed, i, cells.length);
-          return (
-            <rect
-              key={i}
-              x={cell.x - cell.w / 2}
-              y={cell.y - cell.h / 2}
-              width={cell.w}
-              height={cell.h}
-              rx="2.4"
-              fill={on ? rgbToCss(rgb, 0.92) : "rgba(235,238,242,0.2)"}
-              style={on ? { mixBlendMode: "screen" } : undefined}
-            />
-          );
-        })}
-      </Overlay>
+      {on ? <MaskGlow src={cellsSrc} color={wash!} /> : null}
+      {on ? (
+        <Overlay width={width} height={height} mask={cellsSrc}>
+          {cells.map((cell, i) => {
+            const rgb = ledColor(controller, elapsed, i, cells.length);
+            return (
+              <rect
+                key={i}
+                x={cell.x - cell.w / 2}
+                y={cell.y - cell.h / 2}
+                width={cell.w}
+                height={cell.h}
+                rx="2"
+                fill={rgbToCss(rgb, 0.95)}
+                style={{ mixBlendMode: "screen" }}
+              />
+            );
+          })}
+        </Overlay>
+      ) : null}
     </Shot>
   );
 }
@@ -370,8 +374,8 @@ function BadgeIcon({
       <Shot src="/products/grille-badge.png" width={406} height={152}>
         {on ? (
           <>
-            <MaskGlow src="/products/grille-letters.png" color={rgbToCss(rgb, 0.55)} />
-            <MaskGlow src="/products/grille-letter-edge.png" color={rgbToCss(rgb, 0.95)} />
+            <MaskGlow src="/products/grille-letters.png" color={rgbToCss(rgb, 0.5)} />
+            <MaskGlow src="/products/grille-letter-edge.png" color={rgbToCss(rgb, 0.96)} />
           </>
         ) : null}
       </Shot>
@@ -406,15 +410,6 @@ function ledColor(controller: Controller | undefined, elapsed: number, i: number
     return sampleLed(controller.effectId, i, count, elapsed, controller.effectSpeed);
   }
   return controller.color;
-}
-
-function fill(controller: Controller | undefined, elapsed: number): string {
-  if (!controller?.power) return "rgba(70,70,74,0.7)";
-  if (controller.effectId != null) {
-    const rgb = sampleEffect(controller.effectId, elapsed, controller.effectSpeed);
-    return rgbToCss(rgb, 0.28 + (controller.brightness / 100) * 0.72);
-  }
-  return rgbToCss(controller.color, 0.38 + (controller.brightness / 100) * 0.62);
 }
 
 function label(zone: ZoneKind): string {
