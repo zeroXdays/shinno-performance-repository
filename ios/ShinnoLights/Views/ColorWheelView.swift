@@ -9,19 +9,19 @@ struct ColorWheelView: View {
             GeometryReader { geo in
                 let size = min(geo.size.width, geo.size.height)
                 ZStack {
-                    Hexagon()
+                    HexCell()
                         .fill(color.color)
                         .blur(radius: 22)
                         .opacity(0.55)
                         .scaleEffect(1.08)
-                    Hexagon()
+                    HexCell()
                         .fill(
                             AngularGradient(
                                 colors: [.red, .yellow, .green, .cyan, .blue, .purple, .red],
                                 center: .center
                             )
                         )
-                    Hexagon()
+                    HexCell()
                         .fill(
                             RadialGradient(
                                 colors: [.white, .white.opacity(0)],
@@ -30,9 +30,9 @@ struct ColorWheelView: View {
                                 endRadius: size * 0.38
                             )
                         )
-                    Hexagon()
+                    HexCell()
                         .stroke(.white.opacity(0.35), lineWidth: 1.4)
-                    Hexagon()
+                    HexCell()
                         .fill(color.color)
                         .frame(width: size * 0.3, height: size * 0.3)
                         .shadow(color: color.color.opacity(0.85), radius: 16)
@@ -63,7 +63,7 @@ struct ColorWheelView: View {
     }
 }
 
-private struct Hexagon: Shape {
+struct HexCell: Shape {
     func path(in rect: CGRect) -> Path {
         let w = rect.width
         let h = rect.height

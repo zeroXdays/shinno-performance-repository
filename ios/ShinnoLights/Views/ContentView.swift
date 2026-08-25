@@ -219,31 +219,45 @@ struct ColorScreen: View {
                         )
                         .tint(shinnoRed)
                     }
-                    HStack(spacing: 12) {
+                    HStack(spacing: 8) {
                         ForEach(Self.swatches, id: \.self) { swatch in
                             Button { garage.setColor(swatch) } label: {
-                                Circle()
+                                HexCell()
                                     .fill(swatch.color)
                                     .frame(width: 28, height: 28)
-                                    .overlay(Circle().stroke(.white.opacity(0.2), lineWidth: 1))
+                                    .overlay(
+                                        HexCell()
+                                            .stroke(.white.opacity(live?.color == swatch ? 0.95 : 0.22), lineWidth: live?.color == swatch ? 2 : 1)
+                                    )
+                                    .shadow(color: live?.color == swatch ? swatch.color.opacity(0.7) : .clear, radius: 6)
                             }
                             .accessibilityLabel("Color swatch")
                         }
                     }
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack {
-                            ForEach(GarageStore.scenes) { scene in
-                                Button {
-                                    garage.apply(scene)
-                                } label: {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                        ForEach(GarageStore.scenes) { scene in
+                            Button {
+                                garage.apply(scene)
+                            } label: {
+                                HStack(spacing: 8) {
+                                    HexCell()
+                                        .fill(scene.color.r + scene.color.g + scene.color.b == 0 ? Color.white.opacity(0.12) : scene.color.color)
+                                        .frame(width: 16, height: 16)
+                                        .overlay(HexCell().stroke(.white.opacity(0.25), lineWidth: 1))
                                     Text(scene.name)
-                                        .font(.subheadline)
-                                        .padding(.horizontal, 14)
-                                        .padding(.vertical, 8)
-                                        .background(.white.opacity(0.08), in: Capsule())
+                                        .font(.caption)
+                                        .foregroundStyle(.white.opacity(0.85))
+                                    Spacer(minLength: 0)
                                 }
-                                .foregroundStyle(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
+                                .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                                )
                             }
+                            .buttonStyle(.plain)
                         }
                     }
                 }

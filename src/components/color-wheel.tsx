@@ -6,7 +6,7 @@ import { hexToRgb, rgbToHex } from "@/lib/scenes";
 import { cn } from "@/lib/utils";
 
 /** Pointy-top hexagon that fits a square (vertices on the circumscribed circle). */
-const HEX_CLIP = "polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%)";
+export const HEX_CLIP = "polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%)";
 
 export function rgbToHsv(rgb: Rgb): { h: number; s: number; v: number } {
   const r = rgb.r / 255;

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import { Bluetooth, Loader2, Power, Trash2, Unplug, Car, Plug, Palette, Sparkles, Cpu } from "lucide-react";
 import { ModeGlyph, PlayingBar } from "@/components/effect-preview";
-import { ColorWheel } from "@/components/color-wheel";
+import { ColorWheel, HEX_CLIP } from "@/components/color-wheel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -13,7 +13,7 @@ import { SettingsMenu } from "@/components/settings-menu";
 import { ASSIGNABLE_ZONES, CARS, type ZoneKind } from "@/lib/catalog";
 import { useGarage } from "@/lib/garage-context";
 import { useI18n } from "@/lib/i18n";
-import { EFFECTS, EFFECT_GROUPS } from "@/lib/protocol";
+import { EFFECTS, EFFECT_GROUPS, type Rgb } from "@/lib/protocol";
 import { rgbToCss, rgbToHex, SCENES } from "@/lib/scenes";
 import { cn } from "@/lib/utils";
 import type { TabId } from "@/lib/controller";
@@ -28,6 +28,10 @@ const SWATCHES = [
   { r: 255, g: 80, b: 160 },
   { r: 20, g: 80, b: 255 },
 ];
+
+function sameRgb(a: Rgb, b: Rgb) {
+  return a.r === b.r && a.g === b.g && a.b === b.b;
+}
 
 const TABS: { id: TabId; icon: typeof Palette }[] = [
   { id: "color", icon: Palette },
@@ -152,31 +156,79 @@ export function ShinnoApp() {
                 }}
               />
             </div>
-            <div className="flex flex-wrap gap-2">
-              {SWATCHES.map((swatch) => (
-                <button
-                  key={rgbToHex(swatch)}
-                  type="button"
-                  disabled={!garage.selected.length}
-                  onClick={() => void garage.setColor(swatch)}
-                  className="size-7 rounded-full border border-white/15"
-                  style={{ background: rgbToCss(swatch) }}
-                  aria-label={rgbToHex(swatch)}
-                />
-              ))}
+            <div className="grid grid-cols-8 gap-1.5 px-0.5">
+              {SWATCHES.map((swatch) => {
+                const active = sameRgb(swatch, color);
+                return (
+                  <button
+                    key={rgbToHex(swatch)}
+                    type="button"
+                    disabled={!garage.selected.length}
+                    onClick={() => void garage.setColor(swatch)}
+                    className="relative aspect-square w-full disabled:opacity-40"
+                    aria-label={rgbToHex(swatch)}
+                    aria-pressed={active}
+                  >
+                    <span className="block w-full pt-[100%]" aria-hidden />
+                    {active ? (
+                      <span
+                        className="absolute inset-0 bg-white"
+                        style={{ clipPath: HEX_CLIP }}
+                        aria-hidden
+                      />
+                    ) : null}
+                    <span
+                      className={cn("absolute", active ? "inset-[2px]" : "inset-0")}
+                      style={{
+                        clipPath: HEX_CLIP,
+                        background: rgbToCss(swatch),
+                        boxShadow: active ? `0 0 12px ${rgbToCss(swatch, 0.9)}` : undefined,
+                      }}
+                    />
+                  </button>
+                );
+              })}
             </div>
-            <div className="flex gap-1.5 overflow-x-auto">
-              {SCENES.map((scene) => (
-                <button
-                  key={scene.id}
-                  type="button"
-                  disabled={!garage.controllers.length}
-                  onClick={() => void garage.applyScene(scene)}
-                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/80"
-                >
-                  {scene.name}
-                </button>
-              ))}
+            <div className="grid grid-cols-3 gap-1.5">
+              {SCENES.map((scene) => {
+                const active =
+                  sameRgb(scene.color, color) &&
+                  brightness === scene.brightness &&
+                  power === scene.power;
+                return (
+                  <button
+                    key={scene.id}
+                    type="button"
+                    disabled={!garage.controllers.length}
+                    onClick={() => void garage.applyScene(scene)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-xl border bg-black/25 px-2.5 py-2 text-left disabled:opacity-40",
+                      active
+                        ? "border-red-500/70 shadow-[0_0_14px_rgba(225,6,0,0.22)]"
+                        : "border-white/10",
+                    )}
+                  >
+                    <span className="relative size-5 shrink-0">
+                      <span
+                        className="absolute inset-0 bg-white/25"
+                        style={{ clipPath: HEX_CLIP }}
+                        aria-hidden
+                      />
+                      <span
+                        className="absolute inset-[1.5px]"
+                        style={{
+                          clipPath: HEX_CLIP,
+                          background:
+                            scene.color.r + scene.color.g + scene.color.b === 0
+                              ? "rgb(28, 28, 32)"
+                              : rgbToCss(scene.color),
+                        }}
+                      />
+                    </span>
+                    <span className="text-xs text-white/80">{scene.name}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         ) : null}
