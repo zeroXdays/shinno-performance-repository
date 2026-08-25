@@ -18,7 +18,7 @@ export class SimulatorTransport implements BleTransport {
     this.scanning = true;
     for (const device of DEMO) {
       if (!this.scanning) return;
-      await delay(180);
+      await delay(40);
       if (looksLikeController(device.name)) onFound(device);
     }
   }
@@ -28,7 +28,7 @@ export class SimulatorTransport implements BleTransport {
   }
 
   async connect(id: string): Promise<void> {
-    await delay(220);
+    await delay(80);
     this.connected.add(id);
   }
 

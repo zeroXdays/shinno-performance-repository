@@ -11,9 +11,10 @@ import {
 } from "react";
 import { SimulatorTransport } from "@/lib/ble/simulator";
 import type { BleTransport, DiscoveredDevice } from "@/lib/ble/types";
-import { WebBluetoothTransport, webBluetoothAvailable } from "@/lib/ble/web-bluetooth";
-import type { ZoneKind } from "@/lib/catalog";
+import { WebBluetoothTransport, isChooserCancel, webBluetoothAvailable } from "@/lib/ble/web-bluetooth";
+import { type CarId, type ZoneKind } from "@/lib/catalog";
 import {
+  CAR_STORAGE_KEY,
   createController,
   guessZone,
   persistable,
@@ -32,7 +33,7 @@ import {
 } from "@/lib/protocol";
 import { SCENES, type Scene } from "@/lib/scenes";
 
-type Target = "all" | string;
+type Target = "all" | ZoneKind;
 
 interface GarageContextValue {
   controllers: Controller[];
@@ -43,6 +44,8 @@ interface GarageContextValue {
   setTab: (tab: TabId) => void;
   target: Target;
   setTarget: (target: Target) => void;
+  car: CarId;
+  setCar: (car: CarId) => void;
   selected: Controller[];
   syncAll: boolean;
   busy: boolean;
@@ -72,13 +75,15 @@ export function GarageProvider({ children }: { children: ReactNode }) {
   const web = useRef<WebBluetoothTransport | null>(null);
   const transports = useRef(new Map<string, BleTransport>());
   const writeQueue = useRef(Promise.resolve());
+  const colorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [controllers, setControllers] = useState<Controller[]>([]);
   const [discoveries, setDiscoveries] = useState<DiscoveredDevice[]>([]);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
-  const [tab, setTab] = useState<TabId>("garage");
+  const [tab, setTab] = useState<TabId>("color");
   const [target, setTarget] = useState<Target>("all");
+  const [car, setCarState] = useState<CarId>("q50");
   const [busy, setBusy] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
   const [demoLoaded, setDemoLoaded] = useState(false);
@@ -90,6 +95,15 @@ export function GarageProvider({ children }: { children: ReactNode }) {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable(next)));
     } catch {
       /* ignore quota */
+    }
+  }, []);
+
+  const setCar = useCallback((next: CarId) => {
+    setCarState(next);
+    try {
+      window.localStorage.setItem(CAR_STORAGE_KEY, next);
+    } catch {
+      /* ignore */
     }
   }, []);
 
@@ -107,11 +121,27 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
   const selected = useMemo(() => {
     if (target === "all") return controllers;
-    return controllers.filter((c) => c.id === target);
+    return controllers.filter((c) => c.zone === target);
   }, [controllers, target]);
+
+  const applyLocal = useCallback(
+    (update: Partial<Controller>, ids?: string[]) => {
+      setControllers((prev) => {
+        const idSet = new Set(
+          ids ??
+            (target === "all" ? prev : prev.filter((c) => c.zone === target)).map((c) => c.id),
+        );
+        const next = prev.map((c) => (idSet.has(c.id) ? { ...c, ...update } : c));
+        persist(next);
+        return next;
+      });
+    },
+    [persist, target],
+  );
 
   const enqueue = useCallback((task: () => Promise<void>) => {
     writeQueue.current = writeQueue.current.then(task).catch((error: unknown) => {
+      if (isChooserCancel(error)) return;
       setLastError(error instanceof Error ? error.message : "Controller write failed.");
     });
     return writeQueue.current;
@@ -180,7 +210,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
       persist(next);
       setDemoLoaded(true);
       setTarget("all");
-      setTab("garage");
+      setTab("color");
     } finally {
       setBusy(false);
     }
@@ -211,6 +241,10 @@ export function GarageProvider({ children }: { children: ReactNode }) {
         );
       });
     } catch (error) {
+      if (isChooserCancel(error)) {
+        setScanError(null);
+        return;
+      }
       setScanError(error instanceof Error ? error.message : "Scan failed.");
     } finally {
       setScanning(false);
@@ -281,25 +315,24 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
   const forEachSelected = useCallback(
     async (run: (controller: Controller) => Promise<void>, update: Partial<Controller>) => {
-      setBusy(true);
+      const list = selected;
+      applyLocal(update, list.map((c) => c.id));
       setLastError(null);
       try {
-        const list = selected;
         await enqueue(async () => {
           for (const [index, controller] of list.entries()) {
             const live = await ensureConnected(controller);
-            await run(live);
-            patch(live.id, update);
-            if (index < list.length - 1) await sleep(28);
+            await run({ ...live, ...update });
+            if (index < list.length - 1) await sleep(24);
           }
         });
       } catch (error) {
-        setLastError(error instanceof Error ? error.message : "Command failed.");
-      } finally {
-        setBusy(false);
+        if (!isChooserCancel(error)) {
+          setLastError(error instanceof Error ? error.message : "Command failed.");
+        }
       }
     },
-    [enqueue, ensureConnected, patch, selected],
+    [applyLocal, enqueue, ensureConnected, selected],
   );
 
   const setPower = useCallback(
@@ -312,17 +345,34 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     [forEachSelected, writeTo],
   );
 
+  const flushColor = useCallback(
+    async (color: Rgb, list: Controller[]) => {
+      await enqueue(async () => {
+        for (const [index, controller] of list.entries()) {
+          const live = await ensureConnected(controller);
+          const model = detectModel(live.advertisedName);
+          const frames = [encodeColor(model, color)];
+          if (!live.power) frames.unshift(encodePower(model, true));
+          frames.push(encodeBrightness(model, live.brightness));
+          await writeTo(live, frames);
+          if (index < list.length - 1) await sleep(24);
+        }
+      });
+    },
+    [enqueue, ensureConnected, writeTo],
+  );
+
   const setColor = useCallback(
     async (color: Rgb) => {
-      await forEachSelected(async (controller) => {
-        const model = detectModel(controller.advertisedName);
-        const frames = [encodeColor(model, color)];
-        if (!controller.power) frames.unshift(encodePower(model, true));
-        frames.push(encodeBrightness(model, controller.brightness));
-        await writeTo(controller, frames);
-      }, { color, power: true, effectId: undefined });
+      const list = selected;
+      applyLocal({ color, power: true, effectId: undefined }, list.map((c) => c.id));
+      setLastError(null);
+      if (colorTimer.current) clearTimeout(colorTimer.current);
+      colorTimer.current = setTimeout(() => {
+        void flushColor(color, list);
+      }, 60);
     },
-    [forEachSelected, writeTo],
+    [applyLocal, flushColor, selected],
   );
 
   const setBrightness = useCallback(
@@ -364,42 +414,54 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     async (scene: Scene) => {
       setBusy(true);
       setLastError(null);
+      const snapshot = controllers.map((controller) => {
+        const override = scene.zones?.[controller.zone];
+        return {
+          id: controller.id,
+          color: override?.color ?? scene.color,
+          brightness: override?.brightness ?? scene.brightness,
+          power: override?.power ?? scene.power,
+          effectId: (override?.power ?? scene.power) ? scene.effectId : undefined,
+          effectSpeed: scene.effectSpeed ?? controller.effectSpeed,
+        };
+      });
+      setControllers((prev) => {
+        const next = prev.map((controller) => {
+          const row = snapshot.find((s) => s.id === controller.id);
+          return row ? { ...controller, ...row } : controller;
+        });
+        persist(next);
+        return next;
+      });
       try {
         await enqueue(async () => {
           for (const [index, controller] of controllers.entries()) {
             const live = await ensureConnected(controller);
-            const override = scene.zones?.[live.zone];
-            const color = override?.color ?? scene.color;
-            const brightness = override?.brightness ?? scene.brightness;
-            const power = override?.power ?? scene.power;
+            const row = snapshot.find((s) => s.id === live.id);
+            if (!row) continue;
             const model = detectModel(live.advertisedName);
-            const frames: Uint8Array[] = [encodePower(model, power)];
-            if (power) {
-              frames.push(encodeColor(model, color));
-              frames.push(encodeBrightness(model, brightness));
-              if (scene.effectId) {
-                frames.push(encodeEffect(model, scene.effectId));
-                frames.push(encodeEffectSpeed(model, scene.effectSpeed ?? 50));
+            const frames: Uint8Array[] = [encodePower(model, row.power)];
+            if (row.power) {
+              frames.push(encodeColor(model, row.color));
+              frames.push(encodeBrightness(model, row.brightness));
+              if (row.effectId) {
+                frames.push(encodeEffect(model, row.effectId));
+                frames.push(encodeEffectSpeed(model, row.effectSpeed ?? 50));
               }
             }
             await writeTo(live, frames);
-            patch(live.id, {
-              power,
-              color,
-              brightness,
-              effectId: power ? scene.effectId : undefined,
-              effectSpeed: scene.effectSpeed ?? live.effectSpeed,
-            });
-            if (index < controllers.length - 1) await sleep(28);
+            if (index < controllers.length - 1) await sleep(24);
           }
         });
       } catch (error) {
-        setLastError(error instanceof Error ? error.message : "Scene failed.");
+        if (!isChooserCancel(error)) {
+          setLastError(error instanceof Error ? error.message : "Scene failed.");
+        }
       } finally {
         setBusy(false);
       }
     },
-    [controllers, enqueue, ensureConnected, patch, writeTo],
+    [controllers, enqueue, ensureConnected, persist, writeTo],
   );
 
   const value: GarageContextValue = {
@@ -411,6 +473,8 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     setTab,
     target,
     setTarget,
+    car,
+    setCar,
     selected,
     syncAll: target === "all",
     busy,

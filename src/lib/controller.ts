@@ -19,9 +19,10 @@ export interface Controller {
   lastSeen: number;
 }
 
-export type TabId = "garage" | "color" | "effects" | "scan";
+export type TabId = "devices" | "color" | "effects" | "scan";
 
 export const STORAGE_KEY = "shinno-lights-v1";
+export const CAR_STORAGE_KEY = "shinno-car";
 
 export function createController(partial: {
   id: string;
@@ -50,15 +51,15 @@ export function createController(partial: {
 export function defaultName(zone: ZoneKind): string {
   switch (zone) {
     case "emblem":
-      return "Front emblem";
+      return "Emblem";
     case "mirrors":
-      return "Side mirrors";
+      return "Mirrors";
     case "bumper":
       return "Bumper";
     case "grille":
-      return "Grille badge";
+      return "Grille";
     default:
-      return "Extra zone";
+      return "Other";
   }
 }
 

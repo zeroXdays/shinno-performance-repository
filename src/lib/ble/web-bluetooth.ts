@@ -52,6 +52,17 @@ const SERVICE_CANDIDATES = [
   "0000ffe5-0000-1000-8000-00805f9b34fb",
 ];
 
+export function isChooserCancel(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const err = error as { name?: string; message?: string };
+  const message = err.message ?? "";
+  return (
+    err.name === "NotFoundError" ||
+    /cancel/i.test(message) ||
+    /chooser/i.test(message)
+  );
+}
+
 export function webBluetoothAvailable(): boolean {
   return typeof navigator !== "undefined" && Boolean(navigator.bluetooth);
 }
