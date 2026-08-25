@@ -81,4 +81,14 @@ if (energyA.r + energyA.g + energyA.b === 0 || energyB.r + energyB.g + energyB.b
   throw new Error("energy should pulse, not strobe to black");
 }
 
+const sevenInRed = 129; // 7-Color in Red Running
+const sevenPeriod = effectPeriodMs(40, "run");
+const sevenBand = Array.from({ length: 20 }, (_, i) => sampleLed(sevenInRed, i, 20, sevenPeriod * 0.18, 40));
+const sevenKeys = new Set(sevenBand.map((rgb) => `${rgb.r},${rgb.g},${rgb.b}`));
+if (sevenKeys.size < 3) {
+  throw new Error("7-Color in Red Running should show colored heads on a red field, not a flat strip");
+}
+const sevenAllRed = sevenBand.every((rgb) => rgb.r > 180 && rgb.g < 90 && rgb.b < 90);
+if (sevenAllRed) throw new Error("7-Color in Red Running must not paint red on red");
+
 console.log("protocol tests passed");

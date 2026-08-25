@@ -73,7 +73,10 @@ function paletteFromName(name: string): Rgb[] {
   }
 
   const inBg = name.match(/7-Color in (\w+)/);
-  if (inBg && WORD[inBg[1]]) return [WORD[inBg[1]], ...RAINBOW];
+  if (inBg && WORD[inBg[1]]) {
+    const bg = WORD[inBg[1]];
+    return [bg, ...RAINBOW.filter((c) => c !== bg)];
+  }
 
   const dot = name.match(/^(\w+)-Dot in (\w+)/);
   if (dot && WORD[dot[1]] && WORD[dot[2]]) return [WORD[dot[2]], WORD[dot[1]]];
@@ -212,6 +215,12 @@ export function sampleEffect(id: number, elapsedMs: number, speed: number): Rgb 
   }
   if (motion === "run" || motion === "marquee") {
     const head = (u * 6) % 1 < 0.22;
+    if (effect?.name.includes("7-Color in")) {
+      const bg = colors[0];
+      const pack = colors.slice(1);
+      if (!head || pack.length === 0) return bg;
+      return cycle(pack, u * pack.length, false);
+    }
     if (effect?.name.includes("Dot") || effect?.name.includes(" in ")) {
       const bg = colors[0];
       const fg = colors[1] ?? WHITE;
@@ -281,6 +290,21 @@ export function sampleLed(
     return scale(cycle(colors, u, false), 0.06 + trail * trail * 0.94);
   }
   if (motion === "run" || motion === "magic") {
+    if (effect?.name.includes("7-Color in")) {
+      const bg = colors[0];
+      const pack = colors.slice(1);
+      let nearest = 1;
+      let color = bg;
+      for (let i = 0; i < pack.length; i++) {
+        const headU = (u + i / Math.max(pack.length, 1)) % 1;
+        const d = Math.min(Math.abs(s - headU), Math.abs(s - headU + 1), Math.abs(s - headU - 1));
+        if (d < nearest) {
+          nearest = d;
+          color = pack[i];
+        }
+      }
+      return nearest < 0.07 ? color : bg;
+    }
     const head = dist < 0.07 ? 1 : Math.max(0.08, 1 - dist / 0.18);
     if (effect?.name.includes("Dot") || effect?.name.includes(" in ")) {
       return dist < 0.08 ? (colors[1] ?? WHITE) : colors[0];
