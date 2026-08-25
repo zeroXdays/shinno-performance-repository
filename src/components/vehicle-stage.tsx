@@ -76,6 +76,24 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
   );
 }
 
+function px(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+const EMBLEM_LEDS = Array.from({ length: 14 }, (_, i) => {
+  const a = -Math.PI / 2 + (i / 14) * Math.PI * 2;
+  return { cx: px(100 + Math.cos(a) * 78), cy: px(55 + Math.sin(a) * 40) };
+});
+
+const MIRROR_LEDS = (arch: number) =>
+  Array.from({ length: 9 }, (_, i) => {
+    const t = (i + 0.5) / 9;
+    return { x: px(22 + t * 236), y: px(40 + Math.sin(t * Math.PI) * 9 * arch) };
+  });
+
+const MIRROR_LEDS_LEFT = MIRROR_LEDS(1);
+const MIRROR_LEDS_RIGHT = MIRROR_LEDS(-1);
+
 function ProductIcon({
   zone,
   caption,
@@ -99,7 +117,7 @@ function EmblemIcon({ controller, elapsed }: { controller?: Controller; elapsed:
   const leds = 14;
   const tint = on ? rgbToCss(ledColor(controller, elapsed, 0, leds), 0.42) : undefined;
   return (
-    <span className="relative h-full w-[9.5rem]">
+    <span className="relative h-full aspect-[520/282] w-auto">
       <Image
         src="/products/emblem.png"
         alt=""
@@ -129,14 +147,13 @@ function EmblemIcon({ controller, elapsed }: { controller?: Controller; elapsed:
       ) : null}
       <svg viewBox="0 0 200 110" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
         {on
-          ? Array.from({ length: leds }, (_, i) => {
+          ? EMBLEM_LEDS.map((led, i) => {
               const rgb = ledColor(controller, elapsed, i, leds);
-              const a = -Math.PI / 2 + (i / leds) * Math.PI * 2;
               return (
                 <ellipse
                   key={i}
-                  cx={100 + Math.cos(a) * 78}
-                  cy={55 + Math.sin(a) * 40}
+                  cx={led.cx}
+                  cy={led.cy}
                   rx="7.5"
                   ry="5.2"
                   fill={rgbToCss(rgb, 0.82)}
@@ -165,8 +182,22 @@ function EmblemIcon({ controller, elapsed }: { controller?: Controller; elapsed:
 function MirrorsIcon({ controller, elapsed }: { controller?: Controller; elapsed: number }) {
   return (
     <span className="flex h-full w-full items-center justify-center gap-1 px-0.5">
-      <MirrorUnit src="/products/mirror-left.png" width={520} height={198} controller={controller} elapsed={elapsed} arch={1} />
-      <MirrorUnit src="/products/mirror-right.png" width={520} height={187} controller={controller} elapsed={elapsed} arch={-1} />
+      <MirrorUnit
+        src="/products/mirror-left.png"
+        width={520}
+        height={198}
+        leds={MIRROR_LEDS_LEFT}
+        controller={controller}
+        elapsed={elapsed}
+      />
+      <MirrorUnit
+        src="/products/mirror-right.png"
+        width={520}
+        height={187}
+        leds={MIRROR_LEDS_RIGHT}
+        controller={controller}
+        elapsed={elapsed}
+      />
     </span>
   );
 }
@@ -175,21 +206,20 @@ function MirrorUnit({
   src,
   width,
   height,
+  leds,
   controller,
   elapsed,
-  arch,
 }: {
   src: string;
   width: number;
   height: number;
+  leds: { x: number; y: number }[];
   controller?: Controller;
   elapsed: number;
-  arch: number;
 }) {
   const on = Boolean(controller?.power);
-  const count = 9;
   return (
-    <span className="relative h-[3.35rem] w-[6.6rem]">
+    <span className="relative h-[3.35rem] w-auto" style={{ aspectRatio: `${width}/${height}` }}>
       <Image
         src={src}
         alt=""
@@ -200,16 +230,13 @@ function MirrorUnit({
         className="absolute inset-0 h-full w-full object-contain"
       />
       <svg viewBox="0 0 280 100" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
-        {Array.from({ length: count }, (_, i) => {
-          const rgb = ledColor(controller, elapsed, i, count);
-          const t = (i + 0.5) / count;
-          const x = 22 + t * 236;
-          const y = 40 + Math.sin(t * Math.PI) * 9 * arch;
+        {leds.map((led, i) => {
+          const rgb = ledColor(controller, elapsed, i, leds.length);
           return (
             <rect
               key={i}
-              x={x}
-              y={y}
+              x={led.x}
+              y={led.y}
               width="18"
               height="22"
               rx="2.2"
@@ -248,7 +275,7 @@ function BumperUnit({
   const on = Boolean(controller?.power);
   const count = 5;
   return (
-    <span className="relative h-[3.6rem] w-[6.4rem]">
+    <span className="relative h-[3.6rem] w-auto" style={{ aspectRatio: `${width}/${height}` }}>
       <Image
         src={src}
         alt=""
@@ -299,7 +326,7 @@ function BadgeIcon({
 
   if (caption === "Q50") {
     return (
-      <span className="relative h-full w-[10.5rem]">
+      <span className="relative h-full aspect-[406/152] w-auto">
         <Image
           src="/products/grille-badge.png"
           alt=""
