@@ -1,0 +1,292 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000021 /* ShinnoLightsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000031 /* ShinnoLightsApp.swift */; };
+		A10000000000000000000022 /* ElkProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000032 /* ElkProtocol.swift */; };
+		A10000000000000000000023 /* BleHub.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000033 /* BleHub.swift */; };
+		A10000000000000000000024 /* GarageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000034 /* GarageStore.swift */; };
+		A10000000000000000000025 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000035 /* ContentView.swift */; };
+		A10000000000000000000026 /* ColorWheelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000036 /* ColorWheelView.swift */; };
+		A10000000000000000000027 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A10000000000000000000037 /* CoreBluetooth.framework */; };
+		A10000000000000000000028 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000038 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A10000000000000000000012 /* ShinnoLights.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ShinnoLights.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000031 /* ShinnoLightsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShinnoLightsApp.swift; sourceTree = "<group>"; };
+		A10000000000000000000032 /* ElkProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElkProtocol.swift; sourceTree = "<group>"; };
+		A10000000000000000000033 /* BleHub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BleHub.swift; sourceTree = "<group>"; };
+		A10000000000000000000034 /* GarageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GarageStore.swift; sourceTree = "<group>"; };
+		A10000000000000000000035 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A10000000000000000000036 /* ColorWheelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorWheelView.swift; sourceTree = "<group>"; };
+		A10000000000000000000037 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
+		A10000000000000000000038 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A10000000000000000000039 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A10000000000000000000004 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000027 /* CoreBluetooth.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A10000000000000000000006 = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000008 /* ShinnoLights */,
+				A10000000000000000000007 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A10000000000000000000007 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000012 /* ShinnoLights.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000008 /* ShinnoLights */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000031 /* ShinnoLightsApp.swift */,
+				A10000000000000000000039 /* Info.plist */,
+				A10000000000000000000038 /* Assets.xcassets */,
+				A10000000000000000000009 /* BLE */,
+				A10000000000000000000010 /* Models */,
+				A10000000000000000000011 /* Views */,
+			);
+			path = ShinnoLights;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000009 /* BLE */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000032 /* ElkProtocol.swift */,
+				A10000000000000000000033 /* BleHub.swift */,
+			);
+			path = BLE;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000010 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000034 /* GarageStore.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000011 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000035 /* ContentView.swift */,
+				A10000000000000000000036 /* ColorWheelView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A10000000000000000000002 /* ShinnoLights */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000052 /* Build configuration list for PBXNativeTarget "ShinnoLights" */;
+			buildPhases = (
+				A10000000000000000000003 /* Sources */,
+				A10000000000000000000004 /* Frameworks */,
+				A10000000000000000000005 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ShinnoLights;
+			productName = ShinnoLights;
+			productReference = A10000000000000000000012 /* ShinnoLights.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A10000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					A10000000000000000000002 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = A10000000000000000000051 /* Build configuration list for PBXProject "ShinnoLights" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A10000000000000000000006;
+			productRefGroup = A10000000000000000000007 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A10000000000000000000002 /* ShinnoLights */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A10000000000000000000005 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000028 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A10000000000000000000003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000021 /* ShinnoLightsApp.swift in Sources */,
+				A10000000000000000000022 /* ElkProtocol.swift in Sources */,
+				A10000000000000000000023 /* BleHub.swift in Sources */,
+				A10000000000000000000024 /* GarageStore.swift in Sources */,
+				A10000000000000000000025 /* ContentView.swift in Sources */,
+				A10000000000000000000026 /* ColorWheelView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A10000000000000000000041 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A10000000000000000000042 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_OPTIMIZATION_LEVEL = s;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A10000000000000000000043 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ShinnoLights/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Shinno Lights";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shinnoperformance.lights;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		A10000000000000000000044 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ShinnoLights/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Shinno Lights";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shinnoperformance.lights;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A10000000000000000000051 /* Build configuration list for PBXProject "ShinnoLights" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000041 /* Debug */,
+				A10000000000000000000042 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A10000000000000000000052 /* Build configuration list for PBXNativeTarget "ShinnoLights" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000043 /* Debug */,
+				A10000000000000000000044 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A10000000000000000000001 /* Project object */;
+}
