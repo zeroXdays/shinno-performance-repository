@@ -61,7 +61,7 @@ Shinno Lights is a native Bluetooth Low Energy controller for physical Shinno RG
 
 1. An iPhone with Bluetooth on.
 2. Powered lighting devices from a Shinno Q50 kit. They advertise as ELK-BLEDOM, ELK-BLEDOB, MELK, or LEDBLE (Magic Lantern / Lotus Lamp X family). One device per kit: emblem, mirrors, bumper.
-3. Allow the Bluetooth permission prompt. The app scans continuously while Bluetooth is on. Add each device on Scan, then assign the zone on Devices.
+3. Allow the Bluetooth permission prompt. The app scans continuously while Bluetooth is on (including `bluetooth-central` so saved devices can reconnect when they power on). Add each device once on Scan, then assign the zone on Devices. After that, turning a kit off and on should reconnect and restore the last color/mode without scanning again.
 4. Color, brightness, power, and Modes write 9-byte frames to the devices. There is no login, no IAP, and no demo/simulator mode — the binary does nothing useful without the hardware.
 
 The Chrome web controller in this repo is a companion for desktop only. Safari has no Web Bluetooth. Please review this iOS binary (`com.shinnoperformance.lights`), not the website.

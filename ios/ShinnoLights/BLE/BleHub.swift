@@ -52,6 +52,8 @@ final class BleHub: NSObject, ObservableObject {
     private var connectWaiters: [UUID: CheckedContinuation<Void, Error>] = [:]
     private var lastWrite: [UUID: Date] = [:]
     private var shouldReconnect: Set<UUID> = []
+    private var retryWork = Set<UUID>()
+    private var lastConnectAttempt: [UUID: Date] = [:]
 
     var onReady: (() -> Void)?
     var onConnected: ((UUID) -> Void)?
@@ -59,7 +61,11 @@ final class BleHub: NSObject, ObservableObject {
 
     override init() {
         super.init()
-        central = CBCentralManager(delegate: self, queue: .main)
+        central = CBCentralManager(
+            delegate: self,
+            queue: .main,
+            options: [CBCentralManagerOptionRestoreIdentifierKey: "com.shinnoperformance.lights.central"]
+        )
     }
 
     func startScan() {
@@ -69,19 +75,67 @@ final class BleHub: NSObject, ObservableObject {
             status = "Scanning for devices"
             central.scanForPeripherals(
                 withServices: nil,
-                options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
+                options: [CBCentralManagerScanOptionAllowDuplicatesKey: true]
+            )
+        } else if central.isScanning == false {
+            central.scanForPeripherals(
+                withServices: nil,
+                options: [CBCentralManagerScanOptionAllowDuplicatesKey: true]
             )
         }
     }
 
+    func remember(_ ids: [UUID]) {
+        shouldReconnect.formUnion(ids)
+    }
+
     func restore(_ ids: [UUID]) {
-        guard central.state == .poweredOn else { return }
-        for peripheral in central.retrievePeripherals(withIdentifiers: ids) {
+        guard central.state == .poweredOn else {
+            remember(ids)
+            return
+        }
+        remember(ids)
+        let retrieved = central.retrievePeripherals(withIdentifiers: ids)
+        for peripheral in retrieved {
             peripherals[peripheral.identifier] = peripheral
             peripheral.delegate = self
-            shouldReconnect.insert(peripheral.identifier)
-            if peripheral.state != .connected {
-                central.connect(peripheral, options: nil)
+            connectIfNeeded(peripheral)
+        }
+        for peripheral in peripherals.values where ids.contains(peripheral.identifier) {
+            connectIfNeeded(peripheral)
+        }
+    }
+
+    private func connectIfNeeded(_ peripheral: CBPeripheral) {
+        guard shouldReconnect.contains(peripheral.identifier) else { return }
+        guard central.state == .poweredOn else { return }
+        peripherals[peripheral.identifier] = peripheral
+        peripheral.delegate = self
+        switch peripheral.state {
+        case .connected, .connecting:
+            return
+        default:
+            if let last = lastConnectAttempt[peripheral.identifier], Date().timeIntervalSince(last) < 3 {
+                return
+            }
+            lastConnectAttempt[peripheral.identifier] = Date()
+            central.connect(peripheral, options: nil)
+        }
+    }
+
+    private func scheduleRetry(_ peripheral: CBPeripheral) {
+        let id = peripheral.identifier
+        guard shouldReconnect.contains(id) else { return }
+        guard !retryWork.contains(id) else { return }
+        retryWork.insert(id)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self] in
+            guard let self else { return }
+            self.retryWork.remove(id)
+            guard self.shouldReconnect.contains(id) else { return }
+            if let live = self.peripherals[id] {
+                self.connectIfNeeded(live)
+            } else {
+                self.connectIfNeeded(peripheral)
             }
         }
     }
@@ -179,6 +233,16 @@ extension BleHub: CBCentralManagerDelegate {
         }
     }
 
+    func centralManager(_ central: CBCentralManager, willRestoreState dict: [String: Any]) {
+        let restored = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral] ?? []
+        for peripheral in restored {
+            peripherals[peripheral.identifier] = peripheral
+            peripheral.delegate = self
+            connectIfNeeded(peripheral)
+        }
+        startScan()
+    }
+
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
         let name = peripheral.name ?? (advertisementData[CBAdvertisementDataLocalNameKey] as? String)
         guard ElkProtocol.looksLikeController(name) else { return }
@@ -186,6 +250,10 @@ extension BleHub: CBCentralManagerDelegate {
             discovered.append(peripheral)
         }
         peripherals[peripheral.identifier] = peripheral
+        peripheral.delegate = self
+        if shouldReconnect.contains(peripheral.identifier) {
+            connectIfNeeded(peripheral)
+        }
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
@@ -196,6 +264,7 @@ extension BleHub: CBCentralManagerDelegate {
 
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         connectWaiters.removeValue(forKey: peripheral.identifier)?.resume(throwing: error ?? BleError.timeout)
+        scheduleRetry(peripheral)
     }
 
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {

@@ -23,13 +23,13 @@ struct SettingsView: View {
                     Toggle(isOn: $garage.settings.autoConnect) {
                         settingLabel(
                             "Connect automatically",
-                            "Link saved devices when you open the app."
+                            "When a saved device powers on, link again and restore the last color and mode."
                         )
                     }
                     Toggle(isOn: $garage.settings.rememberDevices) {
                         settingLabel(
                             "Remember devices",
-                            "Keep names, colors, and last link after you close the app."
+                            "Keep names and colors, and reconnect those devices the next time they are on."
                         )
                     }
                 }

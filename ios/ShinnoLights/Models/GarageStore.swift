@@ -123,6 +123,7 @@ final class GarageStore: ObservableObject {
         hub.onConnected = { [weak self] id in
             guard let self, let index = self.controllers.firstIndex(where: { $0.id == id }) else { return }
             self.controllers[index].connected = true
+            self.pushLastLook(id)
         }
         hub.onDisconnected = { [weak self] id in
             guard let self, let index = self.controllers.firstIndex(where: { $0.id == id }) else { return }
@@ -171,7 +172,15 @@ final class GarageStore: ObservableObject {
 
     func pair(_ peripheral: CBPeripheral) async {
         let name = peripheral.name ?? "Shinno device"
-        if controllers.contains(where: { $0.id == peripheral.identifier }) { return }
+        if controllers.contains(where: { $0.id == peripheral.identifier }) {
+            do {
+                try await hub.connect(peripheral)
+                lastError = nil
+            } catch {
+                lastError = error.localizedDescription
+            }
+            return
+        }
         let used = Set(controllers.map(\.zone))
         let zone = Self.guessZone(name, used: used)
         let model = ElkProtocol.detect(name: name)
@@ -207,6 +216,24 @@ final class GarageStore: ObservableObject {
 
     func restoreConnections() {
         hub.restore(controllers.map(\.id))
+    }
+
+    func pushLastLook(_ id: UUID) {
+        guard let index = controllers.firstIndex(where: { $0.id == id }),
+              let peripheral = hub.peripheral(id: id)
+        else { return }
+        let controller = controllers[index]
+        let model = ElkProtocol.detect(name: controller.advertisedName)
+        var frames = [ElkProtocol.power(model, on: controller.power)]
+        if controller.power {
+            frames.append(ElkProtocol.color(model, rgb: controller.color))
+            frames.append(ElkProtocol.brightness(model, percent: controller.brightness))
+            if let effect = controller.effectId {
+                frames.append(ElkProtocol.effect(model, id: effect))
+                frames.append(ElkProtocol.speed(model, percent: controller.effectSpeed))
+            }
+        }
+        hub.write(peripheral, frames: frames)
     }
 
     func connect(_ id: UUID) async {

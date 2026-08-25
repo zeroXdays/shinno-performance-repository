@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -12,6 +13,7 @@ import {
 } from "react";
 import type { BleTransport, DiscoveredDevice } from "@/lib/ble/types";
 import { WebBluetoothTransport, isChooserCancel, webBluetoothAvailable } from "@/lib/ble/web-bluetooth";
+import { registerAutoReconnect } from "@/lib/ble/auto-reconnect";
 import type { CarId, ZoneKind } from "@/lib/catalog";
 import { createController, guessZone, type Controller, type TabId } from "@/lib/controller";
 import {
@@ -144,10 +146,47 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const replayLook = useCallback(
+    async (controller: Controller) => {
+      const live = getGarageControllers().find((row) => row.id === controller.id) ?? controller;
+      const model = detectModel(live.advertisedName);
+      const frames: Uint8Array[] = [encodePower(model, live.power)];
+      if (live.power) {
+        frames.push(encodeColor(model, live.color));
+        frames.push(encodeBrightness(model, live.brightness));
+        if (live.effectId != null) {
+          frames.push(encodeEffect(model, live.effectId));
+          frames.push(encodeEffectSpeed(model, live.effectSpeed));
+        }
+      }
+      await writeTo(live, frames);
+    },
+    [writeTo],
+  );
+
+  const bindTransport = useCallback(
+    (transport: WebBluetoothTransport) => {
+      transport.onDropped = (id) => {
+        const row = getGarageControllers().find((controller) => controller.id === id);
+        if (!row) return;
+        patch(id, { connection: "disconnected", error: undefined });
+      };
+      transport.onLinked = (id) => {
+        const row = getGarageControllers().find((controller) => controller.id === id);
+        if (!row?.wantConnected) return;
+        patch(id, { connection: "connected", error: undefined });
+        void replayLook({ ...row, connection: "connected" });
+      };
+    },
+    [patch, replayLook],
+  );
+
   const ensureConnected = useCallback(
     async (controller: Controller) => {
       if (controller.connection === "connected") return controller;
       const transport = (web.current ??= new WebBluetoothTransport());
+      bindTransport(transport);
+      transport.remember(controller.id);
       transports.current.set(controller.id, transport);
       patch(controller.id, { connection: "connecting", error: undefined });
       try {
@@ -156,11 +195,11 @@ export function GarageProvider({ children }: { children: ReactNode }) {
         return { ...controller, connection: "connected" as const, wantConnected: true };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Connect failed.";
-        patch(controller.id, { connection: "error", error: message });
+        patch(controller.id, { connection: "disconnected", error: message });
         throw error;
       }
     },
-    [patch],
+    [bindTransport, patch],
   );
 
   const resetGarage = useCallback(() => {
@@ -179,18 +218,23 @@ export function GarageProvider({ children }: { children: ReactNode }) {
       const used = new Set(controllers.map((c) => c.zone));
       const zone = guessZone(discovery.name, used);
       const model = detectModel(discovery.name);
-      const controller = createController({
-        id: discovery.id,
-        advertisedName: discovery.name,
-        zone,
-        modelId: model.id,
-        transport: "web-bluetooth",
-      });
+      const controller = {
+        ...createController({
+          id: discovery.id,
+          advertisedName: discovery.name,
+          zone,
+          modelId: model.id,
+          transport: "web-bluetooth",
+        }),
+        wantConnected: true,
+      };
       setControllers((prev) => {
         if (prev.some((c) => c.id === discovery.id)) return prev;
         return [...prev, controller];
       });
       const transport = (web.current ??= new WebBluetoothTransport());
+      bindTransport(transport);
+      transport.remember(controller.id);
       transports.current.set(controller.id, transport);
       if (!getSettings().autoConnect) return;
       try {
@@ -199,12 +243,44 @@ export function GarageProvider({ children }: { children: ReactNode }) {
         /* error stored on controller */
       }
     },
-    [controllers, ensureConnected, setControllers],
+    [bindTransport, controllers, ensureConnected, setControllers],
   );
+
+  const reconnectKnown = useCallback(async () => {
+    if (!webBluetoothAvailable() || !getSettings().autoConnect) return;
+    const transport = (web.current ??= new WebBluetoothTransport());
+    bindTransport(transport);
+    try {
+      await transport.adoptGranted();
+    } catch {
+      /* getDevices is optional */
+    }
+    for (const controller of getGarageControllers()) {
+      if (!controller.wantConnected) {
+        transport.forgetAuto(controller.id);
+        continue;
+      }
+      transport.remember(controller.id);
+      if (controller.connection === "connected" || controller.connection === "connecting") continue;
+      try {
+        await ensureConnected(controller);
+        await replayLook(controller);
+      } catch {
+        patch(controller.id, { connection: "disconnected", error: undefined });
+      }
+    }
+  }, [bindTransport, ensureConnected, patch, replayLook]);
+
+  useEffect(() => {
+    registerAutoReconnect(() => {
+      void reconnectKnown();
+    });
+  }, [reconnectKnown]);
 
   const refreshNearby = useCallback(async () => {
     if (!webBluetoothAvailable()) return;
     const transport = (web.current ??= new WebBluetoothTransport());
+    bindTransport(transport);
     try {
       const granted = await transport.adoptGranted();
       setDiscoveries((prev) => {
@@ -212,20 +288,11 @@ export function GarageProvider({ children }: { children: ReactNode }) {
         for (const device of granted) byId.set(device.id, device);
         return [...byId.values()];
       });
-      if (getSettings().autoConnect) {
-        for (const controller of getGarageControllers()) {
-          if (!controller.wantConnected || controller.connection === "connected") continue;
-          try {
-            await ensureConnected(controller);
-          } catch {
-            /* error stored on controller */
-          }
-        }
-      }
+      await reconnectKnown();
     } catch {
       /* getDevices is optional in Chrome */
     }
-  }, [ensureConnected]);
+  }, [bindTransport, reconnectKnown]);
 
   const scan = useCallback(async () => {
     setScanning(true);
@@ -240,16 +307,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
         for (const device of granted) byId.set(device.id, device);
         return [...byId.values()];
       });
-      if (getSettings().autoConnect) {
-        for (const controller of getGarageControllers()) {
-          if (!controller.wantConnected || controller.connection === "connected") continue;
-          try {
-            await ensureConnected(controller);
-          } catch {
-            /* error stored on controller */
-          }
-        }
-      }
+      await reconnectKnown();
       await transport.scan((device) => {
         found.push(device);
         setDiscoveries((prev) =>
@@ -270,7 +328,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     } finally {
       setScanning(false);
     }
-  }, [ensureConnected, pair]);
+  }, [pair, reconnectKnown]);
 
   const stopScan = useCallback(() => {
     web.current?.stopScan();
@@ -279,6 +337,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
   const forget = useCallback(
     async (id: string) => {
+      web.current?.forgetAuto(id);
       await transports.current.get(id)?.disconnect(id);
       transports.current.delete(id);
       setControllers((prev) => prev.filter((c) => c.id !== id));

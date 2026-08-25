@@ -30,6 +30,10 @@
 	<string>Shinno Lights uses Bluetooth to find and control the lighting devices that ship with Shinno RGB emblem, mirror, and bumper kits.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>Shinno Lights uses Bluetooth to find and control the lighting devices on your Shinno RGB kits.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>bluetooth-central</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>

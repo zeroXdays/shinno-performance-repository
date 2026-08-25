@@ -23,7 +23,11 @@ interface BluetoothDevice {
   id: string;
   name?: string;
   gatt?: BluetoothRemoteGATTServer;
-  addEventListener(type: "gattserverdisconnected", listener: () => void): void;
+  watchAdvertisements?(): Promise<void>;
+  addEventListener(
+    type: "gattserverdisconnected" | "advertisementreceived",
+    listener: () => void,
+  ): void;
 }
 
 interface RequestDeviceOptions {
@@ -70,8 +74,39 @@ export function webBluetoothAvailable(): boolean {
 
 export class WebBluetoothTransport implements BleTransport {
   kind = "web-bluetooth" as const;
+  onDropped: ((id: string) => void) | null = null;
+  onLinked: ((id: string) => void) | null = null;
+
   private chars = new Map<string, BluetoothRemoteGATTCharacteristic>();
   private devices = new Map<string, BluetoothDevice>();
+  private autoIds = new Set<string>();
+  private bound = new Set<string>();
+  private retryAt = new Map<string, number>();
+  private connecting = new Map<string, Promise<void>>();
+
+  async connect(id: string): Promise<void> {
+    const inflight = this.connecting.get(id);
+    if (inflight) return inflight;
+    const work = this.connectInner(id).finally(() => this.connecting.delete(id));
+    this.connecting.set(id, work);
+    return work;
+  }
+
+  private async connectInner(id: string): Promise<void> {
+    let device = this.devices.get(id);
+    if (!device) {
+      const granted = await this.adoptGranted();
+      if (granted.some((item) => item.id === id)) device = this.devices.get(id);
+    }
+    if (!device?.gatt) throw new Error("Device is no longer available. Scan again.");
+    this.bind(device);
+    if (!device.gatt.connected) {
+      await device.gatt.connect();
+    }
+    const characteristic = await resolveWriteCharacteristic(device.gatt);
+    this.chars.set(id, characteristic);
+    this.retryAt.delete(id);
+  }
 
   async scan(onFound: (device: DiscoveredDevice) => void): Promise<void> {
     if (!navigator.bluetooth) {
@@ -91,6 +126,7 @@ export class WebBluetoothTransport implements BleTransport {
       // Still allow — some devices advertise a custom name after pairing.
     }
     this.devices.set(device.id, device);
+    this.bind(device);
     onFound({
       id: device.id,
       name: device.name || "Shinno device",
@@ -109,6 +145,8 @@ export class WebBluetoothTransport implements BleTransport {
     const found: DiscoveredDevice[] = [];
     for (const device of devices) {
       this.devices.set(device.id, device);
+      this.bind(device);
+      void this.watchAds(device);
       found.push({
         id: device.id,
         name: device.name || "Shinno device",
@@ -118,19 +156,59 @@ export class WebBluetoothTransport implements BleTransport {
     return found;
   }
 
-  async connect(id: string): Promise<void> {
-    let device = this.devices.get(id);
-    if (!device) {
-      const granted = await this.adoptGranted();
-      if (granted.some((item) => item.id === id)) device = this.devices.get(id);
+  remember(id: string) {
+    this.autoIds.add(id);
+  }
+
+  forgetAuto(id: string) {
+    this.autoIds.delete(id);
+    this.retryAt.delete(id);
+  }
+
+  private bind(device: BluetoothDevice) {
+    if (this.bound.has(device.id)) return;
+    this.bound.add(device.id);
+    device.addEventListener("gattserverdisconnected", () => {
+      this.chars.delete(device.id);
+      this.onDropped?.(device.id);
+      if (this.autoIds.has(device.id)) this.scheduleRetry(device.id);
+    });
+    device.addEventListener("advertisementreceived", () => {
+      if (!this.autoIds.has(device.id)) return;
+      if (device.gatt?.connected) return;
+      void this.connect(device.id).then(() => this.onLinked?.(device.id)).catch(() => {
+        this.scheduleRetry(device.id);
+      });
+    });
+  }
+
+  private async watchAds(device: BluetoothDevice) {
+    if (!device.watchAdvertisements) return;
+    try {
+      await device.watchAdvertisements();
+    } catch {
+      /* Chrome may require a prior user gesture; interval reconnect still runs. */
     }
-    if (!device?.gatt) throw new Error("Device is no longer available. Scan again.");
-    const server = await device.gatt.connect();
-    const characteristic = await resolveWriteCharacteristic(server);
-    this.chars.set(id, characteristic);
+  }
+
+  private scheduleRetry(id: string) {
+    const wait = 2500;
+    const due = Date.now() + wait;
+    const existing = this.retryAt.get(id);
+    if (existing && existing > Date.now()) return;
+    this.retryAt.set(id, due);
+    window.setTimeout(() => {
+      if (!this.autoIds.has(id)) return;
+      const device = this.devices.get(id);
+      if (device?.gatt?.connected) return;
+      void this.connect(id).then(() => this.onLinked?.(id)).catch(() => {
+        this.scheduleRetry(id);
+      });
+    }, wait);
   }
 
   async disconnect(id: string): Promise<void> {
+    this.forgetAuto(id);
     const device = this.devices.get(id);
     device?.gatt?.disconnect();
     this.chars.delete(id);

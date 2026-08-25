@@ -14,7 +14,7 @@ enum LegalCopy {
     1. Power the lighting devices that shipped with your Shinno RGB kits (emblem, mirrors, bumper).
     2. Turn Bluetooth on. Shinno Lights scans continuously while Bluetooth is on and lists nearby devices on Scan.
     3. Open Scan and tap Add on each device. Allow Bluetooth the first time iOS asks.
-    4. On Devices, name it Emblem, Mirrors, or Bumper (or Other). Q50 kits are supported; Q60 and Q70 are listed as soon.
+    4. After that, Shinno Lights reconnects saved devices when they power on and restores the last color and mode. You do not rescan every time.
     5. Color sets a solid RGB for all lights or one zone. Modes run the lighting animations. Speed 0 is slow, 100 is fast.
     6. Remove a device anytime from Devices.
 

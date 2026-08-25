@@ -119,7 +119,7 @@ export function hydrateControllers(raw: unknown): Controller[] {
       brightness: item.brightness ?? 80,
       effectId: item.effectId,
       effectSpeed: item.effectSpeed ?? 50,
-      wantConnected: Boolean(item.wantConnected),
+      wantConnected: item.wantConnected !== false,
       connection: "disconnected",
     });
   }

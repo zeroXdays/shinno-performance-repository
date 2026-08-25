@@ -41,10 +41,11 @@ Questions: support@shinnoperformance.com`;
 export const HOWTO_TITLE = "How to use Shinno Lights";
 
 export const HOWTO_BODY = `1. Power the lighting devices on the car.
-2. Open Scan and add each device (Chrome asks you to pick it; the iPhone app finds them nearby and keeps scanning while Bluetooth is on).
+2. Open Scan and add each device once (Chrome asks you to pick it; the iPhone app finds them nearby and keeps scanning while Bluetooth is on).
 3. Name it Emblem, Mirrors, or Bumper on Devices.
-4. Tap a zone to control only that kit, or leave All lights selected.
-5. Color sets a solid RGB. Modes run the lighting animations. Speed 0 is slow, 100 is fast.
-6. Remove a device anytime from Devices.
+4. After that, Shinno Lights reconnects saved devices when they power on and restores the last color and mode. You do not rescan every time.
+5. Tap a zone to control only that kit, or leave All lights selected.
+6. Color sets a solid RGB. Modes run the lighting animations. Speed 0 is slow, 100 is fast.
+7. Remove a device anytime from Devices.
 
 Lights must be used in a way that is legal and safe for driving.`;
