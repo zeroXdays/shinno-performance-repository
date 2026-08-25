@@ -213,6 +213,26 @@ function EffectsPanel() {
         speed={speed}
         power={garage.selected.length ? garage.selected.every((c) => c.power) : false}
       />
+      <div>
+        <div className="mb-1 flex justify-between text-sm text-white/55">
+          <span>Speed</span>
+          <span className="tabular-nums">{speed}</span>
+        </div>
+        <div className="mb-1 flex justify-between text-[10px] uppercase tracking-wide text-white/35">
+          <span>0 fast</span>
+          <span>100 slow</span>
+        </div>
+        <Slider
+          min={0}
+          max={100}
+          value={[speed]}
+          disabled={!garage.selected.length}
+          onValueChange={(value) => {
+            const next = Array.isArray(value) ? value[0] : value;
+            if (typeof next === "number") void garage.setEffectSpeed(next);
+          }}
+        />
+      </div>
       <Input
         value={query}
         onChange={(event) => setQuery(event.target.value)}
@@ -264,26 +284,6 @@ function EffectsPanel() {
           ))}
         </div>
       )}
-      <div>
-        <div className="mb-1 flex justify-between text-sm text-white/55">
-          <span>Speed</span>
-          <span className="tabular-nums">{speed}</span>
-        </div>
-        <div className="mb-1 flex justify-between text-[10px] uppercase tracking-wide text-white/35">
-          <span>0 fast</span>
-          <span>100 slow</span>
-        </div>
-        <Slider
-          min={0}
-          max={100}
-          value={[speed]}
-          disabled={!garage.selected.length}
-          onValueChange={(value) => {
-            const next = Array.isArray(value) ? value[0] : value;
-            if (typeof next === "number") void garage.setEffectSpeed(next);
-          }}
-        />
-      </div>
     </div>
   );
 }

@@ -59,7 +59,7 @@ Model-specific variants (BLEDOB, MELK, LEDBLE) live in `src/lib/protocol/models.
 
 - [RGB LED Emblem](https://shinnoperformance.com/products/infiniti-q50-rgb-led-emblem-2014-2024)
 - [RGBW Side Mirror Lights](https://shinnoperformance.com/products/rgbw-side-mirror-lights-for-infiniti-q50-2014-2024)
-- [RGB Bumper Lights](https://shinnoperformance.com/products/infiniti-q50-rgb-bumper-lights-2014-2024)
-- [RGB Grille Badge](https://shinnoperformance.com/products/rgb-illuminated-q50-grille-badge-2014-2024)
+- [RGB Bumper Lights](https://shinnoperformance.com/products/infiniti-q50-rgb-bumper-lights)
+- [RGB Grille Badge](https://shinnoperformance.com/products/rgb-illuminated-q50-grille-badge-infiniti-q50-2014-2024)
 
 If a kit shipped with a Magic Lantern / Lotus Lantern QR card, it belongs in this garage.
