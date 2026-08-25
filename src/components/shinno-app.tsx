@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Bluetooth, Loader2, Power, ScanLine, Trash2, Unplug, Car } from "lucide-react";
+import { EffectPreviewStyles, EffectStrip, PlayingBar } from "@/components/effect-preview";
 import { ColorWheel } from "@/components/color-wheel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -194,6 +195,12 @@ function EffectsPanel() {
 
   return (
     <div className="mt-4 space-y-3">
+      <EffectPreviewStyles />
+      <PlayingBar
+        effectId={active}
+        speed={speed}
+        power={garage.selected.length ? garage.selected.every((c) => c.power) : false}
+      />
       <div className="flex gap-1">
         {EFFECT_GROUPS.map((item) => (
           <button
@@ -223,6 +230,7 @@ function EffectsPanel() {
                 : "border-white/10 bg-white/5 text-white/80",
             )}
           >
+            <EffectStrip effect={effect} speed={speed} className="mb-2 h-7 w-full rounded-sm" />
             {effect.name}
           </button>
         ))}

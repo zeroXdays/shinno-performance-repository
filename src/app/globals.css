@@ -133,6 +133,8 @@
   }
 }
 
-:root {
-  --shinno-red: #e10600;
+@media (prefers-reduced-motion: reduce) {
+  [class*="shinno-fx"], span[style*="shinno-fx"] {
+    animation: none !important;
+  }
 }

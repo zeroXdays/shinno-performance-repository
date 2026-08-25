@@ -1,8 +1,10 @@
 "use client";
 
+import { useClock } from "@/hooks/use-clock";
 import type { CarId, ZoneKind } from "@/lib/catalog";
 import type { Controller } from "@/lib/controller";
 import { rgbToCss } from "@/lib/scenes";
+import { sampleEffect } from "@/lib/protocol";
 
 interface VehicleStageProps {
   car: CarId;
@@ -13,10 +15,14 @@ interface VehicleStageProps {
 
 export function VehicleStage({ car, controllers, target, onSelect }: VehicleStageProps) {
   const zoneCtrl = (kind: ZoneKind) => controllers.find((c) => c.zone === kind);
+  const playing = controllers.some((controller) => controller.power && controller.effectId != null);
+  const elapsed = useClock(playing);
 
   const toggle = (zone: ZoneKind) => {
     onSelect(target === zone ? "all" : zone);
   };
+
+  const colorOf = (controller?: Controller) => fill(controller, elapsed);
 
   return (
     <div className="relative mx-auto w-full max-w-md">
@@ -48,24 +54,28 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
 
         <MirrorLights
           controller={zoneCtrl("mirrors")}
+          color={colorOf(zoneCtrl("mirrors"))}
           selected={target === "mirrors"}
           onClick={() => toggle("mirrors")}
           car={car}
         />
         <BumperLights
           controller={zoneCtrl("bumper")}
+          color={colorOf(zoneCtrl("bumper"))}
           selected={target === "bumper"}
           onClick={() => toggle("bumper")}
           car={car}
         />
         <GrilleLight
           controller={zoneCtrl("grille")}
+          color={colorOf(zoneCtrl("grille"))}
           selected={target === "grille"}
           onClick={() => toggle("grille")}
           car={car}
         />
         <EmblemLight
           controller={zoneCtrl("emblem")}
+          color={colorOf(zoneCtrl("emblem"))}
           selected={target === "emblem"}
           onClick={() => toggle("emblem")}
           car={car}
@@ -189,11 +199,13 @@ function Q70Body() {
 
 function EmblemLight({
   controller,
+  color,
   selected,
   onClick,
   car,
 }: {
   controller?: Controller;
+  color: string;
   selected: boolean;
   onClick: () => void;
   car: CarId;
@@ -219,7 +231,7 @@ function EmblemLight({
         cx="360"
         cy={y}
         r="17"
-        fill={fill(controller)}
+        fill={color}
         filter={controller?.power ? "url(#glow)" : undefined}
         stroke={selected ? "#fff" : "rgba(255,255,255,0.35)"}
         strokeWidth="1.4"
@@ -230,11 +242,13 @@ function EmblemLight({
 
 function GrilleLight({
   controller,
+  color,
   selected,
   onClick,
   car,
 }: {
   controller?: Controller;
+  color: string;
   selected: boolean;
   onClick: () => void;
   car: CarId;
@@ -254,7 +268,7 @@ function GrilleLight({
         width="64"
         height="16"
         rx="3"
-        fill={fill(controller)}
+        fill={color}
         filter={controller?.power ? "url(#glow)" : undefined}
         stroke={selected ? "#fff" : "rgba(255,255,255,0.2)"}
         strokeWidth={selected ? 2 : 1}
@@ -265,17 +279,18 @@ function GrilleLight({
 
 function BumperLights({
   controller,
+  color,
   selected,
   onClick,
   car,
 }: {
   controller?: Controller;
+  color: string;
   selected: boolean;
   onClick: () => void;
   car: CarId;
 }) {
   const y = car === "q70" ? 268 : car === "q60" ? 286 : 278;
-  const color = fill(controller);
   return (
     <g
       className="cursor-pointer"
@@ -314,17 +329,18 @@ function BumperLights({
 
 function MirrorLights({
   controller,
+  color,
   selected,
   onClick,
   car,
 }: {
   controller?: Controller;
+  color: string;
   selected: boolean;
   onClick: () => void;
   car: CarId;
 }) {
   const y = car === "q70" ? 168 : car === "q60" ? 168 : 172;
-  const color = fill(controller);
   const left = car === "q60" ? 62 : 78;
   const right = car === "q60" ? 658 : 642;
   return (
@@ -359,9 +375,13 @@ function MirrorLights({
   );
 }
 
-function fill(controller?: Controller): string {
-  if (controller?.power) return rgbToCss(controller.color, 0.35 + (controller.brightness / 100) * 0.65);
-  return "rgba(70,70,74,0.7)";
+function fill(controller: Controller | undefined, elapsed: number): string {
+  if (!controller?.power) return "rgba(70,70,74,0.7)";
+  if (controller.effectId != null) {
+    const rgb = sampleEffect(controller.effectId, elapsed, controller.effectSpeed);
+    return rgbToCss(rgb, 0.25 + (controller.brightness / 100) * 0.75);
+  }
+  return rgbToCss(controller.color, 0.35 + (controller.brightness / 100) * 0.65);
 }
 
 function label(zone: ZoneKind): string {

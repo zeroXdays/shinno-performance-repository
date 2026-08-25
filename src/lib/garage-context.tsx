@@ -31,6 +31,7 @@ import {
   encodePower,
   type Rgb,
 } from "@/lib/protocol";
+import { createDemoControllers } from "@/lib/demo";
 import { SCENES, type Scene } from "@/lib/scenes";
 
 type Target = "all" | ZoneKind;
@@ -77,16 +78,16 @@ export function GarageProvider({ children }: { children: ReactNode }) {
   const writeQueue = useRef(Promise.resolve());
   const colorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [controllers, setControllers] = useState<Controller[]>([]);
+  const [controllers, setControllers] = useState<Controller[]>(() => createDemoControllers());
   const [discoveries, setDiscoveries] = useState<DiscoveredDevice[]>([]);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
-  const [tab, setTab] = useState<TabId>("color");
+  const [tab, setTab] = useState<TabId>("effects");
   const [target, setTarget] = useState<Target>("all");
   const [car, setCarState] = useState<CarId>("q50");
   const [busy, setBusy] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
-  const [demoLoaded, setDemoLoaded] = useState(false);
+  const [demoLoaded, setDemoLoaded] = useState(true);
 
   const webBluetooth = webBluetoothAvailable();
 
@@ -149,8 +150,11 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
   const writeTo = useCallback(
     async (controller: Controller, frames: Uint8Array[]) => {
-      const transport = transports.current.get(controller.id);
+      const transport =
+        transports.current.get(controller.id) ??
+        (controller.transport === "simulator" ? sim.current : undefined);
       if (!transport) return;
+      transports.current.set(controller.id, transport);
       for (const [index, frame] of frames.entries()) {
         await transport.write(controller.id, frame);
         if (index < frames.length - 1) {

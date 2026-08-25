@@ -11,7 +11,7 @@ const DEMO: DiscoveredDevice[] = [
 export class SimulatorTransport implements BleTransport {
   kind = "simulator" as const;
   private scanning = false;
-  private connected = new Set<string>();
+  private connected = new Set<string>(DEMO.map((device) => device.id));
   lastWrites = new Map<string, Uint8Array>();
 
   async scan(onFound: (device: DiscoveredDevice) => void): Promise<void> {
@@ -28,7 +28,6 @@ export class SimulatorTransport implements BleTransport {
   }
 
   async connect(id: string): Promise<void> {
-    await delay(80);
     this.connected.add(id);
   }
 
@@ -39,7 +38,6 @@ export class SimulatorTransport implements BleTransport {
   async write(id: string, payload: Uint8Array): Promise<void> {
     if (!this.connected.has(id)) throw new Error("Simulator is not connected.");
     this.lastWrites.set(id, payload);
-    await delay(8);
   }
 }
 
