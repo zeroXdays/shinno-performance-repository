@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useClock } from "@/hooks/use-clock";
 import type { CarId, ZoneKind } from "@/lib/catalog";
 import type { Controller } from "@/lib/controller";
@@ -38,18 +39,20 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
               type="button"
               onClick={() => toggle(zone.id)}
               className={cn(
-                "flex flex-col items-center gap-2 rounded-2xl border px-3 py-4 transition",
+                "flex flex-col items-center gap-2 rounded-2xl border px-2.5 py-3.5 transition",
                 selected
-                  ? "border-white/50 bg-white/10"
+                  ? "border-[#e10600]/80 bg-white/[0.07] shadow-[0_0_22px_rgba(225,6,0,0.22)]"
                   : target === "all"
-                    ? "border-white/10 bg-white/5"
-                    : "border-white/5 bg-black/40 opacity-55",
+                    ? "border-white/10 bg-[#121214]/90"
+                    : "border-white/5 bg-black/45 opacity-50",
               )}
             >
               <span
-                className="flex h-20 w-full items-center justify-center"
+                className="flex h-[5.5rem] w-full items-center justify-center"
                 style={{
-                  filter: on ? `drop-shadow(0 0 8px ${glow})` : undefined,
+                  filter: on
+                    ? `drop-shadow(0 0 10px ${glow})`
+                    : "drop-shadow(0 0 0.6px rgba(255,255,255,0.28))",
                 }}
               >
                 <ProductIcon
@@ -59,7 +62,9 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
                   elapsed={elapsed}
                 />
               </span>
-              <span className="text-xs font-medium tracking-wide text-white/80">{zone.label}</span>
+              <span className="text-[11px] font-medium tracking-[0.18em] text-white/75 uppercase">
+                {zone.label}
+              </span>
             </button>
           );
         })}
@@ -91,101 +96,187 @@ function ProductIcon({
 
 function EmblemIcon({ controller, elapsed }: { controller?: Controller; elapsed: number }) {
   const on = Boolean(controller?.power);
-  const leds = 8;
+  const leds = 14;
+  const tint = on ? rgbToCss(ledColor(controller, elapsed, 0, leds), 0.42) : undefined;
   return (
-    <svg viewBox="0 0 120 90" className="h-20 w-auto" aria-hidden>
-      <ellipse cx="60" cy="45" rx="54" ry="38" fill="#141416" stroke="#d0d4da" strokeWidth="4" />
-      {on
-        ? Array.from({ length: leds }, (_, i) => {
-            const rgb = ledColor(controller, elapsed, i, leds);
-            const a = -Math.PI / 2 + (i / leds) * Math.PI * 2;
-            return (
-              <ellipse
-                key={i}
-                cx={60 + Math.cos(a) * 36}
-                cy={45 + Math.sin(a) * 24}
-                rx="11"
-                ry="8"
-                fill={rgbToCss(rgb, 0.85)}
-              />
-            );
-          })
-        : null}
-      <path
-        d="M60 14C48 28 40 42 32 66c8-6 16-10 24-8l4 16 4-16c8-2 16 2 24 8C80 42 72 28 60 14Z"
-        fill="#eceef2"
+    <span className="relative h-full w-[9.5rem]">
+      <Image
+        src="/products/emblem.png"
+        alt=""
+        width={520}
+        height={282}
+        unoptimized
+        draggable={false}
+        className="absolute inset-0 h-full w-full object-contain"
       />
-    </svg>
+      {on ? (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: tint,
+            mixBlendMode: "screen",
+            WebkitMaskImage: "url(/products/emblem.png)",
+            maskImage: "url(/products/emblem.png)",
+            WebkitMaskRepeat: "no-repeat",
+            maskRepeat: "no-repeat",
+            WebkitMaskPosition: "center",
+            maskPosition: "center",
+            WebkitMaskSize: "contain",
+            maskSize: "contain",
+          }}
+        />
+      ) : null}
+      <svg viewBox="0 0 200 110" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
+        {on
+          ? Array.from({ length: leds }, (_, i) => {
+              const rgb = ledColor(controller, elapsed, i, leds);
+              const a = -Math.PI / 2 + (i / leds) * Math.PI * 2;
+              return (
+                <ellipse
+                  key={i}
+                  cx={100 + Math.cos(a) * 78}
+                  cy={55 + Math.sin(a) * 40}
+                  rx="7.5"
+                  ry="5.2"
+                  fill={rgbToCss(rgb, 0.82)}
+                  style={{ mixBlendMode: "screen" }}
+                />
+              );
+            })
+          : null}
+        {on ? (
+          <ellipse
+            cx="100"
+            cy="55"
+            rx="88"
+            ry="48"
+            fill="none"
+            stroke={rgbToCss(ledColor(controller, elapsed, 3, leds), 0.55)}
+            strokeWidth="2.2"
+            style={{ mixBlendMode: "screen" }}
+          />
+        ) : null}
+      </svg>
+    </span>
   );
 }
 
 function MirrorsIcon({ controller, elapsed }: { controller?: Controller; elapsed: number }) {
   return (
-    <svg viewBox="0 0 160 80" className="h-16 w-auto" aria-hidden>
-      <MirrorCap x={8} y={18} flip controller={controller} elapsed={elapsed} />
-      <MirrorCap x={88} y={18} controller={controller} elapsed={elapsed} />
-    </svg>
+    <span className="flex h-full w-full items-center justify-center gap-1 px-0.5">
+      <MirrorUnit src="/products/mirror-left.png" width={520} height={198} controller={controller} elapsed={elapsed} arch={1} />
+      <MirrorUnit src="/products/mirror-right.png" width={520} height={187} controller={controller} elapsed={elapsed} arch={-1} />
+    </span>
   );
 }
 
-function MirrorCap({
-  x,
-  y,
-  flip,
+function MirrorUnit({
+  src,
+  width,
+  height,
   controller,
   elapsed,
+  arch,
 }: {
-  x: number;
-  y: number;
-  flip?: boolean;
+  src: string;
+  width: number;
+  height: number;
   controller?: Controller;
   elapsed: number;
+  arch: number;
 }) {
   const on = Boolean(controller?.power);
-  const count = 7;
+  const count = 9;
   return (
-    <g transform={`translate(${x} ${y}) scale(${flip ? -1 : 1} 1) translate(${flip ? -64 : 0} 0)`}>
-      <path d="M4 28 C 10 6 54 2 62 16 C 66 30 40 48 12 46 C 2 42 0 34 4 28 Z" fill="#3a3e44" stroke="#0c0d10" strokeWidth="1.6" />
-      {Array.from({ length: count }, (_, i) => {
-        const rgb = ledColor(controller, elapsed, i, count);
-        return (
-          <rect
-            key={i}
-            x={10 + i * 7}
-            y={18}
-            width="5.5"
-            height="10"
-            rx="1"
-            fill={on ? rgbToCss(rgb, 0.9) : "#2a2c30"}
-          />
-        );
-      })}
-    </g>
+    <span className="relative h-[3.35rem] w-[6.6rem]">
+      <Image
+        src={src}
+        alt=""
+        width={width}
+        height={height}
+        unoptimized
+        draggable={false}
+        className="absolute inset-0 h-full w-full object-contain"
+      />
+      <svg viewBox="0 0 280 100" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
+        {Array.from({ length: count }, (_, i) => {
+          const rgb = ledColor(controller, elapsed, i, count);
+          const t = (i + 0.5) / count;
+          const x = 22 + t * 236;
+          const y = 40 + Math.sin(t * Math.PI) * 9 * arch;
+          return (
+            <rect
+              key={i}
+              x={x}
+              y={y}
+              width="18"
+              height="22"
+              rx="2.2"
+              fill={on ? rgbToCss(rgb, 0.92) : "rgba(210,214,220,0.18)"}
+              style={on ? { mixBlendMode: "screen" } : undefined}
+            />
+          );
+        })}
+      </svg>
+    </span>
   );
 }
 
 function BumperIcon({ controller, elapsed }: { controller?: Controller; elapsed: number }) {
+  return (
+    <span className="flex h-full w-full items-center justify-center gap-1 px-0.5">
+      <BumperUnit src="/products/bumper-left.png" width={520} height={297} controller={controller} elapsed={elapsed} />
+      <BumperUnit src="/products/bumper-right.png" width={520} height={389} controller={controller} elapsed={elapsed} />
+    </span>
+  );
+}
+
+function BumperUnit({
+  src,
+  width,
+  height,
+  controller,
+  elapsed,
+}: {
+  src: string;
+  width: number;
+  height: number;
+  controller?: Controller;
+  elapsed: number;
+}) {
   const on = Boolean(controller?.power);
   const count = 5;
   return (
-    <svg viewBox="0 0 180 70" className="h-14 w-auto" aria-hidden>
-      <path
-        d="M8 18 h150 c12 0 20 8 22 16 c2 8-4 18-16 20 H20 C8 52 4 36 8 18 Z"
-        fill="#0d0e12"
-        stroke="#2a2c30"
-        strokeWidth="1.6"
+    <span className="relative h-[3.6rem] w-[6.4rem]">
+      <Image
+        src={src}
+        alt=""
+        width={width}
+        height={height}
+        unoptimized
+        draggable={false}
+        className="absolute inset-0 h-full w-full object-contain"
       />
-      {Array.from({ length: count }, (_, i) => {
-        const rgb = ledColor(controller, elapsed, i, count);
-        const cx = 28 + i * 30;
-        return (
-          <g key={i}>
-            <circle cx={cx} cy="34" r="9" fill="#16181c" stroke="#2c2e32" />
-            <circle cx={cx} cy="34" r="5.4" fill={on ? rgbToCss(rgb, 0.95) : "#2a2c30"} />
-          </g>
-        );
-      })}
-    </svg>
+      <svg viewBox="0 0 200 120" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
+        {Array.from({ length: count }, (_, i) => {
+          const rgb = ledColor(controller, elapsed, i, count);
+          const cx = 46 + i * 27;
+          return (
+            <g key={i}>
+              <circle cx={cx} cy="74" r="9.2" fill={on ? rgbToCss(rgb, 0.18) : "rgba(0,0,0,0.15)"} />
+              <circle
+                cx={cx}
+                cy="74"
+                r="5.6"
+                fill={on ? rgbToCss(rgb, 0.95) : "rgba(80,84,90,0.55)"}
+                style={on ? { mixBlendMode: "screen" } : undefined}
+              />
+            </g>
+          );
+        })}
+      </svg>
+    </span>
   );
 }
 
@@ -202,22 +293,58 @@ function BadgeIcon({
   const rgb = on
     ? controller?.effectId != null
       ? sampleEffect(controller.effectId, elapsed, controller.effectSpeed)
-      : controller!.color
-    : { r: 22, g: 22, b: 24 };
+      : (controller?.color ?? { r: 196, g: 18, b: 32 })
+    : { r: 210, g: 214, b: 220 };
+  const tint = rgbToCss(rgb, on ? 0.72 : 0);
+
+  if (caption === "Q50") {
+    return (
+      <span className="relative h-full w-[10.5rem]">
+        <Image
+          src="/products/grille-badge.png"
+          alt=""
+          width={406}
+          height={152}
+          unoptimized
+          draggable={false}
+          className="absolute inset-0 h-full w-full object-contain"
+        />
+        {on ? (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background: tint,
+              mixBlendMode: "screen",
+              WebkitMaskImage: "url(/products/grille-badge.png)",
+              maskImage: "url(/products/grille-badge.png)",
+              WebkitMaskRepeat: "no-repeat",
+              maskRepeat: "no-repeat",
+              WebkitMaskPosition: "center",
+              maskPosition: "center",
+              WebkitMaskSize: "contain",
+              maskSize: "contain",
+            }}
+          />
+        ) : null}
+      </span>
+    );
+  }
+
   return (
-    <svg viewBox="0 0 160 70" className="h-14 w-auto" aria-hidden>
+    <svg viewBox="0 0 220 78" className="h-[3.4rem] w-auto" aria-hidden>
       <text
-        x="80"
-        y="48"
+        x="110"
+        y="54"
         textAnchor="middle"
         fontFamily="Arial Black, Arial, sans-serif"
         fontStyle="italic"
         fontWeight="900"
-        fontSize="36"
-        letterSpacing="-1.5"
-        fill={on ? rgbToCss(rgb, 0.95) : "#1a1a1c"}
-        stroke="#d4d8de"
-        strokeWidth="3"
+        fontSize="44"
+        letterSpacing="-1.8"
+        fill={on ? rgbToCss(rgb, 0.96) : "#d8dce2"}
+        stroke="#9aa3ad"
+        strokeWidth="4.5"
         paintOrder="stroke fill"
       >
         {caption}
