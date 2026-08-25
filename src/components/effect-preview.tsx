@@ -10,7 +10,7 @@ import {
   sampleLed,
   type LedEffect,
 } from "@/lib/protocol";
-import { cn } from "@/lib/utils";
+import { cn, svgCoord } from "@/lib/utils";
 
 const LEDS = 20;
 
@@ -36,8 +36,8 @@ export function ModeGlyph({
         return (
           <circle
             key={index}
-            cx={point.x}
-            cy={point.y}
+            cx={svgCoord(point.x)}
+            cy={svgCoord(point.y)}
             r="3.1"
             fill={rgbCss(rgb)}
             style={{ filter: `drop-shadow(0 0 3px ${rgbCss(rgb, 0.9)})` }}

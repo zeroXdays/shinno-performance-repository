@@ -6,7 +6,7 @@ import type { Controller } from "@/lib/controller";
 import { STAGE_ZONES } from "@/lib/catalog";
 import { rgbToCss, rgbToHex } from "@/lib/scenes";
 import { EFFECTS, sampleEffect, sampleLed } from "@/lib/protocol";
-import { cn } from "@/lib/utils";
+import { cn, svgCoord } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 
 interface VehicleStageProps {
@@ -92,11 +92,6 @@ function ZoneGlyph({
   // Grille badge glyph — restore with STAGE_ZONES when we have a kit to test:
   // if (zone === "grille") return <LettersGlyph caption={car.toUpperCase()} controller={controller} elapsed={elapsed} />;
   return <LettersGlyph caption={car.toUpperCase()} controller={controller} elapsed={elapsed} />;
-}
-
-/** Round SVG numbers so Node SSR and the browser agree (Math.sin/cos differ in the last bits). */
-function svgCoord(n: number): string {
-  return n.toFixed(3);
 }
 
 function EmblemGlyph({ controller, elapsed }: { controller?: Controller; elapsed: number }) {
