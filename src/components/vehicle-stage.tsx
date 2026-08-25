@@ -39,7 +39,7 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
               type="button"
               onClick={() => toggle(zone.id)}
               className={cn(
-                "flex flex-col items-center gap-2 rounded-2xl border px-2.5 py-3.5 transition",
+                "flex flex-col items-center gap-2 overflow-hidden rounded-2xl border px-2.5 py-3.5 transition",
                 selected
                   ? "border-[#e10600]/80 bg-white/[0.07] shadow-[0_0_22px_rgba(225,6,0,0.22)]"
                   : target === "all"
@@ -48,7 +48,7 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
               )}
             >
               <span
-                className="flex h-[5.5rem] w-full items-center justify-center"
+                className="flex h-[5.5rem] w-full items-center justify-center overflow-hidden"
                 style={{
                   filter: on
                     ? `drop-shadow(0 0 10px ${glow})`
@@ -117,7 +117,7 @@ function EmblemIcon({ controller, elapsed }: { controller?: Controller; elapsed:
   const leds = 14;
   const tint = on ? rgbToCss(ledColor(controller, elapsed, 0, leds), 0.42) : undefined;
   return (
-    <span className="relative h-full aspect-[520/282] w-auto">
+    <span className="relative inline-flex h-full max-w-full items-center">
       <Image
         src="/products/emblem.png"
         alt=""
@@ -125,7 +125,7 @@ function EmblemIcon({ controller, elapsed }: { controller?: Controller; elapsed:
         height={282}
         unoptimized
         draggable={false}
-        className="absolute inset-0 h-full w-full object-contain"
+        className="h-full w-auto max-w-full object-contain"
       />
       {on ? (
         <span
@@ -181,7 +181,7 @@ function EmblemIcon({ controller, elapsed }: { controller?: Controller; elapsed:
 
 function MirrorsIcon({ controller, elapsed }: { controller?: Controller; elapsed: number }) {
   return (
-    <span className="flex h-full w-full items-center justify-center gap-1 px-0.5">
+    <span className="flex h-full w-full max-w-full items-center justify-center gap-1 overflow-hidden px-0.5">
       <MirrorUnit
         src="/products/mirror-left.png"
         width={520}
@@ -219,7 +219,7 @@ function MirrorUnit({
 }) {
   const on = Boolean(controller?.power);
   return (
-    <span className="relative h-[3.35rem] w-auto" style={{ aspectRatio: `${width}/${height}` }}>
+    <span className="relative h-[78%] min-w-0 max-w-[48%]">
       <Image
         src={src}
         alt=""
@@ -227,7 +227,7 @@ function MirrorUnit({
         height={height}
         unoptimized
         draggable={false}
-        className="absolute inset-0 h-full w-full object-contain"
+        className="h-full w-auto max-w-full object-contain"
       />
       <svg viewBox="0 0 280 100" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
         {leds.map((led, i) => {
@@ -252,7 +252,7 @@ function MirrorUnit({
 
 function BumperIcon({ controller, elapsed }: { controller?: Controller; elapsed: number }) {
   return (
-    <span className="flex h-full w-full items-center justify-center gap-1 px-0.5">
+    <span className="flex h-full w-full max-w-full items-center justify-center gap-1 overflow-hidden px-0.5">
       <BumperUnit src="/products/bumper-left.png" width={520} height={297} controller={controller} elapsed={elapsed} />
       <BumperUnit src="/products/bumper-right.png" width={520} height={389} controller={controller} elapsed={elapsed} />
     </span>
@@ -275,7 +275,7 @@ function BumperUnit({
   const on = Boolean(controller?.power);
   const count = 5;
   return (
-    <span className="relative h-[3.6rem] w-auto" style={{ aspectRatio: `${width}/${height}` }}>
+    <span className="relative h-[82%] min-w-0 max-w-[48%]">
       <Image
         src={src}
         alt=""
@@ -283,7 +283,7 @@ function BumperUnit({
         height={height}
         unoptimized
         draggable={false}
-        className="absolute inset-0 h-full w-full object-contain"
+        className="h-full w-auto max-w-full object-contain"
       />
       <svg viewBox="0 0 200 120" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
         {Array.from({ length: count }, (_, i) => {
@@ -326,7 +326,7 @@ function BadgeIcon({
 
   if (caption === "Q50") {
     return (
-      <span className="relative h-full aspect-[406/152] w-auto">
+      <span className="relative inline-flex h-full max-w-full items-center">
         <Image
           src="/products/grille-badge.png"
           alt=""
@@ -334,7 +334,7 @@ function BadgeIcon({
           height={152}
           unoptimized
           draggable={false}
-          className="absolute inset-0 h-full w-full object-contain"
+          className="h-full w-auto max-w-full object-contain"
         />
         {on ? (
           <span
