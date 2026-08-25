@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Image from "next/image";
 import { useClock } from "@/hooks/use-clock";
 import type { CarId, ZoneKind } from "@/lib/catalog";
@@ -49,11 +50,7 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
             >
               <span
                 className="flex h-[5.5rem] w-full items-center justify-center overflow-hidden"
-                style={{
-                  filter: on
-                    ? `drop-shadow(0 0 10px ${glow})`
-                    : "drop-shadow(0 0 0.6px rgba(255,255,255,0.28))",
-                }}
+                style={{ filter: on ? `drop-shadow(0 0 7px ${glow})` : undefined }}
               >
                 <ProductIcon
                   zone={zone.id}
@@ -76,23 +73,51 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
   );
 }
 
-function px(value: number) {
-  return Math.round(value * 100) / 100;
-}
-
-const EMBLEM_LEDS = Array.from({ length: 14 }, (_, i) => {
-  const a = -Math.PI / 2 + (i / 14) * Math.PI * 2;
-  return { cx: px(100 + Math.cos(a) * 78), cy: px(55 + Math.sin(a) * 40) };
+/** Native-pixel LED seats, measured on the product PNGs. */
+const EMBLEM_RING = Array.from({ length: 20 }, (_, i) => {
+  const a = -Math.PI / 2 + (i / 20) * Math.PI * 2;
+  return { cx: 260 + Math.cos(a) * 242, cy: 141 + Math.sin(a) * 118 };
 });
 
-const MIRROR_LEDS = (arch: number) =>
-  Array.from({ length: 9 }, (_, i) => {
-    const t = (i + 0.5) / 9;
-    return { x: px(22 + t * 236), y: px(40 + Math.sin(t * Math.PI) * 9 * arch) };
-  });
+const MIRROR_LEFT = [
+  { x: 51, y: 88 },
+  { x: 93, y: 82 },
+  { x: 132, y: 78 },
+  { x: 165, y: 76 },
+  { x: 220, y: 74 },
+  { x: 275, y: 76 },
+  { x: 325, y: 78 },
+  { x: 389, y: 82 },
+  { x: 451, y: 90 },
+].map((p, i) => ({ ...p, w: 22 - i * 0.4, h: 30 - i * 0.5 }));
 
-const MIRROR_LEDS_LEFT = MIRROR_LEDS(1);
-const MIRROR_LEDS_RIGHT = MIRROR_LEDS(-1);
+const MIRROR_RIGHT = [
+  { x: 67, y: 82 },
+  { x: 127, y: 76 },
+  { x: 185, y: 72 },
+  { x: 234, y: 70 },
+  { x: 272, y: 72 },
+  { x: 314, y: 74 },
+  { x: 357, y: 76 },
+  { x: 390, y: 78 },
+  { x: 430, y: 82 },
+].map((p, i) => ({ ...p, w: 24 - i * 1.2, h: 32 - i * 1.4 }));
+
+const BUMPER_LEFT = [
+  { cx: 175, cy: 208 },
+  { cx: 230, cy: 208 },
+  { cx: 285, cy: 210 },
+  { cx: 340, cy: 212 },
+  { cx: 395, cy: 214 },
+];
+
+const BUMPER_RIGHT = [
+  { cx: 150, cy: 208 },
+  { cx: 205, cy: 204 },
+  { cx: 260, cy: 200 },
+  { cx: 318, cy: 196 },
+  { cx: 375, cy: 192 },
+];
 
 function ProductIcon({
   zone,
@@ -112,81 +137,102 @@ function ProductIcon({
   return null;
 }
 
-function EmblemIcon({ controller, elapsed }: { controller?: Controller; elapsed: number }) {
-  const on = Boolean(controller?.power);
-  const leds = 14;
-  const tint = on ? rgbToCss(ledColor(controller, elapsed, 0, leds), 0.42) : undefined;
+function Shot({
+  src,
+  width,
+  height,
+  children,
+}: {
+  src: string;
+  width: number;
+  height: number;
+  children?: ReactNode;
+}) {
   return (
-    <span className="relative inline-flex h-full max-w-full items-center">
+    <span className="relative inline-block h-full max-h-full">
       <Image
-        src="/products/emblem.png"
+        src={src}
         alt=""
-        width={520}
-        height={282}
+        width={width}
+        height={height}
         unoptimized
         draggable={false}
-        className="h-full w-auto max-w-full object-contain"
+        className="block h-full w-auto max-w-full object-contain"
       />
-      {on ? (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background: tint,
-            mixBlendMode: "screen",
-            WebkitMaskImage: "url(/products/emblem.png)",
-            maskImage: "url(/products/emblem.png)",
-            WebkitMaskRepeat: "no-repeat",
-            maskRepeat: "no-repeat",
-            WebkitMaskPosition: "center",
-            maskPosition: "center",
-            WebkitMaskSize: "contain",
-            maskSize: "contain",
-          }}
-        />
-      ) : null}
-      <svg viewBox="0 0 200 110" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
-        {on
-          ? EMBLEM_LEDS.map((led, i) => {
-              const rgb = ledColor(controller, elapsed, i, leds);
-              return (
-                <ellipse
-                  key={i}
-                  cx={led.cx}
-                  cy={led.cy}
-                  rx="7.5"
-                  ry="5.2"
-                  fill={rgbToCss(rgb, 0.82)}
-                  style={{ mixBlendMode: "screen" }}
-                />
-              );
-            })
-          : null}
-        {on ? (
-          <ellipse
-            cx="100"
-            cy="55"
-            rx="88"
-            ry="48"
-            fill="none"
-            stroke={rgbToCss(ledColor(controller, elapsed, 3, leds), 0.55)}
-            strokeWidth="2.2"
-            style={{ mixBlendMode: "screen" }}
-          />
-        ) : null}
-      </svg>
+      {children}
     </span>
+  );
+}
+
+function MaskGlow({ src, color }: { src: string; color: string }) {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute inset-0"
+      style={{
+        background: color,
+        mixBlendMode: "screen",
+        WebkitMaskImage: `url(${src})`,
+        maskImage: `url(${src})`,
+        WebkitMaskRepeat: "no-repeat",
+        maskRepeat: "no-repeat",
+        WebkitMaskPosition: "center",
+        maskPosition: "center",
+        WebkitMaskSize: "contain",
+        maskSize: "contain",
+      }}
+    />
+  );
+}
+
+function Overlay({
+  width,
+  height,
+  children,
+}: {
+  width: number;
+  height: number;
+  children: ReactNode;
+}) {
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="xMidYMid meet"
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      aria-hidden
+    >
+      {children}
+    </svg>
+  );
+}
+
+function EmblemIcon({ controller, elapsed }: { controller?: Controller; elapsed: number }) {
+  const on = Boolean(controller?.power);
+  const n = EMBLEM_RING.length;
+  const rim = on ? rgbToCss(ledColor(controller, elapsed, 0, n), 0.85) : undefined;
+  return (
+    <Shot src="/products/emblem.png" width={520} height={282}>
+      {on ? <MaskGlow src="/products/emblem-ring.png" color={rim!} /> : null}
+      {on ? (
+        <Overlay width={520} height={282}>
+          {EMBLEM_RING.map((led, i) => {
+            const rgb = ledColor(controller, elapsed, i, n);
+            return <ellipse key={i} cx={led.cx} cy={led.cy} rx="11" ry="7" fill={rgbToCss(rgb, 0.9)} />;
+          })}
+        </Overlay>
+      ) : null}
+    </Shot>
   );
 }
 
 function MirrorsIcon({ controller, elapsed }: { controller?: Controller; elapsed: number }) {
   return (
-    <span className="flex h-full w-full max-w-full items-center justify-center gap-1 overflow-hidden px-0.5">
+    <span className="flex h-full w-full items-center justify-center gap-1 px-0.5">
       <MirrorUnit
         src="/products/mirror-left.png"
         width={520}
         height={198}
-        leds={MIRROR_LEDS_LEFT}
+        cells={MIRROR_LEFT}
         controller={controller}
         elapsed={elapsed}
       />
@@ -194,7 +240,7 @@ function MirrorsIcon({ controller, elapsed }: { controller?: Controller; elapsed
         src="/products/mirror-right.png"
         width={520}
         height={187}
-        leds={MIRROR_LEDS_RIGHT}
+        cells={MIRROR_RIGHT}
         controller={controller}
         elapsed={elapsed}
       />
@@ -206,55 +252,60 @@ function MirrorUnit({
   src,
   width,
   height,
-  leds,
+  cells,
   controller,
   elapsed,
 }: {
   src: string;
   width: number;
   height: number;
-  leds: { x: number; y: number }[];
+  cells: { x: number; y: number; w: number; h: number }[];
   controller?: Controller;
   elapsed: number;
 }) {
   const on = Boolean(controller?.power);
   return (
-    <span className="relative h-[78%] min-w-0 max-w-[48%]">
-      <Image
-        src={src}
-        alt=""
-        width={width}
-        height={height}
-        unoptimized
-        draggable={false}
-        className="h-full w-auto max-w-full object-contain"
-      />
-      <svg viewBox="0 0 280 100" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
-        {leds.map((led, i) => {
-          const rgb = ledColor(controller, elapsed, i, leds.length);
+    <Shot src={src} width={width} height={height}>
+      <Overlay width={width} height={height}>
+        {cells.map((cell, i) => {
+          const rgb = ledColor(controller, elapsed, i, cells.length);
           return (
             <rect
               key={i}
-              x={led.x}
-              y={led.y}
-              width="18"
-              height="22"
-              rx="2.2"
-              fill={on ? rgbToCss(rgb, 0.92) : "rgba(210,214,220,0.18)"}
+              x={cell.x - cell.w / 2}
+              y={cell.y - cell.h / 2}
+              width={cell.w}
+              height={cell.h}
+              rx="2.4"
+              fill={on ? rgbToCss(rgb, 0.92) : "rgba(235,238,242,0.2)"}
               style={on ? { mixBlendMode: "screen" } : undefined}
             />
           );
         })}
-      </svg>
-    </span>
+      </Overlay>
+    </Shot>
   );
 }
 
 function BumperIcon({ controller, elapsed }: { controller?: Controller; elapsed: number }) {
   return (
-    <span className="flex h-full w-full max-w-full items-center justify-center gap-1 overflow-hidden px-0.5">
-      <BumperUnit src="/products/bumper-left.png" width={520} height={297} controller={controller} elapsed={elapsed} />
-      <BumperUnit src="/products/bumper-right.png" width={520} height={389} controller={controller} elapsed={elapsed} />
+    <span className="flex h-full w-full items-center justify-center gap-1 px-0.5">
+      <BumperUnit
+        src="/products/bumper-left.png"
+        width={520}
+        height={297}
+        dots={BUMPER_LEFT}
+        controller={controller}
+        elapsed={elapsed}
+      />
+      <BumperUnit
+        src="/products/bumper-right.png"
+        width={520}
+        height={389}
+        dots={BUMPER_RIGHT}
+        controller={controller}
+        elapsed={elapsed}
+      />
     </span>
   );
 }
@@ -263,47 +314,38 @@ function BumperUnit({
   src,
   width,
   height,
+  dots,
   controller,
   elapsed,
 }: {
   src: string;
   width: number;
   height: number;
+  dots: { cx: number; cy: number }[];
   controller?: Controller;
   elapsed: number;
 }) {
   const on = Boolean(controller?.power);
-  const count = 5;
   return (
-    <span className="relative h-[82%] min-w-0 max-w-[48%]">
-      <Image
-        src={src}
-        alt=""
-        width={width}
-        height={height}
-        unoptimized
-        draggable={false}
-        className="h-full w-auto max-w-full object-contain"
-      />
-      <svg viewBox="0 0 200 120" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
-        {Array.from({ length: count }, (_, i) => {
-          const rgb = ledColor(controller, elapsed, i, count);
-          const cx = 46 + i * 27;
+    <Shot src={src} width={width} height={height}>
+      <Overlay width={width} height={height}>
+        {dots.map((dot, i) => {
+          const rgb = ledColor(controller, elapsed, i, dots.length);
           return (
             <g key={i}>
-              <circle cx={cx} cy="74" r="9.2" fill={on ? rgbToCss(rgb, 0.18) : "rgba(0,0,0,0.15)"} />
+              <circle cx={dot.cx} cy={dot.cy} r="11" fill={on ? rgbToCss(rgb, 0.22) : "transparent"} />
               <circle
-                cx={cx}
-                cy="74"
-                r="5.6"
-                fill={on ? rgbToCss(rgb, 0.95) : "rgba(80,84,90,0.55)"}
+                cx={dot.cx}
+                cy={dot.cy}
+                r="6.5"
+                fill={on ? rgbToCss(rgb, 0.96) : "rgba(90,94,100,0.45)"}
                 style={on ? { mixBlendMode: "screen" } : undefined}
               />
             </g>
           );
         })}
-      </svg>
-    </span>
+      </Overlay>
+    </Shot>
   );
 }
 
@@ -322,39 +364,17 @@ function BadgeIcon({
       ? sampleEffect(controller.effectId, elapsed, controller.effectSpeed)
       : (controller?.color ?? { r: 196, g: 18, b: 32 })
     : { r: 210, g: 214, b: 220 };
-  const tint = rgbToCss(rgb, on ? 0.72 : 0);
 
   if (caption === "Q50") {
     return (
-      <span className="relative inline-flex h-full max-w-full items-center">
-        <Image
-          src="/products/grille-badge.png"
-          alt=""
-          width={406}
-          height={152}
-          unoptimized
-          draggable={false}
-          className="h-full w-auto max-w-full object-contain"
-        />
+      <Shot src="/products/grille-badge.png" width={406} height={152}>
         {on ? (
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background: tint,
-              mixBlendMode: "screen",
-              WebkitMaskImage: "url(/products/grille-badge.png)",
-              maskImage: "url(/products/grille-badge.png)",
-              WebkitMaskRepeat: "no-repeat",
-              maskRepeat: "no-repeat",
-              WebkitMaskPosition: "center",
-              maskPosition: "center",
-              WebkitMaskSize: "contain",
-              maskSize: "contain",
-            }}
-          />
+          <>
+            <MaskGlow src="/products/grille-letters.png" color={rgbToCss(rgb, 0.55)} />
+            <MaskGlow src="/products/grille-letter-edge.png" color={rgbToCss(rgb, 0.95)} />
+          </>
         ) : null}
-      </span>
+      </Shot>
     );
   }
 
@@ -369,9 +389,9 @@ function BadgeIcon({
         fontWeight="900"
         fontSize="44"
         letterSpacing="-1.8"
-        fill={on ? rgbToCss(rgb, 0.96) : "#d8dce2"}
-        stroke="#9aa3ad"
-        strokeWidth="4.5"
+        fill={on ? rgbToCss(rgb, 0.55) : "#1c1c1e"}
+        stroke={on ? rgbToCss(rgb, 0.96) : "#c8ccd2"}
+        strokeWidth={on ? 5 : 3.5}
         paintOrder="stroke fill"
       >
         {caption}
