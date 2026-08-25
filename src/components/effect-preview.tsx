@@ -76,7 +76,15 @@ export function PlayingBar({
 function pathFor(motion: ReturnType<typeof motionFor>): { x: number; y: number }[] {
   if (motion === "water" || motion === "wave") return wave();
   if (motion === "curtain") return curtain();
-  if (motion === "run" || motion === "tail" || motion === "marquee" || motion === "flow" || motion === "fade" || motion === "gradual") {
+  if (
+    motion === "run" ||
+    motion === "tail" ||
+    motion === "marquee" ||
+    motion === "flow" ||
+    motion === "fade" ||
+    motion === "gradual" ||
+    motion === "flush"
+  ) {
     return line();
   }
   return ring();
