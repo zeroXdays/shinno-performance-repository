@@ -139,7 +139,8 @@ function reversed(name: string, group: EffectGroup): boolean {
  */
 export function effectPeriodMs(speed: number, group: EffectGroup | Motion): number {
   const t = 1 - Math.min(100, Math.max(0, speed)) / 100;
-  if (group === "strobe" || group === "race") return 280 + t * 1100;
+  if (group === "strobe") return 280 + t * 1100;
+  if (group === "race") return 1100 + t * 2600;
   if (group === "flush") return 380 + t * 1400;
   if (group === "run" || group === "runback" || group === "tail" || group === "marquee" || group === "magic") {
     return 420 + t * 1400;
@@ -210,6 +211,33 @@ function pulse(u: number): number {
   return 0.08 + 0.92 * (0.5 - 0.5 * Math.cos(u * Math.PI * 2));
 }
 
+function sampleMagic(colors: Rgb[], s: number, u: number, reverse: boolean): Rgb {
+  // Rainbow paints onto the ring as a head chases forward, then holds full before resetting.
+  const fill = Math.min(1, u / 0.82);
+  const pos = reverse ? 1 - s : s;
+  if (pos > fill + 0.012) return { r: 0, g: 0, b: 0 };
+  const painted = cycle(colors, pos, false);
+  const head = Math.abs(pos - fill) < 0.055 ? 1 : 0.88;
+  return scale(painted, head);
+}
+
+function sampleRace(colors: Rgb[], s: number, elapsedMs: number, period: number, reverse: boolean): Rgb {
+  // Solid field; the next color runs through and takes over.
+  if (colors.length === 0) return { r: 0, g: 0, b: 0 };
+  if (colors.length === 1) return colors[0];
+  const takeovers = period <= 0 ? 0 : elapsedMs / period;
+  const i = Math.floor(takeovers);
+  const t = takeovers - i;
+  const from = colors[i % colors.length];
+  const to = colors[(i + 1) % colors.length];
+  const pos = reverse ? 1 - s : s;
+  const edge = 0.05;
+  if (pos < t - edge) return to;
+  if (pos > t + edge) return from;
+  const blend = (pos - (t - edge)) / (edge * 2);
+  return mix(to, from, blend);
+}
+
 export function sampleEffect(id: number, elapsedMs: number, speed: number): Rgb {
   const effect = effectById(id);
   const colors = paletteFor(id);
@@ -217,15 +245,23 @@ export function sampleEffect(id: number, elapsedMs: number, speed: number): Rgb 
   const group = effect?.group ?? "basic";
   const period = effectPeriodMs(speed, motion);
   let u = period <= 0 ? 0 : (elapsedMs / period) % 1;
-  if (effect && reversed(effect.name, group)) u = (1 - u + 1) % 1;
+  const rev = Boolean(effect && reversed(effect.name, group));
+  if (rev && motion !== "magic" && motion !== "race") u = (1 - u + 1) % 1;
 
   if (motion === "strobe") {
     const on = u < 0.42 || (u > 0.5 && u < 0.62);
     if (!on) return { r: 0, g: 0, b: 0 };
     return cycle(colors, u, false);
   }
-  if (motion === "jump" || motion === "race") {
+  if (motion === "jump") {
     return cycle(colors, u, false);
+  }
+  if (motion === "race") {
+    const takeovers = period <= 0 ? 0 : elapsedMs / period;
+    const i = Math.floor(takeovers);
+    const t = takeovers - i;
+    if (colors.length < 2) return colors[0] ?? { r: 0, g: 0, b: 0 };
+    return mix(colors[i % colors.length], colors[(i + 1) % colors.length], t);
   }
   if (motion === "tail") {
     const head = Math.pow(Math.max(0, 1 - ((u * 1.35) % 1) / 0.22), 1.8);
@@ -267,8 +303,7 @@ export function sampleEffect(id: number, elapsedMs: number, speed: number): Rgb 
     return scale(cycle(colors, u, true), pulse(u));
   }
   if (motion === "magic") {
-    const spark = 0.55 + 0.45 * pulse((u * 6) % 1);
-    return scale(cycle(colors, u * 2, true), spark);
+    return cycle(colors, Math.min(1, u / 0.82) * 0.85, false);
   }
   if (motion === "energy") {
     return scale(cycle(colors, u, true), 0.2 + pulse(u) * 0.8);
@@ -302,7 +337,8 @@ export function sampleLed(
   const group = effect?.group ?? "basic";
   const period = effectPeriodMs(speed, motion);
   let u = period <= 0 ? 0 : (elapsedMs / period) % 1;
-  if (effect && reversed(effect.name, group)) u = (1 - u + 1) % 1;
+  const rev = Boolean(effect && reversed(effect.name, group));
+  if (rev && motion !== "magic" && motion !== "race") u = (1 - u + 1) % 1;
   const s = count <= 1 ? 0 : index / (count - 1);
   const dist = Math.min(Math.abs(s - u), Math.abs(s - u + 1), Math.abs(s - u - 1));
   const base = cycle(colors, u, motion !== "jump" && motion !== "race" && motion !== "strobe");
@@ -311,14 +347,20 @@ export function sampleLed(
     const on = u < 0.42 || (u > 0.5 && u < 0.62);
     return on ? cycle(colors, s, false) : { r: 0, g: 0, b: 0 };
   }
-  if (motion === "jump" || motion === "race") {
+  if (motion === "jump") {
     return cycle(colors, u + s * 0.02, false);
+  }
+  if (motion === "race") {
+    return sampleRace(colors, s, elapsedMs, period, rev);
+  }
+  if (motion === "magic") {
+    return sampleMagic(colors, s, u, rev);
   }
   if (motion === "tail" || motion === "marquee") {
     const trail = Math.max(0, 1 - dist / 0.28);
     return scale(cycle(colors, u, false), 0.06 + trail * trail * 0.94);
   }
-  if (motion === "run" || motion === "magic") {
+  if (motion === "run") {
     if (effect?.name.includes("7-Color in")) {
       const bg = colors[0];
       const pack = colors.slice(1);

@@ -105,6 +105,38 @@ if (transLeft.r === transRight.r && transLeft.g === transRight.g && transLeft.b 
   throw new Error("7-Color Trans should wipe — left and right LEDs must differ mid-transition");
 }
 
+const magicId = 1; // Magic Forward
+const magicPeriod = effectPeriodMs(50, "magic");
+const magicMid = Array.from({ length: 20 }, (_, i) => sampleLed(magicId, i, 20, magicPeriod * 0.4, 50));
+const magicLit = magicMid.filter((rgb) => rgb.r + rgb.g + rgb.b > 40);
+const magicDark = magicMid.filter((rgb) => rgb.r + rgb.g + rgb.b <= 40);
+if (magicDark.length < 3) throw new Error("Magic Forward should still have unpainted LEDs mid-chase");
+const magicKeys = new Set(magicLit.map((rgb) => `${rgb.r},${rgb.g},${rgb.b}`));
+if (magicKeys.size < 3) throw new Error("Magic Forward should show several rainbow colors at once on the painted span");
+const magicLate = Array.from({ length: 20 }, (_, i) => sampleLed(magicId, i, 20, magicPeriod * 0.9, 50));
+const magicLateLit = magicLate.filter((rgb) => rgb.r + rgb.g + rgb.b > 40).length;
+if (magicLateLit < 16) throw new Error("Magic Forward should finish with the ring mostly painted");
+
+const raceId = 77; // 7-Color Race
+const racePeriod = effectPeriodMs(50, "race");
+const raceBand = Array.from({ length: 20 }, (_, i) => sampleLed(raceId, i, 20, racePeriod * 0.45, 50));
+const raceLeft = raceBand.slice(0, 6);
+const raceRight = raceBand.slice(14);
+const leftKey = `${raceLeft[2].r},${raceLeft[2].g},${raceLeft[2].b}`;
+const rightKey = `${raceRight[2].r},${raceRight[2].g},${raceRight[2].b}`;
+if (leftKey === rightKey) throw new Error("Color Race should keep a solid field while another color runs through");
+const leftUniform = raceLeft.every((rgb) => `${rgb.r},${rgb.g},${rgb.b}` === leftKey);
+const rightUniform = raceRight.every((rgb) => `${rgb.r},${rgb.g},${rgb.b}` === rightKey);
+if (!leftUniform || !rightUniform) {
+  throw new Error("Color Race should be two solids meeting at a running front, not a rainbow mix");
+}
+
+const rgbRace = 79; // R-G-B Race
+const rgbBand = Array.from({ length: 20 }, (_, i) => sampleLed(rgbRace, i, 20, racePeriod * 0.4, 50));
+const rgbKeys = new Set(rgbBand.map((rgb) => `${rgb.r},${rgb.g},${rgb.b}`));
+if (rgbKeys.size < 2) throw new Error("R-G-B Race should show a takeover between two of red, green, and blue");
+if (rgbKeys.size > 4) throw new Error("R-G-B Race should not sprinkle the whole rainbow; only the racing pair");
+
 const toRed = sampleLed(9, 18, 20, 0, 50);
 const toGreen = sampleLed(11, 18, 20, 0, 50);
 if (!(toRed.r > toRed.g + 40 && toRed.r > toRed.b + 40)) {
