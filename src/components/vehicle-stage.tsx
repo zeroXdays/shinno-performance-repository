@@ -154,14 +154,24 @@ function Shot({
   );
 }
 
-function MaskGlow({ src, color, halo = false }: { src: string; color: string; halo?: boolean }) {
+function MaskGlow({
+  src,
+  color,
+  halo = false,
+  blend = "screen",
+}: {
+  src: string;
+  color: string;
+  halo?: boolean;
+  blend?: "screen" | "normal";
+}) {
   return (
     <span
       aria-hidden
       className="pointer-events-none absolute inset-0"
       style={{
         background: color,
-        mixBlendMode: "screen",
+        mixBlendMode: blend,
         WebkitMaskImage: `url(${src})`,
         maskImage: `url(${src})`,
         maskMode: "alpha",
@@ -372,7 +382,9 @@ function BadgeIcon({
   if (caption === "Q50") {
     return (
       <Shot src="/products/grille-badge.png" width={406} height={152}>
-        {on ? <MaskGlow src="/products/grille-letters.png" color={rgbToCss(rgb, 0.82)} /> : null}
+        {on ? (
+          <MaskGlow src="/products/grille-letters.png" color={rgbToCss(rgb, 0.88)} blend="normal" />
+        ) : null}
       </Shot>
     );
   }
