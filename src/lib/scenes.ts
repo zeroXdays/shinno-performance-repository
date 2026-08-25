@@ -40,14 +40,12 @@ export const SCENES: Scene[] = [
     power: true,
   },
   {
-    id: "show",
-    name: "Show",
+    id: "violet",
+    name: "Violet",
     blurb: "",
-    color: { r: 255, g: 32, b: 48 },
-    brightness: 100,
+    color: { r: 150, g: 40, b: 255 },
+    brightness: 78,
     power: true,
-    effectId: 212,
-    effectSpeed: 42,
   },
   {
     id: "ice",
