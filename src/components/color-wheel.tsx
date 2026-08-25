@@ -95,11 +95,8 @@ export function ColorWheel({ color, onChange, disabled }: ColorWheelProps) {
       <div className="relative aspect-square w-[86%]">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-[-12%] opacity-70 blur-2xl"
-          style={{
-            clipPath: HEX_CLIP,
-            background: css,
-          }}
+          className="pointer-events-none absolute inset-[8%] rounded-[32%] opacity-50 blur-3xl"
+          style={{ background: css }}
         />
         <div
           ref={disk}
@@ -152,15 +149,15 @@ export function ColorWheel({ color, onChange, disabled }: ColorWheelProps) {
             />
           </svg>
           <div
-            className="pointer-events-none absolute left-1/2 top-1/2 size-[30%] -translate-x-1/2 -translate-y-1/2"
+            className="pointer-events-none absolute left-1/2 top-1/2 size-[22%] -translate-x-1/2 -translate-y-1/2"
             style={{
               clipPath: HEX_CLIP,
               background: css,
-              boxShadow: `0 0 22px ${css}`,
+              boxShadow: `0 0 18px ${css}`,
             }}
           />
           <div
-            className="pointer-events-none absolute size-4 -translate-x-1/2 -translate-y-1/2 border-2 border-white shadow-md"
+            className="pointer-events-none absolute size-5 -translate-x-1/2 -translate-y-1/2 border-2 border-white shadow-md"
             style={{
               left: `${50 + knob.x * 46}%`,
               top: `${50 + knob.y * 46}%`,
@@ -178,7 +175,7 @@ export function ColorWheel({ color, onChange, disabled }: ColorWheelProps) {
         )}
       >
         <span
-          className="size-3.5 shrink-0"
+          className="size-4 shrink-0"
           style={{ clipPath: HEX_CLIP, background: css }}
           aria-hidden
         />
