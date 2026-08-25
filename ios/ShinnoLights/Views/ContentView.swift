@@ -239,18 +239,17 @@ struct ColorScreen: View {
                             Button {
                                 garage.apply(scene)
                             } label: {
-                                HStack(spacing: 8) {
+                                VStack(spacing: 6) {
                                     HexCell()
                                         .fill(scene.color.r + scene.color.g + scene.color.b == 0 ? Color.white.opacity(0.12) : scene.color.color)
-                                        .frame(width: 16, height: 16)
-                                        .overlay(HexCell().stroke(.white.opacity(0.25), lineWidth: 1))
+                                        .frame(width: 22, height: 22)
+                                        .overlay(HexCell().stroke(.white.opacity(0.28), lineWidth: 1))
                                     Text(scene.name)
                                         .font(.caption)
                                         .foregroundStyle(.white.opacity(0.85))
-                                    Spacer(minLength: 0)
                                 }
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 8)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
                                 .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12, style: .continuous)

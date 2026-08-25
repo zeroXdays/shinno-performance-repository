@@ -202,20 +202,20 @@ export function ShinnoApp() {
                     disabled={!garage.controllers.length}
                     onClick={() => void garage.applyScene(scene)}
                     className={cn(
-                      "flex items-center gap-2 rounded-xl border bg-black/25 px-2.5 py-2 text-left disabled:opacity-40",
+                      "flex flex-col items-center gap-1.5 rounded-xl border bg-black/25 px-1.5 py-2.5 disabled:opacity-40",
                       active
                         ? "border-red-500/70 shadow-[0_0_14px_rgba(225,6,0,0.22)]"
                         : "border-white/10",
                     )}
                   >
-                    <span className="relative size-5 shrink-0">
+                    <span className="relative size-7">
                       <span
-                        className="absolute inset-0 bg-white/25"
+                        className="absolute inset-0 bg-white/30"
                         style={{ clipPath: HEX_CLIP }}
                         aria-hidden
                       />
                       <span
-                        className="absolute inset-[1.5px]"
+                        className="absolute inset-[2px]"
                         style={{
                           clipPath: HEX_CLIP,
                           background:
@@ -225,7 +225,7 @@ export function ShinnoApp() {
                         }}
                       />
                     </span>
-                    <span className="text-xs text-white/80">{scene.name}</span>
+                    <span className="text-[11px] leading-none text-white/80">{scene.name}</span>
                   </button>
                 );
               })}
