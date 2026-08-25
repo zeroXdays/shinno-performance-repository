@@ -30,7 +30,7 @@ struct GarageScreen: View {
                     Text("SHINNO")
                         .font(.system(size: 28, weight: .semibold, design: .default))
                         .tracking(8)
-                    Text("Lights for Q50 / Q60")
+                    Text("Lights for Q50")
                         .foregroundStyle(.secondary)
                     SceneRow()
                     ForEach($garage.controllers) { $controller in

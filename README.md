@@ -1,46 +1,48 @@
 # Shinno Lights
 
-Apple-first controller for [Shinno Performance](https://shinnoperformance.com) RGB kits on Infiniti Q50 / Q60.
+Apple-first controller for [Shinno Performance](https://shinnoperformance.com) RGB kits on Infiniti **Q50**. Q60 and Q70 are in the picker as “soon” and cannot be selected yet.
 
-Lotus Lantern, Lotus Lamp X, and Magic Lantern treat these boxes as generic LED strips named `ELK-BLEDOM-XXXX`. This app treats them as one car: **emblem, mirrors, bumper, grille** — with vehicle scenes that write every zone in one tap.
+Lotus Lantern, Lotus Lamp X, and Magic Lantern treat these boxes as generic LED strips named `ELK-BLEDOM-XXXX`. This app treats them as one car: **emblem, mirrors, bumper, grille**.
 
-The Bluetooth protocol is the same family documented by [dave-code-ruiz/elkbledom](https://github.com/dave-code-ruiz/elkbledom) (Home Assistant). Those boxes advertise as ELK-BLEDOM, ELK-BLEDOB, MELK, or LEDBLE.
+The Bluetooth protocol is the same family documented by [dave-code-ruiz/elkbledom](https://github.com/dave-code-ruiz/elkbledom). Those boxes advertise as ELK-BLEDOM, ELK-BLEDOB, MELK, or LEDBLE.
 
-## Why this instead of Lotus / Magic Lantern
+## Download and run (Bluetooth)
 
-- Zones are named after Shinno products, not factory serials
-- **Sync all** — color, brightness, and scenes go to every paired box with a short stagger so BLE does not drop packets
-- Vehicle scenes: Night drive, Infiniti red, OEM white, Show, Ice, Stealth
-- Auto-reconnect on iOS after you walk away from the car
-- No account, no ads
-- iPhone is the real client. Safari cannot do Web Bluetooth; the native app in `ios/` is what you run on a phone
+You need the git checkout of this repo (Cursor → this agent → **Open in Cursor**, or clone `main` locally). Node 20+ for the web app. Xcode 15+ for iPhone.
 
-## Run the web garage (preview)
+### Fastest: Chrome on a Mac (Web Bluetooth)
+
+Safari and Firefox cannot talk to the boxes. Use **Google Chrome** (or Edge) on a computer with Bluetooth.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Opens at [http://127.0.0.1:43147](http://127.0.0.1:43147). First load builds a demo garage with four simulated controllers so you can drive the UI without hardware. Tap **Emblem**, **Mirrors**, **Bumper**, or **Grille** to isolate a zone. The **Modes** tab uses Lotus Lamp X / Magic Lantern firmware animations as square tiles with a path of LEDs showing how each effect moves. Speed 0 is fast, 100 is slow — same as the ELK boxes.
+Open [http://127.0.0.1:43147](http://127.0.0.1:43147) in Chrome — localhost is allowed without HTTPS.
 
-Chrome on macOS or Android can also **Pair real box** via Web Bluetooth. iPhone Safari cannot; use the Xcode app.
+1. Power the ELK boxes that shipped with the kits (they show up as `ELK-BLEDOM…`, `MELK…`, or `LEDBLE…`).
+2. In the app, open **Scan** → **Pair**. Chrome’s Bluetooth chooser appears.
+3. Pick a box. On **Devices**, name it and set the zone (Emblem / Mirrors / Bumper / Grille).
+4. Repeat for the other three boxes. Color, brightness, and modes then write to the real hardware.
+
+The first load also seeds a demo garage so you can click around with no boxes. **Demo scan** adds simulated controllers only — use **Pair** for live Bluetooth.
+
+### iPhone (the real client)
+
+iOS Safari has no Web Bluetooth. Pairing on a phone means the native app:
+
+1. Open `ios/ShinnoLights.xcodeproj` in Xcode.
+2. Signing & Capabilities → your Apple ID / team (bundle `com.shinnoperformance.lights`).
+3. Plug in an iPhone, pick it as the run destination, hit Run.
+4. Allow Bluetooth when prompted. Scan, add each ELK box, assign zones.
+
+CoreBluetooth writes 9-byte ELK frames without response and reconnects if a box drops.
 
 ```bash
 npm test    # ELK frame encoding
 npm run lint
 ```
-
-## Run on iPhone
-
-1. Open `ios/ShinnoLights.xcodeproj` in Xcode 15+
-2. Select your development team under Signing
-3. Plug in an iPhone and run **ShinnoLights**
-4. Allow Bluetooth. Scan. Add each ELK box and assign Emblem / Mirrors / Bumper / Grille
-
-Bundle id: `com.shinnoperformance.lights`
-
-The iOS target uses CoreBluetooth, writes 9-byte ELK frames without response, and reconnects if a box drops.
 
 ## Protocol (ELK-BLEDOM)
 
@@ -62,4 +64,4 @@ Model-specific variants (BLEDOB, MELK, LEDBLE) live in `src/lib/protocol/models.
 - [RGB Bumper Lights](https://shinnoperformance.com/products/infiniti-q50-rgb-bumper-lights)
 - [RGB Grille Badge](https://shinnoperformance.com/products/rgb-illuminated-q50-grille-badge-infiniti-q50-2014-2024)
 
-If a kit shipped with a Magic Lantern / Lotus Lantern QR card, it belongs in this garage.
+If a kit shipped with a Magic Lantern / Lotus Lantern QR card, it belongs in this garage. Q60 / Q70 product photos are not wired yet.

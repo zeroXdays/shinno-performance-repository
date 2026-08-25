@@ -56,8 +56,13 @@ export function ShinnoApp() {
               aria-label="Car"
             >
               {CARS.map((car) => (
-                <option key={car.id} value={car.id} className="bg-neutral-900">
-                  {car.name}
+                <option
+                  key={car.id}
+                  value={car.id}
+                  disabled={!car.enabled}
+                  className="bg-neutral-900"
+                >
+                  {car.enabled ? car.name : `${car.name} — soon`}
                 </option>
               ))}
             </select>

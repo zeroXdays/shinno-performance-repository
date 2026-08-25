@@ -12,7 +12,7 @@ import {
 import { SimulatorTransport } from "@/lib/ble/simulator";
 import type { BleTransport, DiscoveredDevice } from "@/lib/ble/types";
 import { WebBluetoothTransport, isChooserCancel, webBluetoothAvailable } from "@/lib/ble/web-bluetooth";
-import { type CarId, type ZoneKind } from "@/lib/catalog";
+import { isActiveCar, type CarId, type ZoneKind } from "@/lib/catalog";
 import {
   CAR_STORAGE_KEY,
   createController,
@@ -100,6 +100,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setCar = useCallback((next: CarId) => {
+    if (!isActiveCar(next)) return;
     setCarState(next);
     try {
       window.localStorage.setItem(CAR_STORAGE_KEY, next);
