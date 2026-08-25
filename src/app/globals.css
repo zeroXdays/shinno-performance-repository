@@ -124,7 +124,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-color: #050506;
+    background-color: #141416;
   }
   html {
     @apply font-sans;
@@ -132,12 +132,14 @@
 }
 
 .app-shell {
-  background-color: #070708;
+  background-color: #141416;
+  background-attachment: fixed;
   background-image:
-    radial-gradient(920px 460px at 50% -12%, rgba(225, 6, 0, 0.2), transparent 58%),
-    radial-gradient(640px 280px at 0% 80%, rgba(80, 90, 120, 0.1), transparent 55%),
-    radial-gradient(520px 240px at 100% 100%, rgba(40, 48, 70, 0.16), transparent 50%),
-    linear-gradient(#09090b, #050506);
+    radial-gradient(circle, rgba(255, 255, 255, 0.045) 1px, transparent 1.4px),
+    radial-gradient(880px 420px at 50% -8%, rgba(225, 6, 0, 0.28), transparent 60%),
+    radial-gradient(560px 280px at 100% 110%, rgba(80, 90, 140, 0.16), transparent 55%),
+    linear-gradient(180deg, #1c1c20 0%, #141416 42%, #121214 100%);
+  background-size: 18px 18px, auto, auto, auto;
 }
 
 .app-shell[data-theme="graphite"] {
@@ -145,10 +147,13 @@
   --popover: #171b22;
   --muted: #1a1e26;
   --accent: #1a2030;
-  background-color: #0a0c10;
+  background-color: #16191f;
+  background-attachment: fixed;
   background-image:
-    radial-gradient(900px 420px at 50% -10%, rgba(120, 140, 170, 0.16), transparent 58%),
-    linear-gradient(#0c0e12, #07080a);
+    radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1.4px),
+    radial-gradient(880px 420px at 50% -8%, rgba(130, 150, 190, 0.2), transparent 60%),
+    linear-gradient(180deg, #1c212a 0%, #16191f 45%, #12151a 100%);
+  background-size: 18px 18px, auto, auto;
 }
 
 .app-shell[data-theme="studio"] {
@@ -156,11 +161,14 @@
   --popover: #1c1412;
   --muted: #221714;
   --accent: #2a1612;
-  background-color: #100c0b;
+  background-color: #181210;
+  background-attachment: fixed;
   background-image:
-    radial-gradient(900px 420px at 50% -10%, rgba(225, 6, 0, 0.16), transparent 58%),
-    radial-gradient(500px 240px at 90% 110%, rgba(180, 120, 60, 0.1), transparent 50%),
-    linear-gradient(#120e0c, #080605);
+    radial-gradient(circle, rgba(255, 230, 210, 0.04) 1px, transparent 1.4px),
+    radial-gradient(880px 420px at 50% -8%, rgba(225, 6, 0, 0.22), transparent 60%),
+    radial-gradient(500px 240px at 90% 110%, rgba(180, 120, 60, 0.14), transparent 50%),
+    linear-gradient(180deg, #221816 0%, #181210 45%, #120e0c 100%);
+  background-size: 18px 18px, auto, auto, auto;
 }
 
 @media (prefers-reduced-motion: reduce) {

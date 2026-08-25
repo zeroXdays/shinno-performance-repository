@@ -55,7 +55,7 @@ export function ShinnoApp() {
 
   return (
     <div className="flex min-h-dvh flex-col text-foreground">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-black/70 backdrop-blur-md">
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-black/45 backdrop-blur-md">
         <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3 px-5 py-3">
           <Image
             src="/shinno-logo-header.png"
@@ -111,7 +111,7 @@ export function ShinnoApp() {
           </div>
         ) : null}
 
-        <div className="mt-4 flex min-h-0 flex-1 flex-col">
+        <div className="mt-4 flex min-h-0 flex-1 flex-col rounded-3xl border border-white/10 bg-white/[0.05] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
           {garage.tab === "color" ? (
             <div className="space-y-5">
             <div className="flex items-center justify-between">
@@ -194,7 +194,7 @@ export function ShinnoApp() {
         </div>
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-black/80 backdrop-blur-md">
+      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-black/55 backdrop-blur-md">
         <div className="mx-auto flex w-full max-w-lg px-2 pt-1.5 pb-[max(0.45rem,env(safe-area-inset-bottom))]">
           {TABS.map((item) => {
             const Icon = item.icon;
@@ -295,7 +295,7 @@ function EffectsPanel() {
               disabled={!garage.selected.length}
               onClick={() => void garage.setEffect(effect.id)}
               className={cn(
-                "flex flex-col rounded-xl border bg-black/35 p-1.5 text-center",
+                "flex flex-col rounded-xl border bg-black/20 p-1.5 text-center",
                 active === effect.id
                   ? "border-red-500/70 shadow-[0_0_18px_rgba(225,6,0,0.25)]"
                   : "border-white/10",
@@ -343,7 +343,7 @@ function ScanPanel() {
             return (
               <li
                 key={device.id}
-                className="flex items-center justify-between rounded-xl border border-white/10 px-3 py-3"
+                className="rounded-xl border border-white/10 bg-black/20 px-3 py-3"
               >
                 <div>
                   <p className="text-sm">{device.name}</p>
@@ -376,7 +376,7 @@ function DeviceList() {
         </Button>
       </div>
       {garage.controllers.map((controller) => (
-        <div key={controller.id} className="rounded-xl border border-white/10 bg-black/25 p-3">
+        <div key={controller.id} className="rounded-xl border border-white/10 bg-black/20 p-3">
           <div className="flex items-center justify-between gap-2">
             <Input
               aria-label={t("devices.rename")}

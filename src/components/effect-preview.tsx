@@ -60,7 +60,7 @@ export function PlayingBar({
   const { t } = useI18n();
   const effect = effectId != null ? effectById(effectId) : undefined;
   return (
-    <div className="overflow-hidden rounded-xl border border-white/10 bg-black/40">
+    <div className="overflow-hidden rounded-xl border border-white/10 bg-black/25">
       <div className="mx-auto h-24 w-24">
         {effect && power ? (
           <ModeGlyph effect={effect} speed={speed} />

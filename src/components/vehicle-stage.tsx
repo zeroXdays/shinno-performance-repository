@@ -44,8 +44,8 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
                 selected
                   ? "border-[#e10600]/80 bg-white/[0.07] shadow-[0_0_22px_rgba(225,6,0,0.2)]"
                   : target === "all"
-                    ? "border-white/10 bg-black/35"
-                    : "border-white/5 bg-black/25 opacity-45",
+                    ? "border-white/10 bg-black/20"
+                    : "border-white/5 bg-black/15 opacity-45",
               )}
             >
               <span className={cn("flex w-full items-center justify-center", wide ? "h-[6rem]" : "h-[5rem]")}>
