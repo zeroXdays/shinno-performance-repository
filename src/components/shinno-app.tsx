@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Bluetooth, Loader2, Power, ScanLine, Trash2, Unplug, Car } from "lucide-react";
-import { EffectPreviewStyles, EffectStrip, PlayingBar } from "@/components/effect-preview";
+import { EffectStrip, PlayingBar } from "@/components/effect-preview";
 import { ColorWheel } from "@/components/color-wheel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,10 +36,14 @@ export function ShinnoApp() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
-      <header className="border-b border-white/10">
-        <div className="mx-auto flex max-w-xl items-center justify-between gap-3 px-4 py-2.5">
-          <p className="text-[15px] font-medium text-white">Shinno</p>
-          <label className="flex items-center gap-1.5 text-sm text-white/80">
+      <header className="border-b border-white/10 bg-black/30">
+        <div className="mx-auto flex max-w-lg items-center justify-between gap-3 px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <span className="h-5 w-[3px] rounded-full bg-[#e10600]" />
+            <p className="text-[15px] font-medium tracking-wide text-white">Shinno</p>
+            <span className="text-[13px] text-white/35">Lights</span>
+          </div>
+          <label className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-sm text-white/80">
             <Car className="size-3.5 text-white/50" />
             <select
               className="bg-transparent text-sm outline-none"
@@ -57,7 +61,7 @@ export function ShinnoApp() {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-4 pb-8 pt-3">
+      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pb-8 pt-4">
         <VehicleStage
           car={garage.car}
           controllers={garage.controllers}
@@ -79,7 +83,7 @@ export function ShinnoApp() {
           </div>
         ) : null}
 
-        <div className="mt-3 flex gap-1 rounded-lg bg-white/5 p-1">
+        <div className="mt-3 flex gap-1 rounded-full border border-white/10 bg-white/5 p-1">
           {(
             [
               { id: "color" as const, label: "Color" },
@@ -93,8 +97,8 @@ export function ShinnoApp() {
               type="button"
               onClick={() => garage.setTab(item.id)}
               className={cn(
-                "flex-1 rounded-md py-1.5 text-sm",
-                garage.tab === item.id ? "bg-white/15 text-white" : "text-white/50",
+                "flex-1 rounded-full py-1.5 text-sm",
+                garage.tab === item.id ? "bg-white text-black" : "text-white/50",
               )}
             >
               {item.label}
@@ -190,51 +194,68 @@ function EffectsPanel() {
   const garage = useGarage();
   const active = garage.selected[0]?.effectId;
   const speed = garage.selected[0]?.effectSpeed ?? 50;
-  const [group, setGroup] = useState<(typeof EFFECT_GROUPS)[number]["id"]>("breathe");
-  const items = useMemo(() => EFFECTS.filter((e) => e.group === group), [group]);
+  const [group, setGroup] = useState<(typeof EFFECT_GROUPS)[number]["id"]>("basic");
+  const [query, setQuery] = useState("");
+  const items = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (q) return EFFECTS.filter((effect) => effect.name.toLowerCase().includes(q));
+    return EFFECTS.filter((effect) => effect.group === group);
+  }, [group, query]);
 
   return (
     <div className="mt-4 space-y-3">
-      <EffectPreviewStyles />
       <PlayingBar
         effectId={active}
         speed={speed}
         power={garage.selected.length ? garage.selected.every((c) => c.power) : false}
       />
-      <div className="flex gap-1">
+      <Input
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder="Search Auto Play, curtain, water…"
+        aria-label="Search modes"
+      />
+      <div className="flex gap-1 overflow-x-auto pb-0.5">
         {EFFECT_GROUPS.map((item) => (
           <button
             key={item.id}
             type="button"
-            onClick={() => setGroup(item.id)}
+            onClick={() => {
+              setGroup(item.id);
+              setQuery("");
+            }}
             className={cn(
-              "rounded-md px-2.5 py-1 text-xs",
-              group === item.id ? "bg-white text-black" : "bg-white/10 text-white/70",
+              "shrink-0 rounded-full px-2.5 py-1 text-xs",
+              !query && group === item.id ? "bg-white text-black" : "bg-white/10 text-white/70",
             )}
           >
             {item.label}
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-2 gap-1.5">
-        {items.map((effect) => (
-          <button
-            key={effect.id}
-            type="button"
-            disabled={!garage.selected.length}
-            onClick={() => void garage.setEffect(effect.id)}
-            className={cn(
-              "rounded-md border px-3 py-2 text-left text-sm",
-              active === effect.id
-                ? "border-red-500/50 bg-red-500/15 text-white"
-                : "border-white/10 bg-white/5 text-white/80",
-            )}
-          >
-            <EffectStrip effect={effect} speed={speed} className="mb-2 h-7 w-full rounded-sm" />
-            {effect.name}
-          </button>
-        ))}
-      </div>
+      {items.length === 0 ? (
+        <p className="py-8 text-center text-sm text-white/40">No modes match.</p>
+      ) : (
+        <div className="grid max-h-[42vh] grid-cols-2 gap-1.5 overflow-y-auto pr-0.5">
+          {items.map((effect) => (
+            <button
+              key={effect.id}
+              type="button"
+              disabled={!garage.selected.length}
+              onClick={() => void garage.setEffect(effect.id)}
+              className={cn(
+                "rounded-md border px-2.5 py-2 text-left text-sm",
+                active === effect.id
+                  ? "border-red-500/50 bg-red-500/15 text-white"
+                  : "border-white/10 bg-white/5 text-white/80",
+              )}
+            >
+              <EffectStrip effect={effect} speed={speed} className="mb-2 h-7 w-full rounded-sm" />
+              {effect.name}
+            </button>
+          ))}
+        </div>
+      )}
       <div>
         <div className="mb-1 flex justify-between text-sm text-white/55">
           <span>Speed</span>

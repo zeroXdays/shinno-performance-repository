@@ -125,8 +125,9 @@
   body {
     @apply bg-background text-foreground;
     background-image:
-      radial-gradient(1200px 500px at 50% -10%, rgba(225, 6, 0, 0.16), transparent 55%),
-      linear-gradient(#070708, #070708);
+      radial-gradient(900px 420px at 50% -8%, rgba(225, 6, 0, 0.22), transparent 58%),
+      radial-gradient(700px 280px at 80% 110%, rgba(40, 80, 120, 0.12), transparent 50%),
+      linear-gradient(#070708, #050506);
   }
   html {
     @apply font-sans;

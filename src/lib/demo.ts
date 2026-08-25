@@ -19,7 +19,7 @@ export function createDemoControllers(): Controller[] {
       transport: "simulator",
     }),
     connection: "connected",
-    effectId: 0x8a,
+    effectId: 1,
     effectSpeed: 42,
   }));
 }

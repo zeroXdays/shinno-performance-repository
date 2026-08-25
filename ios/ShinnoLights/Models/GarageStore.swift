@@ -59,7 +59,7 @@ final class GarageStore: ObservableObject {
         .init(id: "night", name: "Night drive", color: RGB(r: 220, g: 232, b: 255), brightness: 28, power: true, effectId: nil),
         .init(id: "red", name: "Infiniti red", color: RGB(r: 196, g: 18, b: 32), brightness: 86, power: true, effectId: nil),
         .init(id: "white", name: "OEM white", color: RGB(r: 255, g: 252, b: 245), brightness: 100, power: true, effectId: nil),
-        .init(id: "show", name: "Show", color: RGB(r: 255, g: 32, b: 48), brightness: 100, power: true, effectId: 0x8A),
+        .init(id: "show", name: "Show", color: RGB(r: 255, g: 32, b: 48), brightness: 100, power: true, effectId: 212),
         .init(id: "ice", name: "Ice", color: RGB(r: 40, g: 210, b: 255), brightness: 72, power: true, effectId: nil),
         .init(id: "stealth", name: "Stealth", color: RGB(r: 0, g: 0, b: 0), brightness: 0, power: false, effectId: nil),
     ]

@@ -22,7 +22,7 @@ npm install
 npm run dev
 ```
 
-Opens at [http://127.0.0.1:43147](http://127.0.0.1:43147). First load builds a demo Q50 with four simulated controllers so you can drive the UI without hardware. The **Modes** tab plays each effect on a color bar and on the car (breathe, fade, jump, strobe). Speed 0 is fast, 100 is slow — same as the ELK boxes.
+Opens at [http://127.0.0.1:43147](http://127.0.0.1:43147). First load builds a demo Q50 with four simulated controllers so you can drive the UI without hardware. The **Modes** tab uses the same 213 firmware animations as Lotus Lamp X / Magic Lantern, grouped as Basic, Trans, Tail, Water, Curtain, Run, Run back, and Flow. Each mode plays on a color bar and on the car. Speed 0 is fast, 100 is slow — same as the ELK boxes.
 
 Chrome on macOS or Android can also **Pair real box** via Web Bluetooth. iPhone Safari cannot; use the Xcode app.
 

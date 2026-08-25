@@ -46,7 +46,7 @@ export const SCENES: Scene[] = [
     color: { r: 255, g: 32, b: 48 },
     brightness: 100,
     power: true,
-    effectId: 0x8a,
+    effectId: 212,
     effectSpeed: 42,
   },
   {

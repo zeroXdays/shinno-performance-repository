@@ -6,6 +6,7 @@ import {
 } from "./frames.ts";
 import { detectModel, FALLBACK_MODEL } from "./models.ts";
 import { effectPeriodMs, sampleEffect } from "./preview.ts";
+import { EFFECTS } from "./effects.ts";
 
 function assert(name: string, actual: string, expected: string) {
   if (actual !== expected) {
@@ -31,22 +32,28 @@ assert(
 const dim = encodeBrightness(elk, 50);
 if (dim[3] !== 50) throw new Error(`brightness byte expected 50 got ${dim[3]}`);
 
-const breathePeriod = effectPeriodMs(50, "breathe");
-const breatheLow = sampleEffect(0x80, 0, 50);
-const breathePeak = sampleEffect(0x80, breathePeriod / 2, 50);
-if (breatheLow.r >= breathePeak.r) {
-  throw new Error("red breathe should peak at mid-cycle");
+const flowPeriod = effectPeriodMs(50, "flow");
+const flowA = sampleEffect(143, 0, 50);
+const flowB = sampleEffect(143, flowPeriod / 2, 50);
+if (flowA.r === flowB.r && flowA.g === flowB.g && flowA.b === flowB.b) {
+  throw new Error("W-R-W flow should move between white and red");
 }
 
-const jumpA = sampleEffect(0x9d, 0, 50);
-const jumpB = sampleEffect(0x9d, effectPeriodMs(50, "jump") / 7 + 1, 50);
+const jumpA = sampleEffect(193, 0, 50);
+const jumpB = sampleEffect(193, effectPeriodMs(50, "jump") / 7 + 1, 50);
 if (jumpA.r === jumpB.r && jumpA.g === jumpB.g && jumpA.b === jumpB.b) {
-  throw new Error("seven jump should change color across slices");
+  throw new Error("7-color jump should change color across slices");
 }
 
-const strobeOff = sampleEffect(0x8b, effectPeriodMs(40, "blink") * 0.8, 40);
+const strobeOff = sampleEffect(196, effectPeriodMs(40, "strobe") * 0.8, 40);
 if (strobeOff.r + strobeOff.g + strobeOff.b !== 0) {
-  throw new Error("red strobe should go dark in the off phase");
+  throw new Error("7-color strobe should go dark in the off phase");
 }
+
+const auto = EFFECTS.find((effect) => effect.id === 0);
+if (!auto || auto.name !== "Auto Play" || auto.group !== "basic") {
+  throw new Error("mode 0 should be Auto Play in basic");
+}
+if (EFFECTS.length !== 213) throw new Error(`expected 213 modes got ${EFFECTS.length}`);
 
 console.log("protocol tests passed");
