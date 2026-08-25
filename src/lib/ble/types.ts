@@ -1,4 +1,4 @@
-export type TransportKind = "simulator" | "web-bluetooth";
+export type TransportKind = "web-bluetooth";
 
 export type ConnectionState = "disconnected" | "connecting" | "connected" | "error";
 

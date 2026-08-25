@@ -59,9 +59,9 @@ struct GarageScreen: View {
                     }
                     if garage.controllers.isEmpty {
                         ContentUnavailableView(
-                            "No controllers",
+                            "No devices",
                             systemImage: "car.side",
-                            description: Text("Scan for the ELK boxes that shipped with your Shinno RGB kits. Lotus Lantern lists serials. This app groups them as one car.")
+                            description: Text("Scan for the lighting devices that shipped with your Shinno RGB kits. This app groups them as one car.")
                         )
                     }
                 }
@@ -155,8 +155,12 @@ struct ScanScreen: View {
         NavigationStack {
             List {
                 Section {
-                    Button(garage.hub.scanning ? "Scanning…" : "Scan for Shinno boxes") {
-                        garage.hub.startScan()
+                    if garage.hub.scanning {
+                        Text("Scanning for devices")
+                    } else {
+                        Button("Scan for devices") {
+                            garage.hub.startScan()
+                        }
                     }
                     Text(garage.hub.status)
                         .font(.caption)
@@ -166,7 +170,7 @@ struct ScanScreen: View {
                     ForEach(garage.hub.discovered, id: \.identifier) { peripheral in
                         HStack {
                             VStack(alignment: .leading) {
-                                Text(peripheral.name ?? "ELK controller")
+                                Text(peripheral.name ?? "Shinno device")
                                 Text(peripheral.identifier.uuidString)
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
@@ -180,6 +184,7 @@ struct ScanScreen: View {
                 }
             }
             .navigationTitle("Scan")
+            .onAppear { garage.hub.startScan() }
         }
     }
 }

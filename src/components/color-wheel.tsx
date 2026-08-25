@@ -83,7 +83,7 @@ export function ColorWheel({ color, onChange, disabled }: ColorWheelProps) {
   const knob = polar(hsv.h, hsv.s);
 
   return (
-    <div className="mx-auto flex w-full max-w-[280px] flex-col items-center gap-4">
+    <div className="mx-auto flex w-full max-w-[22rem] flex-col items-center gap-4">
       <div
         ref={disk}
         role="slider"

@@ -1,10 +1,12 @@
 # Shinno Lights
 
-Apple-first controller for [Shinno Performance](https://shinnoperformance.com) RGB kits on Infiniti **Q50**. Q60 and Q70 are in the picker as “soon” and cannot be selected yet.
+Apple-first controller from **Shin No Performance LLC** for [Shinno Performance](https://shinnoperformance.com) RGB kits on Infiniti **Q50**. Q60 and Q70 are in the picker as “soon” and cannot be selected yet.
 
-Lotus Lantern, Lotus Lamp X, and Magic Lantern treat these boxes as generic LED strips named `ELK-BLEDOM-XXXX`. This app treats them as one car: **emblem, mirrors, bumper**. Grille badge support is in the code, commented out, until we have a kit to test.
+The app treats the kits as one car: **emblem, mirrors, bumper**. Grille badge support is in the code, commented out, until we have a kit to test.
 
-The Bluetooth protocol is the same family documented by [dave-code-ruiz/elkbledom](https://github.com/dave-code-ruiz/elkbledom). Kits advertise as ELK-BLEDOM, ELK-BLEDOB, MELK, or LEDBLE. Mirrors and bumper use that same Magic Lantern box family — typically **ELK-BLEDOM** for the emblem and mirrors (one box for both housings) and **ELK-BLEDOB** or **ELK-BLEDOM** for the bumper sequentials. There is no unique SKU per zone; assign the zone after pairing.
+Devices advertise as ELK-BLEDOM, ELK-BLEDOB, MELK, or LEDBLE (Magic Lantern / Lotus Lamp X family). Pair the device, then assign the zone. Feedback: support@shinnoperformance.com.
+
+The Bluetooth protocol is the same family documented by [dave-code-ruiz/elkbledom](https://github.com/dave-code-ruiz/elkbledom).
 
 ## Download and run (Bluetooth)
 
@@ -12,7 +14,7 @@ You need the git checkout of this repo (Cursor → this agent → **Open in Curs
 
 ### Fastest: Chrome on a Mac (Web Bluetooth)
 
-Safari and Firefox cannot talk to the boxes. Use **Google Chrome** (or Edge) on a computer with Bluetooth.
+Safari and Firefox cannot talk to the devices. Use **Google Chrome** (or Edge) on a computer with Bluetooth.
 
 ```bash
 npm install
@@ -21,14 +23,12 @@ npm run dev
 
 Open [http://127.0.0.1:43147](http://127.0.0.1:43147) in Chrome — localhost is allowed without HTTPS.
 
-1. Power the ELK boxes that shipped with the kits (they show up as `ELK-BLEDOM…`, `MELK…`, or `LEDBLE…`).
-2. In the app, open **Scan** → **Pair**. Chrome’s Bluetooth chooser appears.
-3. Pick a box. On **Devices**, name it and set the zone (Emblem / Mirrors / Bumper).
-4. Repeat for the other kits. Color, brightness, and modes then write to the real hardware.
+1. Power the devices that shipped with the kits.
+2. Open **Scan** and tap **Add a device**. Chrome’s Bluetooth chooser appears.
+3. Pick a device. On **Devices**, name it and set the zone (Emblem / Mirrors / Bumper).
+4. Repeat for the other kits. Color, brightness, and modes then write to the hardware.
 
-The first load also seeds a demo garage so you can click around with no boxes. **Demo scan** adds simulated controllers only — use **Pair** for live Bluetooth.
-
-The gear in the header opens **Settings**: auto-add and auto-connect, remember last connect state, manual connect, Night / Graphite / Studio themes, English or Spanish (system language by default), how-to-use, privacy policy, user agreement, updates, and feedback. Rename boxes on **Devices**, and use **Remove** to drop a paired controller.
+Names, colors, and last link stay in local storage. The gear in the header opens **Settings**: add and connect automatically, remember devices, Night / Graphite / Studio themes, English or Spanish (system language by default), how-to-use, privacy policy, user agreement, updates, and feedback. Rename devices on **Devices**, and use **Remove** to drop a paired device.
 
 ### iPhone (the real client)
 
@@ -37,16 +37,16 @@ iOS Safari has no Web Bluetooth. Pairing on a phone means the native app:
 1. Open `ios/ShinnoLights.xcodeproj` in Xcode.
 2. Signing & Capabilities → your Apple ID / team (bundle `com.shinnoperformance.lights`).
 3. Plug in an iPhone, pick it as the run destination, hit Run.
-4. Allow Bluetooth when prompted. Scan, add each ELK box, assign zones.
+4. Allow Bluetooth when prompted. The app keeps scanning for nearby devices and adds them as they appear.
 
-CoreBluetooth writes 9-byte ELK frames without response and reconnects if a box drops.
+CoreBluetooth writes 9-byte frames without response and reconnects if a device drops.
 
 ```bash
-npm test    # ELK frame encoding
+npm test    # frame encoding
 npm run lint
 ```
 
-## Protocol (ELK-BLEDOM)
+## Protocol
 
 Writes go to characteristic `0000fff3-0000-1000-8000-00805f9b34fb` (or `ffe1` on LEDBLE). Frames are 9 bytes, `7E … EF`.
 
@@ -57,7 +57,9 @@ Writes go to characteristic `0000fff3-0000-1000-8000-00805f9b34fb` (or `ffe1` on
 | Color | `7E 07 05 03 RR GG BB 0A EF` |
 | Brightness 0–100 | `7E 04 01 II 01 FF 02 01 EF` |
 
-Model-specific variants (BLEDOB, MELK, LEDBLE) live in `src/lib/protocol/models.ts` and `ios/ShinnoLights/BLE/ElkProtocol.swift`.
+Mode speed in the UI is **0 slow / 100 fast**. The firmware byte is inverted (0 = fastest).
+
+Model-specific variants live in `src/lib/protocol/models.ts` and `ios/ShinnoLights/BLE/ElkProtocol.swift`.
 
 ## Shinno kits this is built for
 
@@ -66,4 +68,4 @@ Model-specific variants (BLEDOB, MELK, LEDBLE) live in `src/lib/protocol/models.
 - [RGB Bumper Lights](https://shinnoperformance.com/products/infiniti-q50-rgb-bumper-lights)
 - RGB Grille Badge — parked in the UI until we have a kit to test (`src/lib/catalog.ts`)
 
-If a kit shipped with a Magic Lantern / Lotus Lantern QR card, it belongs in this garage. Q60 / Q70 product photos are not wired yet.
+If a kit shipped with a Magic Lantern / Lotus Lantern QR card, it belongs in this garage. Q60 / Q70 are not wired yet.

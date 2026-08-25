@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-import { Bluetooth, Loader2, Power, ScanLine, Trash2, Unplug, Car, Plug } from "lucide-react";
+import { Bluetooth, Loader2, Power, Trash2, Unplug, Car, Plug, Palette, Sparkles, Cpu } from "lucide-react";
 import { ModeGlyph, PlayingBar } from "@/components/effect-preview";
 import { ColorWheel } from "@/components/color-wheel";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { useI18n } from "@/lib/i18n";
 import { EFFECTS, EFFECT_GROUPS } from "@/lib/protocol";
 import { rgbToCss, rgbToHex, SCENES } from "@/lib/scenes";
 import { cn } from "@/lib/utils";
+import type { TabId } from "@/lib/controller";
 
 const SWATCHES = [
   { r: 196, g: 18, b: 32 },
@@ -28,6 +29,13 @@ const SWATCHES = [
   { r: 20, g: 80, b: 255 },
 ];
 
+const TABS: { id: TabId; icon: typeof Palette }[] = [
+  { id: "color", icon: Palette },
+  { id: "effects", icon: Sparkles },
+  { id: "scan", icon: Bluetooth },
+  { id: "devices", icon: Cpu },
+];
+
 export function ShinnoApp() {
   const garage = useGarage();
   const { t } = useI18n();
@@ -38,10 +46,17 @@ export function ShinnoApp() {
   const zoneLabel =
     garage.target === "all" ? t("stage.all") : t(`zone.${garage.target}`);
 
+  const openTab = (id: TabId) => {
+    garage.setTab(id);
+    if (id !== "scan") return;
+    if (garage.controllers.length === 0 && garage.webBluetooth) void garage.scan();
+    else void garage.refreshNearby();
+  };
+
   return (
     <div className="flex min-h-dvh flex-col text-foreground">
-      <header className="border-b border-white/10 bg-black/55 backdrop-blur-md">
-        <div className="mx-auto flex max-w-lg items-center justify-between gap-3 px-4 py-3">
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-black/70 backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3 px-5 py-3">
           <Image
             src="/shinno-logo-header.png"
             alt="Shinno Performance"
@@ -76,7 +91,7 @@ export function ShinnoApp() {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pb-8 pt-4">
+      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-[5.75rem] pt-4">
         <VehicleStage
           car={garage.car}
           controllers={garage.controllers}
@@ -88,41 +103,17 @@ export function ShinnoApp() {
         />
 
         {garage.controllers.length === 0 ? (
-          <div className="mt-2 flex items-center justify-center gap-2 text-sm">
-            <Button size="sm" onClick={() => void garage.loadDemo()}>
-              {t("demo.lights")}
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => garage.setTab("scan")}>
-              {t("tab.scan")}
+          <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-center">
+            <p className="text-sm text-white/55">{t("devices.empty")}</p>
+            <Button className="mt-3 min-h-12 w-full" onClick={() => void garage.scan()}>
+              {t("home.scanCta")}
             </Button>
           </div>
         ) : null}
 
-        <div className="mt-3 flex gap-1 rounded-full border border-white/10 bg-white/5 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-          {(
-            [
-              { id: "color" as const, label: t("tab.color") },
-              { id: "effects" as const, label: t("tab.effects") },
-              { id: "scan" as const, label: t("tab.scan") },
-              { id: "devices" as const, label: t("tab.devices") },
-            ]
-          ).map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => garage.setTab(item.id)}
-              className={cn(
-                "flex-1 rounded-full py-1.5 text-sm",
-                garage.tab === item.id ? "bg-white text-black" : "text-white/50",
-              )}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-
-        {garage.tab === "color" ? (
-          <div className="mt-4 space-y-4">
+        <div className="mt-4 flex min-h-0 flex-1 flex-col">
+          {garage.tab === "color" ? (
+            <div className="space-y-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-white/50">{zoneLabel}</p>
@@ -200,7 +191,31 @@ export function ShinnoApp() {
         {garage.lastError ? (
           <p className="mt-3 text-sm text-red-300">{garage.lastError}</p>
         ) : null}
+        </div>
       </main>
+
+      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-black/80 backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-lg px-2 pt-1.5 pb-[max(0.45rem,env(safe-area-inset-bottom))]">
+          {TABS.map((item) => {
+            const Icon = item.icon;
+            const active = garage.tab === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => openTab(item.id)}
+                className={cn(
+                  "flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[11px]",
+                  active ? "text-white" : "text-white/40",
+                )}
+              >
+                <Icon className={cn("size-5", active && "text-[#e10600]")} />
+                {t(`tab.${item.id}`)}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
@@ -219,7 +234,7 @@ function EffectsPanel() {
   }, [group, query]);
 
   return (
-    <div className="mt-4 space-y-3">
+    <div className="flex min-h-0 flex-1 flex-col space-y-3">
       <PlayingBar
         effectId={active}
         speed={speed}
@@ -231,8 +246,8 @@ function EffectsPanel() {
           <span className="tabular-nums">{speed}</span>
         </div>
         <div className="mb-1 flex justify-between text-[10px] uppercase tracking-wide text-white/35">
-          <span>{t("effects.fast")}</span>
           <span>{t("effects.slow")}</span>
+          <span>{t("effects.fast")}</span>
         </div>
         <Slider
           min={0}
@@ -272,7 +287,7 @@ function EffectsPanel() {
       {items.length === 0 ? (
         <p className="py-8 text-center text-sm text-white/40">{t("effects.none")}</p>
       ) : (
-        <div className="grid max-h-[46vh] grid-cols-3 gap-2 overflow-y-auto pr-0.5">
+        <div className="grid min-h-0 flex-1 grid-cols-3 gap-2 overflow-y-auto pr-0.5">
           {items.map((effect) => (
             <button
               key={effect.id}
@@ -304,21 +319,15 @@ function ScanPanel() {
   const garage = useGarage();
   const { t } = useI18n();
   return (
-    <div className="mt-4 space-y-3">
-      <div className="grid grid-cols-2 gap-2">
-        <Button onClick={() => void garage.scan("simulator")} disabled={garage.scanning}>
-          {garage.scanning ? <Loader2 className="animate-spin" /> : <ScanLine />}
-          {t("scan.demo")}
-        </Button>
-        <Button
-          variant="outline"
-          disabled={!garage.webBluetooth || garage.scanning}
-          onClick={() => void garage.scan("web-bluetooth")}
-        >
-          <Bluetooth />
-          {t("scan.pair")}
-        </Button>
-      </div>
+    <div className="space-y-4">
+      <Button
+        className="min-h-12 w-full"
+        onClick={() => void garage.scan()}
+        disabled={garage.scanning || !garage.webBluetooth}
+      >
+        {garage.scanning ? <Loader2 className="animate-spin" /> : <Bluetooth />}
+        {t("scan.pair")}
+      </Button>
       {!garage.webBluetooth ? (
         <p className="text-sm text-white/45">{t("scan.ble.none")}</p>
       ) : (
@@ -326,7 +335,7 @@ function ScanPanel() {
       )}
       {garage.scanError ? <p className="text-sm text-red-300">{garage.scanError}</p> : null}
       {garage.discoveries.length === 0 && !garage.scanning ? (
-        <p className="py-8 text-center text-sm text-white/40">{t("scan.empty")}</p>
+        <p className="py-10 text-center text-sm text-white/40">{t("scan.empty")}</p>
       ) : (
         <ul className="space-y-1.5">
           {garage.discoveries.map((device) => {
@@ -334,13 +343,11 @@ function ScanPanel() {
             return (
               <li
                 key={device.id}
-                className="flex items-center justify-between rounded-md border border-white/10 px-3 py-2"
+                className="flex items-center justify-between rounded-xl border border-white/10 px-3 py-3"
               >
                 <div>
                   <p className="text-sm">{device.name}</p>
-                  <p className="text-xs text-white/40">
-                    {device.transport === "simulator" ? t("scan.demoTag") : t("scan.btTag")}
-                  </p>
+                  <p className="text-xs text-white/40">{t("scan.btTag")}</p>
                 </div>
                 <Button size="sm" disabled={paired} onClick={() => void garage.pair(device)}>
                   {paired ? t("scan.added") : t("scan.add")}
@@ -358,10 +365,10 @@ function DeviceList() {
   const garage = useGarage();
   const { t } = useI18n();
   if (!garage.controllers.length) {
-    return <p className="mt-8 text-center text-sm text-white/40">{t("devices.empty")}</p>;
+    return <p className="py-10 text-center text-sm text-white/40">{t("devices.empty")}</p>;
   }
   return (
-    <div className="mt-4 space-y-2">
+    <div className="space-y-2">
       <div className="flex justify-end">
         <Button size="sm" variant="ghost" onClick={garage.resetGarage}>
           <Trash2 className="size-3.5" />

@@ -39,7 +39,7 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
               type="button"
               onClick={() => toggle(zone.id)}
               className={cn(
-                "flex flex-col items-stretch gap-1.5 rounded-2xl border px-3 py-2.5 text-left transition",
+                "flex flex-col items-stretch gap-2 rounded-2xl border px-3 py-3.5 text-left transition",
                 wide && "col-span-2",
                 selected
                   ? "border-[#e10600]/80 bg-white/[0.07] shadow-[0_0_22px_rgba(225,6,0,0.2)]"
@@ -48,7 +48,7 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
                     : "border-white/5 bg-black/25 opacity-45",
               )}
             >
-              <span className={cn("flex w-full items-center justify-center", wide ? "h-[4.5rem]" : "h-16")}>
+              <span className={cn("flex w-full items-center justify-center", wide ? "h-[6rem]" : "h-[5rem]")}>
                 <ZoneGlyph zone={zone.id} car={car} controller={controller} elapsed={elapsed} />
               </span>
               <span className="flex items-baseline justify-between gap-2">

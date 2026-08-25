@@ -21,10 +21,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useGarage } from "@/lib/garage-context";
 import { useI18n } from "@/lib/i18n";
 import {
   APP_VERSION,
+  SUPPORT_EMAIL,
   getServerSettings,
   getSettings,
   subscribeSettings,
@@ -37,7 +37,6 @@ type DocId = "howto" | "privacy" | "terms" | "updates" | "feedback" | null;
 
 export function SettingsMenu() {
   const { t } = useI18n();
-  const garage = useGarage();
   const settings = useSyncExternalStore(subscribeSettings, getSettings, getServerSettings);
   const [open, setOpen] = useState(false);
   const [doc, setDoc] = useState<DocId>(null);
@@ -83,37 +82,6 @@ export function SettingsMenu() {
                 checked={settings.rememberConnect}
                 onChange={(rememberConnect) => updateSettings({ rememberConnect })}
               />
-              <p className="pt-1 text-xs font-medium tracking-[0.12em] text-white/40 uppercase">
-                {t("settings.manual")}
-              </p>
-              <p className="text-xs text-white/40">{t("settings.manualHint")}</p>
-              <div className="space-y-2">
-                {garage.controllers.length === 0 ? (
-                  <p className="text-xs text-white/35">{t("devices.empty")}</p>
-                ) : (
-                  garage.controllers.map((controller) => (
-                    <div
-                      key={controller.id}
-                      className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/20 px-2.5 py-2"
-                    >
-                      <span className="truncate text-sm">{controller.customName}</span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          controller.connection === "connected"
-                            ? void garage.disconnect(controller.id)
-                            : void garage.connect(controller.id)
-                        }
-                      >
-                        {controller.connection === "connected"
-                          ? t("devices.disconnect")
-                          : t("devices.connect")}
-                      </Button>
-                    </div>
-                  ))
-                )}
-              </div>
             </section>
 
             <section className="space-y-3">
@@ -253,7 +221,7 @@ export function SettingsMenu() {
                   onClick={() => {
                     const body = encodeURIComponent(feedback.trim() || t("feedback.placeholder"));
                     window.open(
-                      `mailto:hello@shinnoperformance.com?subject=${encodeURIComponent("Shinno Lights feedback")}&body=${body}`,
+                      `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Shinno Lights feedback")}&body=${body}`,
                     );
                     setDoc(null);
                   }}

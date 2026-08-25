@@ -36,6 +36,7 @@ declare global {
   interface Navigator {
     bluetooth?: {
       requestDevice(options: RequestDeviceOptions): Promise<BluetoothDevice>;
+      getDevices?: () => Promise<BluetoothDevice[]>;
     };
   }
 }
@@ -87,12 +88,12 @@ export class WebBluetoothTransport implements BleTransport {
       optionalServices: SERVICE_CANDIDATES,
     });
     if (!looksLikeController(device.name) && device.name) {
-      // Still allow — some boxes advertise a custom name after pairing.
+      // Still allow — some devices advertise a custom name after pairing.
     }
     this.devices.set(device.id, device);
     onFound({
       id: device.id,
-      name: device.name || "ELK controller",
+      name: device.name || "Shinno device",
       transport: "web-bluetooth",
     });
   }
@@ -101,9 +102,29 @@ export class WebBluetoothTransport implements BleTransport {
     // Chrome pairing is a one-shot picker.
   }
 
+  async adoptGranted(): Promise<DiscoveredDevice[]> {
+    const getDevices = navigator.bluetooth?.getDevices;
+    if (!getDevices) return [];
+    const devices = await getDevices();
+    const found: DiscoveredDevice[] = [];
+    for (const device of devices) {
+      this.devices.set(device.id, device);
+      found.push({
+        id: device.id,
+        name: device.name || "Shinno device",
+        transport: "web-bluetooth",
+      });
+    }
+    return found;
+  }
+
   async connect(id: string): Promise<void> {
-    const device = this.devices.get(id);
-    if (!device?.gatt) throw new Error("Controller is no longer available. Scan again.");
+    let device = this.devices.get(id);
+    if (!device) {
+      const granted = await this.adoptGranted();
+      if (granted.some((item) => item.id === id)) device = this.devices.get(id);
+    }
+    if (!device?.gatt) throw new Error("Device is no longer available. Scan again.");
     const server = await device.gatt.connect();
     const characteristic = await resolveWriteCharacteristic(server);
     this.chars.set(id, characteristic);

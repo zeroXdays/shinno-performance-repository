@@ -14,26 +14,39 @@ final class BleHub: NSObject, ObservableObject {
     private var connectWaiters: [UUID: CheckedContinuation<Void, Error>] = [:]
     private var lastWrite: [UUID: Date] = [:]
 
+    var onReady: (() -> Void)?
+    var onConnected: ((UUID) -> Void)?
+
     override init() {
         super.init()
         central = CBCentralManager(delegate: self, queue: .main)
     }
 
     func startScan() {
-        discovered = []
-        scanning = true
-        status = "Scanning for ELK / MELK boxes"
-        central.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
-        DispatchQueue.main.asyncAfter(deadline: .now() + 12) { [weak self] in
-            self?.stopScan()
+        guard central.state == .poweredOn else { return }
+        if !scanning {
+            scanning = true
+            status = "Scanning for devices"
+            central.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
+        }
+    }
+
+    func restore(_ ids: [UUID]) {
+        guard central.state == .poweredOn else { return }
+        for peripheral in central.retrievePeripherals(withIdentifiers: ids) {
+            peripherals[peripheral.identifier] = peripheral
+            peripheral.delegate = self
+            if peripheral.state != .connected {
+                central.connect(peripheral, options: nil)
+            }
         }
     }
 
     func stopScan() {
         central.stopScan()
         scanning = false
-        if status == "Scanning for ELK / MELK boxes" {
-            status = discovered.isEmpty ? "No controllers nearby" : "Scan complete"
+        if status == "Scanning for devices" {
+            status = discovered.isEmpty ? "No devices nearby" : "Scan complete"
         }
     }
 
@@ -84,7 +97,14 @@ enum BleError: LocalizedError {
 extension BleHub: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         bluetoothReady = central.state == .poweredOn
-        status = bluetoothReady ? "Bluetooth on" : "Turn Bluetooth on"
+        if bluetoothReady {
+            status = "Bluetooth on"
+            onReady?()
+            startScan()
+        } else {
+            scanning = false
+            status = "Turn Bluetooth on"
+        }
     }
 
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
@@ -123,6 +143,7 @@ extension BleHub: CBPeripheralDelegate {
             ?? service.characteristics?.first(where: { $0.properties.contains(.writeWithoutResponse) || $0.properties.contains(.write) })
         {
             writeChars[peripheral.identifier] = match
+            onConnected?(peripheral.identifier)
             connectWaiters.removeValue(forKey: peripheral.identifier)?.resume()
         } else if peripheral.services?.allSatisfy({ $0.characteristics != nil }) == true, writeChars[peripheral.identifier] == nil {
             connectWaiters.removeValue(forKey: peripheral.identifier)?.resume(throwing: BleError.noCharacteristic)

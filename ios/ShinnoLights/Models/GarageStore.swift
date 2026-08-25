@@ -8,11 +8,11 @@ enum ZoneKind: String, CaseIterable, Identifiable, Codable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .emblem: return "Front emblem"
-        case .mirrors: return "Side mirrors"
+        case .emblem: return "Emblem"
+        case .mirrors: return "Mirrors"
         case .bumper: return "Bumper"
-        case .grille: return "Grille badge"
-        case .custom: return "Custom"
+        case .grille: return "Grille"
+        case .custom: return "Other"
         }
     }
 
@@ -62,16 +62,52 @@ final class GarageStore: ObservableObject {
     }
 
     static let scenes: [ScenePreset] = [
-        .init(id: "night", name: "Night drive", color: RGB(r: 220, g: 232, b: 255), brightness: 28, power: true, effectId: nil),
-        .init(id: "red", name: "Infiniti red", color: RGB(r: 196, g: 18, b: 32), brightness: 86, power: true, effectId: nil),
-        .init(id: "white", name: "OEM white", color: RGB(r: 255, g: 252, b: 245), brightness: 100, power: true, effectId: nil),
+        .init(id: "night", name: "Night", color: RGB(r: 220, g: 232, b: 255), brightness: 28, power: true, effectId: nil),
+        .init(id: "red", name: "Red", color: RGB(r: 196, g: 18, b: 32), brightness: 86, power: true, effectId: nil),
+        .init(id: "white", name: "White", color: RGB(r: 255, g: 252, b: 245), brightness: 100, power: true, effectId: nil),
         .init(id: "show", name: "Show", color: RGB(r: 255, g: 32, b: 48), brightness: 100, power: true, effectId: 212),
         .init(id: "ice", name: "Ice", color: RGB(r: 40, g: 210, b: 255), brightness: 72, power: true, effectId: nil),
-        .init(id: "stealth", name: "Stealth", color: RGB(r: 0, g: 0, b: 0), brightness: 0, power: false, effectId: nil),
+        .init(id: "stealth", name: "Off", color: RGB(r: 0, g: 0, b: 0), brightness: 0, power: false, effectId: nil),
     ]
 
+    private static let storageKey = "shinno-garage-v1"
+    private var bag = Set<AnyCancellable>()
+
+    init() {
+        load()
+        hub.onReady = { [weak self] in
+            self?.restoreConnections()
+        }
+        hub.onConnected = { [weak self] id in
+            guard let self, let index = self.controllers.firstIndex(where: { $0.id == id }) else { return }
+            self.controllers[index].connected = true
+        }
+        hub.$discovered
+            .sink { [weak self] list in
+                guard let self else { return }
+                Task { await self.adopt(list) }
+            }
+            .store(in: &bag)
+        $controllers
+            .dropFirst()
+            .sink { [weak self] _ in
+                self?.persist()
+            }
+            .store(in: &bag)
+        if hub.bluetoothReady {
+            restoreConnections()
+        }
+    }
+
+    func persist() {
+        let rows = controllers.map(PersistedController.init)
+        if let data = try? JSONEncoder().encode(rows) {
+            UserDefaults.standard.set(data, forKey: Self.storageKey)
+        }
+    }
+
     func pair(_ peripheral: CBPeripheral) async {
-        let name = peripheral.name ?? "ELK controller"
+        let name = peripheral.name ?? "Shinno device"
         if controllers.contains(where: { $0.id == peripheral.identifier }) { return }
         let used = Set(controllers.map(\.zone))
         let zone = Self.guessZone(name, used: used)
@@ -96,6 +132,16 @@ final class GarageStore: ObservableObject {
         } catch {
             lastError = error.localizedDescription
         }
+    }
+
+    func adopt(_ peripherals: [CBPeripheral]) async {
+        for peripheral in peripherals {
+            await pair(peripheral)
+        }
+    }
+
+    func restoreConnections() {
+        hub.restore(controllers.map(\.id))
     }
 
     func setPower(_ on: Bool) {
@@ -175,6 +221,55 @@ final class GarageStore: ObservableObject {
         // if upper.contains("GB") || upper.contains("MELK") { return used.contains(.grille) ? .custom : .grille }
         if upper.contains("EM") { return .emblem }
         return [.emblem, .mirrors, .bumper, /* .grille, */ .custom].first { !used.contains($0) } ?? .custom
+    }
+
+    private func load() {
+        guard let data = UserDefaults.standard.data(forKey: Self.storageKey),
+              let rows = try? JSONDecoder().decode([PersistedController].self, from: data)
+        else { return }
+        controllers = rows.map(\.controller)
+    }
+}
+
+private struct PersistedController: Codable {
+    var id: UUID
+    var name: String
+    var advertisedName: String
+    var zone: ZoneKind
+    var modelId: String
+    var power: Bool
+    var color: RGB
+    var brightness: Int
+    var effectId: Int?
+    var effectSpeed: Int
+
+    init(_ controller: PairedController) {
+        id = controller.id
+        name = controller.name
+        advertisedName = controller.advertisedName
+        zone = controller.zone
+        modelId = controller.modelId
+        power = controller.power
+        color = controller.color
+        brightness = controller.brightness
+        effectId = controller.effectId
+        effectSpeed = controller.effectSpeed
+    }
+
+    var controller: PairedController {
+        PairedController(
+            id: id,
+            name: name,
+            advertisedName: advertisedName,
+            zone: zone,
+            modelId: modelId,
+            power: power,
+            color: color,
+            brightness: brightness,
+            effectId: effectId,
+            effectSpeed: effectSpeed,
+            connected: false
+        )
     }
 }
 

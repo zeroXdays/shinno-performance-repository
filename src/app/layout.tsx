@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import { GarageProvider } from "@/lib/garage-context";
 import { ThemeRoot } from "@/lib/theme-root";
@@ -10,8 +10,15 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Shinno Performance",
-  description: "Control Shinno RGB emblem, mirror, and bumper lights.",
+  title: "Shinno Lights",
+  description: "Control Shinno RGB emblem, mirror, and bumper lights from Shin No Performance LLC.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#070708",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

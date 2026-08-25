@@ -23,7 +23,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Shinno Lights connects to the Bluetooth boxes that ship with Shinno RGB emblem, mirror, and bumper kits.</string>
+	<string>Shinno Lights uses Bluetooth to find and control the lighting devices that ship with Shinno RGB emblem, mirror, and bumper kits.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>Shinno Lights needs Bluetooth to control your vehicle lighting kits.</string>
 	<key>UILaunchScreen</key>

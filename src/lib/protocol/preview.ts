@@ -134,12 +134,11 @@ function reversed(name: string, group: EffectGroup): boolean {
 }
 
 /**
- * ELK firmware speed byte: 0 = fastest, 100 = slowest.
- * Higher slider values MUST produce a longer period (slower motion).
- * Never invert with (1 - t).
+ * UI speed: 0 = slow, 100 = fast.
+ * Firmware still uses 0 = fastest; encodeEffectSpeed inverts the byte.
  */
 export function effectPeriodMs(speed: number, group: EffectGroup | Motion): number {
-  const t = Math.min(100, Math.max(0, speed)) / 100;
+  const t = 1 - Math.min(100, Math.max(0, speed)) / 100;
   if (group === "strobe" || group === "race") return 280 + t * 1100;
   if (group === "flush") return 380 + t * 1400;
   if (group === "run" || group === "runback" || group === "tail" || group === "marquee" || group === "magic") {

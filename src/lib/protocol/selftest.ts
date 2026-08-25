@@ -1,6 +1,7 @@
 import {
   encodeBrightness,
   encodeColor,
+  encodeEffectSpeed,
   encodePower,
   hexFrame,
 } from "./frames.ts";
@@ -31,6 +32,11 @@ assert(
 
 const dim = encodeBrightness(elk, 50);
 if (dim[3] !== 50) throw new Error(`brightness byte expected 50 got ${dim[3]}`);
+
+const speedSlow = encodeEffectSpeed(elk, 0);
+if (speedSlow[3] !== 100) throw new Error(`UI speed 0 should write firmware 100, got ${speedSlow[3]}`);
+const speedFast = encodeEffectSpeed(elk, 100);
+if (speedFast[3] !== 0) throw new Error(`UI speed 100 should write firmware 0, got ${speedFast[3]}`);
 
 const flowPeriod = effectPeriodMs(50, "flow");
 const flowA = sampleEffect(143, 0, 50);
@@ -63,8 +69,8 @@ for (const motion of ["flush", "strobe", "magic", "energy", "flow"] as const) {
   const a = effectPeriodMs(0, motion);
   const b = effectPeriodMs(50, motion);
   const c = effectPeriodMs(100, motion);
-  if (!(a < b && b < c)) {
-    throw new Error(`${motion}: speed 0 must be fastest (shorter period), 100 slowest, got ${a}/${b}/${c}`);
+  if (!(a > b && b > c)) {
+    throw new Error(`${motion}: speed 0 must be slowest (longer period), 100 fastest, got ${a}/${b}/${c}`);
   }
 }
 

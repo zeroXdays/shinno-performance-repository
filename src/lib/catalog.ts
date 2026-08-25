@@ -22,15 +22,15 @@ export function isActiveCar(id: string): id is CarId {
 }
 
 /**
- * Shinno RGB kits ship with Magic Lantern / Lotus Lamp X boxes (same family as
+ * Shinno RGB kits ship with Magic Lantern / Lotus Lamp X devices (same family as
  * Lotus Lantern). They advertise as ELK-BLEDOM, ELK-BLEDOB, MELK, or LEDBLE and
  * take the 9-byte frames in `src/lib/protocol`. There is no unique SKU per zone —
- * one box drives each kit. Pair by Bluetooth name, then assign the zone.
+ * one device drives each kit. Pair by Bluetooth name, then assign the zone.
  *
  * Typical garage:
  * - Emblem: ELK-BLEDOM
- * - Mirrors: ELK-BLEDOM or ELK-BLEDOB (one box for both housings)
- * - Bumper: ELK-BLEDOB or ELK-BLEDOM (one box for both sequentials)
+ * - Mirrors: ELK-BLEDOM or ELK-BLEDOB (one device for both housings)
+ * - Bumper: ELK-BLEDOB or ELK-BLEDOM (one device for both sequentials)
  * - Grille badge: often MELK-OA10 — parked below until we have a kit to test
  */
 export const ZONES: { id: ZoneKind; label: string }[] = [

@@ -124,7 +124,7 @@ enum ElkProtocol {
     }
 
     static func speed(_ model: ModelProfile, percent: Int) -> Data {
-        encode(model.effectSpeed, rgb: RGB(r: 0, g: 0, b: 0), value: UInt8(clamping: min(100, max(0, percent))))
+        encode(model.effectSpeed, rgb: RGB(r: 0, g: 0, b: 0), value: UInt8(clamping: min(100, max(0, 100 - percent))))
     }
 
     private static func encode(_ slots: [FrameSlot], rgb: RGB, value: UInt8) -> Data {
