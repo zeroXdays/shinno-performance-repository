@@ -48,9 +48,9 @@ interface Fixture {
 const LAYOUTS: Record<CarId, Fixture[]> = {
   q50: [
     { zone: "emblem", kind: "emblem", left: 16.9, top: 50.6, width: 6.4, rotate: 8, scaleX: 0.9, leds: 8 },
-    { zone: "grille", kind: "badge", left: 17.8, top: 57.6, width: 7.2, rotate: 6, scaleX: 0.92, leds: 6, caption: "Q50" },
-    { zone: "mirrors", kind: "mirror", left: 27.6, top: 31.8, width: 3.4, rotate: -22, scaleX: 0.82, leds: 9 },
-    { zone: "mirrors", kind: "mirror", left: 75.4, top: 35.0, width: 5.6, rotate: 10, scaleX: 1, leds: 9 },
+    { zone: "grille", kind: "badge", left: 17.2, top: 57.4, width: 8.4, rotate: 6, scaleX: 0.92, leds: 6, caption: "Q50" },
+    { zone: "mirrors", kind: "mirror", left: 27.2, top: 31.4, width: 4.2, rotate: -20, scaleX: 0.85, leds: 9 },
+    { zone: "mirrors", kind: "mirror", left: 75.6, top: 34.6, width: 5.4, rotate: 8, scaleX: 1, leds: 9 },
     { zone: "bumper", kind: "bumper", left: 7.4, top: 67.0, width: 8.0, rotate: -10, scaleX: 0.88, leds: 5, mirror: true },
     { zone: "bumper", kind: "bumper", left: 37.8, top: 64.6, width: 12.2, rotate: 6, scaleX: 1, leds: 5 },
   ],
