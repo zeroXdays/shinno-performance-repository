@@ -48,11 +48,11 @@ interface Fixture {
 const LAYOUTS: Record<CarId, Fixture[]> = {
   q50: [
     { zone: "emblem", kind: "emblem", left: 16.9, top: 50.6, width: 6.4, rotate: 8, scaleX: 0.9, leds: 8 },
-    { zone: "grille", kind: "badge", left: 17.6, top: 57.8, width: 7.4, rotate: 6, scaleX: 0.92, leds: 6, caption: "Q50" },
-    { zone: "mirrors", kind: "mirror", left: 26.8, top: 31.4, width: 3.8, rotate: -26, scaleX: 0.78, leds: 9 },
-    { zone: "mirrors", kind: "mirror", left: 72.6, top: 36.2, width: 7.4, rotate: 5, scaleX: 1, leds: 9 },
-    { zone: "bumper", kind: "bumper", left: 5.8, top: 66.4, width: 9.2, rotate: -12, scaleX: 0.86, leds: 5, mirror: true },
-    { zone: "bumper", kind: "bumper", left: 35.2, top: 63.8, width: 13.4, rotate: 7, scaleX: 1, leds: 5 },
+    { zone: "grille", kind: "badge", left: 17.8, top: 57.6, width: 7.2, rotate: 6, scaleX: 0.92, leds: 6, caption: "Q50" },
+    { zone: "mirrors", kind: "mirror", left: 27.6, top: 31.8, width: 3.4, rotate: -22, scaleX: 0.82, leds: 9 },
+    { zone: "mirrors", kind: "mirror", left: 75.4, top: 35.0, width: 5.6, rotate: 10, scaleX: 1, leds: 9 },
+    { zone: "bumper", kind: "bumper", left: 7.4, top: 67.0, width: 8.0, rotate: -10, scaleX: 0.88, leds: 5, mirror: true },
+    { zone: "bumper", kind: "bumper", left: 37.8, top: 64.6, width: 12.2, rotate: 6, scaleX: 1, leds: 5 },
   ],
   q60: [
     { zone: "emblem", kind: "emblem", left: 8.4, top: 52.4, width: 5.8, rotate: 10, scaleX: 0.86, leds: 8 },
@@ -293,17 +293,17 @@ function MirrorMesh({
   const on = Boolean(controller?.power);
   const segs = Array.from({ length: count }, (_, i) => i);
   return (
-    <svg viewBox="0 0 190 40" className="h-auto w-full" aria-hidden>
-      <path d="M6 28h178c2 0 4 2 4 4v2H4v-2c0-2 1-4 2-4Z" fill="#c5c7cb" opacity="0.85" />
-      <path d="M8 8h174l4 18H4Z" fill="#0c0c0e" />
+    <svg viewBox="0 0 190 48" className="h-auto w-full" aria-hidden>
+      <path d="M6 34h178c2 0 4 2 4 4v2H4v-2c0-2 1-4 2-4Z" fill="#c5c7cb" opacity="0.85" />
+      <path d="M8 10h174l4 22H4Z" fill="#0c0c0e" />
       {segs.map((i) => {
         const x = 10 + i * 19;
-        const lift = Math.sin((i / (count - 1)) * Math.PI) * 1.4;
+        const lift = Math.sin((i / (count - 1)) * Math.PI) * 1.6;
         const rgb = ledColor(controller, elapsed, i, count);
         return (
           <path
             key={i}
-            d={`M${x} ${10 - lift} h15 l2.4 14 h-19.4 Z`}
+            d={`M${x} ${12 - lift} h15 l2.4 18 h-19.4 Z`}
             fill={on ? rgbToCss(rgb, 0.55 + (controller!.brightness / 100) * 0.45) : "#2a2c30"}
             stroke="#050506"
             strokeWidth="0.8"
