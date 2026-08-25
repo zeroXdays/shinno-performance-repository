@@ -67,11 +67,12 @@ export function guessZone(name: string, used: Set<ZoneKind>): ZoneKind {
   const upper = name.toUpperCase();
   if (upper.includes("MR") || upper.includes("MIRROR")) return "mirrors";
   if (upper.includes("BP") || upper.includes("BUMP")) return "bumper";
-  if (upper.includes("GB") || upper.includes("GRILLE") || upper.includes("MELK")) {
-    return used.has("grille") ? "custom" : "grille";
-  }
+  // Grille badge kits often advertise MELK / GB — park until we have a kit to test:
+  // if (upper.includes("GB") || upper.includes("GRILLE") || upper.includes("MELK")) {
+  //   return used.has("grille") ? "custom" : "grille";
+  // }
   if (upper.includes("EM") || upper.includes("EMBLEM")) return "emblem";
-  const order: ZoneKind[] = ["emblem", "mirrors", "bumper", "grille", "custom"];
+  const order: ZoneKind[] = ["emblem", "mirrors", "bumper", /* "grille", */ "custom"];
   return order.find((zone) => !used.has(zone)) ?? "custom";
 }
 
@@ -99,6 +100,7 @@ export function hydrateControllers(raw: unknown, rememberConnect = true): Contro
     if (!row || typeof row !== "object") continue;
     const item = row as Partial<Controller> & { wantConnected?: boolean };
     if (typeof item.id !== "string" || typeof item.advertisedName !== "string") continue;
+    if (item.id === "sim-grille") continue;
     const wantConnected = Boolean(item.wantConnected);
     const canRestore =
       rememberConnect && wantConnected && (item.transport ?? "simulator") === "simulator";
@@ -106,7 +108,7 @@ export function hydrateControllers(raw: unknown, rememberConnect = true): Contro
       ...createController({
         id: item.id,
         advertisedName: item.advertisedName,
-        zone: (item.zone as ZoneKind) ?? "custom",
+        zone: (item.zone as ZoneKind) === "grille" ? "custom" : ((item.zone as ZoneKind) ?? "custom"),
         modelId: item.modelId ?? "elk-bledom",
         transport: item.transport ?? "simulator",
         customName: item.customName,

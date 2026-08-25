@@ -46,7 +46,7 @@ struct GarageScreen: View {
                                     .foregroundStyle(.secondary)
                             }
                             Picker("Zone", selection: $controller.zone) {
-                                ForEach(ZoneKind.allCases) { zone in
+                                ForEach(ZoneKind.assignable) { zone in
                                     Text(zone.title).tag(zone)
                                 }
                             }

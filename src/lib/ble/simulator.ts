@@ -5,7 +5,7 @@ const DEMO: DiscoveredDevice[] = [
   { id: "sim-emblem", name: "ELK-BLEDOM-EM01", rssi: -41, transport: "simulator" },
   { id: "sim-mirrors", name: "ELK-BLEDOM-MR22", rssi: -47, transport: "simulator" },
   { id: "sim-bumper", name: "ELK-BLEDOB-BP08", rssi: -52, transport: "simulator" },
-  { id: "sim-grille", name: "MELK-OA10-GB14", rssi: -58, transport: "simulator" },
+  // { id: "sim-grille", name: "MELK-OA10-GB14", rssi: -58, transport: "simulator" },
 ];
 
 export class SimulatorTransport implements BleTransport {

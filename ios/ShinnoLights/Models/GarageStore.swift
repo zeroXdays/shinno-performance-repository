@@ -15,6 +15,12 @@ enum ZoneKind: String, CaseIterable, Identifiable, Codable {
         case .custom: return "Custom"
         }
     }
+
+    /// Zones shown in pickers. Grille is parked until we have a badge kit to test.
+    static var assignable: [ZoneKind] {
+        // [.emblem, .mirrors, .bumper, .grille, .custom]
+        [.emblem, .mirrors, .bumper, .custom]
+    }
 }
 
 struct ScenePreset: Identifiable {
@@ -165,9 +171,10 @@ final class GarageStore: ObservableObject {
         let upper = name.uppercased()
         if upper.contains("MR") { return .mirrors }
         if upper.contains("BP") { return .bumper }
-        if upper.contains("GB") || upper.contains("MELK") { return used.contains(.grille) ? .custom : .grille }
+        // Grille badge kits often advertise MELK / GB — park until we have a kit to test:
+        // if upper.contains("GB") || upper.contains("MELK") { return used.contains(.grille) ? .custom : .grille }
         if upper.contains("EM") { return .emblem }
-        return [.emblem, .mirrors, .bumper, .grille, .custom].first { !used.contains($0) } ?? .custom
+        return [.emblem, .mirrors, .bumper, /* .grille, */ .custom].first { !used.contains($0) } ?? .custom
     }
 }
 

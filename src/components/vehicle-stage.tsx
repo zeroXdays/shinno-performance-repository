@@ -3,7 +3,7 @@
 import { useClock } from "@/hooks/use-clock";
 import type { CarId, ZoneKind } from "@/lib/catalog";
 import type { Controller } from "@/lib/controller";
-import { ZONES } from "@/lib/catalog";
+import { STAGE_ZONES } from "@/lib/catalog";
 import { rgbToCss, rgbToHex } from "@/lib/scenes";
 import { EFFECTS, sampleEffect, sampleLed } from "@/lib/protocol";
 import { cn } from "@/lib/utils";
@@ -29,9 +29,10 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
   return (
     <div className="relative mx-auto w-full max-w-lg">
       <div className="grid grid-cols-2 gap-2">
-        {ZONES.filter((zone) => zone.id !== "custom").map((zone) => {
+        {STAGE_ZONES.map((zone) => {
           const controller = zoneCtrl(zone.id);
           const selected = target === zone.id;
+          const wide = zone.id === "emblem";
           return (
             <button
               key={zone.id}
@@ -39,6 +40,7 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
               onClick={() => toggle(zone.id)}
               className={cn(
                 "flex flex-col items-stretch gap-1.5 rounded-2xl border px-3 py-2.5 text-left transition",
+                wide && "col-span-2",
                 selected
                   ? "border-[#e10600]/80 bg-white/[0.07] shadow-[0_0_22px_rgba(225,6,0,0.2)]"
                   : target === "all"
@@ -46,7 +48,7 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
                     : "border-white/5 bg-black/25 opacity-45",
               )}
             >
-              <span className="flex h-16 w-full items-center justify-center">
+              <span className={cn("flex w-full items-center justify-center", wide ? "h-[4.5rem]" : "h-16")}>
                 <ZoneGlyph zone={zone.id} car={car} controller={controller} elapsed={elapsed} />
               </span>
               <span className="flex items-baseline justify-between gap-2">
@@ -87,6 +89,8 @@ function ZoneGlyph({
   if (zone === "emblem") return <EmblemGlyph controller={controller} elapsed={elapsed} />;
   if (zone === "mirrors") return <CellsGlyph count={9} controller={controller} elapsed={elapsed} />;
   if (zone === "bumper") return <DotsGlyph count={5} controller={controller} elapsed={elapsed} />;
+  // Grille badge glyph — restore with STAGE_ZONES when we have a kit to test:
+  // if (zone === "grille") return <LettersGlyph caption={car.toUpperCase()} controller={controller} elapsed={elapsed} />;
   return <LettersGlyph caption={car.toUpperCase()} controller={controller} elapsed={elapsed} />;
 }
 
@@ -197,6 +201,7 @@ function DotsGlyph({
   );
 }
 
+/** Q50 letter glyph for the grille badge. Unused while grille is parked. */
 function LettersGlyph({
   caption,
   controller,

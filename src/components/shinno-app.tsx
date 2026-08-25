@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { VehicleStage } from "@/components/vehicle-stage";
 import { SettingsMenu } from "@/components/settings-menu";
-import { CARS, ZONES, type ZoneKind } from "@/lib/catalog";
+import { ASSIGNABLE_ZONES, CARS, type ZoneKind } from "@/lib/catalog";
 import { useGarage } from "@/lib/garage-context";
 import { useI18n } from "@/lib/i18n";
 import { EFFECTS, EFFECT_GROUPS } from "@/lib/protocol";
@@ -392,7 +392,7 @@ function DeviceList() {
               onChange={(event) => garage.setZone(controller.id, event.target.value as ZoneKind)}
               aria-label={t(`zone.${controller.zone}`)}
             >
-              {ZONES.map((zone) => (
+              {ASSIGNABLE_ZONES.map((zone) => (
                 <option key={zone.id} value={zone.id} className="bg-neutral-900">
                   {t(`zone.${zone.id}`)}
                 </option>

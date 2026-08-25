@@ -11,7 +11,7 @@ const geistSans = Geist({
 
 export const metadata: Metadata = {
   title: "Shinno Performance",
-  description: "Control Shinno RGB emblem, mirror, bumper, and grille lights.",
+  description: "Control Shinno RGB emblem, mirror, and bumper lights.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

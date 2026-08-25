@@ -2,9 +2,9 @@
 
 Apple-first controller for [Shinno Performance](https://shinnoperformance.com) RGB kits on Infiniti **Q50**. Q60 and Q70 are in the picker as “soon” and cannot be selected yet.
 
-Lotus Lantern, Lotus Lamp X, and Magic Lantern treat these boxes as generic LED strips named `ELK-BLEDOM-XXXX`. This app treats them as one car: **emblem, mirrors, bumper, grille**.
+Lotus Lantern, Lotus Lamp X, and Magic Lantern treat these boxes as generic LED strips named `ELK-BLEDOM-XXXX`. This app treats them as one car: **emblem, mirrors, bumper**. Grille badge support is in the code, commented out, until we have a kit to test.
 
-The Bluetooth protocol is the same family documented by [dave-code-ruiz/elkbledom](https://github.com/dave-code-ruiz/elkbledom). Those boxes advertise as ELK-BLEDOM, ELK-BLEDOB, MELK, or LEDBLE.
+The Bluetooth protocol is the same family documented by [dave-code-ruiz/elkbledom](https://github.com/dave-code-ruiz/elkbledom). Kits advertise as ELK-BLEDOM, ELK-BLEDOB, MELK, or LEDBLE. Mirrors and bumper use that same Magic Lantern box family — typically **ELK-BLEDOM** for the emblem and mirrors (one box for both housings) and **ELK-BLEDOB** or **ELK-BLEDOM** for the bumper sequentials. There is no unique SKU per zone; assign the zone after pairing.
 
 ## Download and run (Bluetooth)
 
@@ -23,8 +23,8 @@ Open [http://127.0.0.1:43147](http://127.0.0.1:43147) in Chrome — localhost is
 
 1. Power the ELK boxes that shipped with the kits (they show up as `ELK-BLEDOM…`, `MELK…`, or `LEDBLE…`).
 2. In the app, open **Scan** → **Pair**. Chrome’s Bluetooth chooser appears.
-3. Pick a box. On **Devices**, name it and set the zone (Emblem / Mirrors / Bumper / Grille).
-4. Repeat for the other three boxes. Color, brightness, and modes then write to the real hardware.
+3. Pick a box. On **Devices**, name it and set the zone (Emblem / Mirrors / Bumper).
+4. Repeat for the other kits. Color, brightness, and modes then write to the real hardware.
 
 The first load also seeds a demo garage so you can click around with no boxes. **Demo scan** adds simulated controllers only — use **Pair** for live Bluetooth.
 
@@ -64,6 +64,6 @@ Model-specific variants (BLEDOB, MELK, LEDBLE) live in `src/lib/protocol/models.
 - [RGB LED Emblem](https://shinnoperformance.com/products/infiniti-q50-rgb-led-emblem-2014-2024)
 - [RGBW Side Mirror Lights](https://shinnoperformance.com/products/rgbw-side-mirror-lights-for-infiniti-q50-2014-2024)
 - [RGB Bumper Lights](https://shinnoperformance.com/products/infiniti-q50-rgb-bumper-lights)
-- [RGB Grille Badge](https://shinnoperformance.com/products/rgb-illuminated-q50-grille-badge-infiniti-q50-2014-2024)
+- RGB Grille Badge — parked in the UI until we have a kit to test (`src/lib/catalog.ts`)
 
 If a kit shipped with a Magic Lantern / Lotus Lantern QR card, it belongs in this garage. Q60 / Q70 product photos are not wired yet.

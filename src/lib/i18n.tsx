@@ -78,7 +78,7 @@ const EN: Record<string, string> = {
   "settings.version": "Version",
   "howto.title": "How to use Shinno Lights",
   "howto.body":
-    "1. Power the ELK boxes on the car.\n2. Open Scan and tap Pair (Chrome) or scan in the iPhone app.\n3. Add each box and name it Emblem, Mirrors, Bumper, or Grille.\n4. Tap a zone tile to control only that kit, or leave All lights selected.\n5. Color sets a solid RGB. Modes run Lotus Lamp X animations. Speed 0 is fast, 100 is slow.\n6. Remove a box anytime from Devices.",
+    "1. Power the devices on the car.\n2. Open Scan and tap Pair (Chrome) or scan in the iPhone app.\n3. Add each box and name it Emblem, Mirrors, or Bumper.\n4. Tap a zone tile to control only that kit, or leave All lights selected.\n5. Color sets a solid RGB. Modes run Lotus Lamp X animations. Speed 0 is fast, 100 is slow.\n6. Remove a box anytime from Devices.",
   "privacy.title": "Privacy policy",
   "privacy.body":
     "Shinno Lights talks to your LED boxes over Bluetooth on this device. Pairing names, colors, and settings stay in local storage. We do not create an account, do not upload garage data, and do not sell information. Feedback you send by email is only used to improve the app.",
@@ -172,7 +172,7 @@ const ES: Record<string, string> = {
   "settings.version": "Versión",
   "howto.title": "Cómo usar Shinno Lights",
   "howto.body":
-    "1. Enciende las cajas ELK del auto.\n2. Abre Buscar y toca Emparejar (Chrome) o busca en la app de iPhone.\n3. Añade cada caja y nómbrala Emblema, Espejos, Parachoques o Parrilla.\n4. Toca una zona para controlarla sola, o deja Todas las luces.\n5. Color fija un RGB. Los modos son animaciones Lotus Lamp X. Velocidad 0 es rápido, 100 es lento.\n6. Quita una caja cuando quieras en Dispositivos.",
+    "1. Enciende los dispositivos del auto.\n2. Abre Buscar y toca Emparejar (Chrome) o busca en la app de iPhone.\n3. Añade cada caja y nómbrala Emblema, Espejos o Parachoques.\n4. Toca una zona para controlarla sola, o deja Todas las luces.\n5. Color fija un RGB. Los modos son animaciones Lotus Lamp X. Velocidad 0 es rápido, 100 es lento.\n6. Quita una caja cuando quieras en Dispositivos.",
   "privacy.title": "Política de privacidad",
   "privacy.body":
     "Shinno Lights habla con tus cajas LED por Bluetooth en este dispositivo. Nombres, colores y ajustes quedan en el almacenamiento local. No creamos cuenta, no subimos el garaje y no vendemos datos. Los comentarios que envíes por correo solo se usan para mejorar la app.",
