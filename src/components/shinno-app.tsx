@@ -238,7 +238,7 @@ export function ShinnoApp() {
         {garage.tab === "devices" ? <DeviceList /> : null}
 
         {garage.lastError ? (
-          <p className="mt-3 text-sm text-red-300">{garage.lastError}</p>
+          <p className="mt-3 text-center text-sm text-red-300">{garage.lastError}</p>
         ) : null}
         </div>
       </main>
@@ -382,7 +382,7 @@ function ScanPanel() {
       ) : (
         <p className="text-sm text-white/45">{t("scan.ble.web")}</p>
       )}
-      {garage.scanError ? <p className="text-sm text-red-300">{garage.scanError}</p> : null}
+      {garage.scanError ? <p className="text-center text-sm text-red-300">{garage.scanError}</p> : null}
       {garage.discoveries.length === 0 && !garage.scanning ? (
         <p className="py-10 text-center text-sm text-white/40">{t("scan.empty")}</p>
       ) : (

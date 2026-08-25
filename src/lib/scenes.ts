@@ -58,12 +58,12 @@ export const SCENES: Scene[] = [
     power: true,
   },
   {
-    id: "stealth",
-    name: "Off",
+    id: "amber",
+    name: "Amber",
     blurb: "",
-    color: { r: 0, g: 0, b: 0 },
-    brightness: 0,
-    power: false,
+    color: { r: 255, g: 150, b: 30 },
+    brightness: 68,
+    power: true,
   },
 ];
 
