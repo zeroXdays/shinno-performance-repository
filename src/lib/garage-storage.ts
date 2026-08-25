@@ -10,31 +10,35 @@ import {
 const listeners = new Set<() => void>();
 const carListeners = new Set<() => void>();
 
+/** Cached getServerSnapshot values — a new []/object each call infinite-loops useSyncExternalStore. */
+const EMPTY_GARAGE: Controller[] = [];
+const SERVER_CAR: CarId = "q50";
+
 function readControllers(): Controller[] {
-  if (typeof window === "undefined") return [];
+  if (typeof window === "undefined") return EMPTY_GARAGE;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
+    if (!raw) return EMPTY_GARAGE;
     const hydrated = hydrateControllers(JSON.parse(raw));
-    return hydrated;
+    return hydrated.length === 0 ? EMPTY_GARAGE : hydrated;
   } catch {
-    return [];
+    return EMPTY_GARAGE;
   }
 }
 
 function readCar(): CarId {
-  if (typeof window === "undefined") return "q50";
+  if (typeof window === "undefined") return SERVER_CAR;
   try {
     const raw = window.localStorage.getItem(CAR_STORAGE_KEY);
     if (raw && isActiveCar(raw)) return raw;
   } catch {
     /* ignore */
   }
-  return "q50";
+  return SERVER_CAR;
 }
 
-let controllersSnapshot: Controller[] = [];
-let carSnapshot: CarId = "q50";
+let controllersSnapshot: Controller[] = EMPTY_GARAGE;
+let carSnapshot: CarId = SERVER_CAR;
 
 if (typeof window !== "undefined") {
   const hydrated = readControllers();
@@ -55,7 +59,7 @@ export function getGarageControllers(): Controller[] {
 }
 
 export function getServerGarage(): Controller[] {
-  return [];
+  return EMPTY_GARAGE;
 }
 
 export function subscribeGarage(listener: () => void) {
@@ -78,7 +82,7 @@ export function getCar(): CarId {
 }
 
 export function getServerCar(): CarId {
-  return "q50";
+  return SERVER_CAR;
 }
 
 export function subscribeCar(listener: () => void) {

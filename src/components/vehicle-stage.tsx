@@ -94,6 +94,11 @@ function ZoneGlyph({
   return <LettersGlyph caption={car.toUpperCase()} controller={controller} elapsed={elapsed} />;
 }
 
+/** Round SVG numbers so Node SSR and the browser agree (Math.sin/cos differ in the last bits). */
+function svgCoord(n: number): string {
+  return n.toFixed(3);
+}
+
 function EmblemGlyph({ controller, elapsed }: { controller?: Controller; elapsed: number }) {
   const on = Boolean(controller?.power);
   const n = 32;
@@ -104,8 +109,8 @@ function EmblemGlyph({ controller, elapsed }: { controller?: Controller; elapsed
   const leds = Array.from({ length: n }, (_, i) => {
     const a = -Math.PI / 2 + (i / n) * Math.PI * 2;
     return {
-      x: cx + Math.cos(a) * rx,
-      y: cy + Math.sin(a) * ry,
+      x: svgCoord(cx + Math.cos(a) * rx),
+      y: svgCoord(cy + Math.sin(a) * ry),
       rgb: ledColor(controller, elapsed, i, n),
     };
   });
@@ -159,10 +164,10 @@ function CellsGlyph({
         return (
           <rect
             key={i}
-            x={x}
-            y={y}
-            width={w}
-            height={h}
+            x={svgCoord(x)}
+            y={svgCoord(y)}
+            width={svgCoord(w)}
+            height={svgCoord(h)}
             rx="1.6"
             fill={on ? rgbToCss(rgb, 0.94) : "rgba(255,255,255,0.16)"}
           />
@@ -190,7 +195,7 @@ function DotsGlyph({
         return (
           <circle
             key={i}
-            cx={x}
+            cx={svgCoord(x)}
             cy="14"
             r="5.2"
             fill={on ? rgbToCss(rgb, 0.95) : "rgba(255,255,255,0.16)"}

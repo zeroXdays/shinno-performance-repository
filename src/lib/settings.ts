@@ -21,17 +21,20 @@ export const DEFAULT_SETTINGS: AppSettings = {
   language: "system",
 };
 
+/** Cached getServerSnapshot — must be the same object reference every call. */
+const SERVER_SETTINGS: AppSettings = DEFAULT_SETTINGS;
+
 const listeners = new Set<() => void>();
 
 function read(): AppSettings {
-  if (typeof window === "undefined") return DEFAULT_SETTINGS;
+  if (typeof window === "undefined") return SERVER_SETTINGS;
   try {
     const raw = window.localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return DEFAULT_SETTINGS;
+    if (!raw) return SERVER_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<AppSettings>;
     return { ...DEFAULT_SETTINGS, ...parsed };
   } catch {
-    return DEFAULT_SETTINGS;
+    return SERVER_SETTINGS;
   }
 }
 
@@ -57,5 +60,5 @@ export function updateSettings(patch: Partial<AppSettings>) {
 }
 
 export function getServerSettings(): AppSettings {
-  return DEFAULT_SETTINGS;
+  return SERVER_SETTINGS;
 }

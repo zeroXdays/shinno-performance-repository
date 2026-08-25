@@ -40,8 +40,10 @@ function getNow() {
   return now;
 }
 
+const SERVER_NOW = 0;
+
 function getZero() {
-  return 0;
+  return SERVER_NOW;
 }
 
 export function useClock(active: boolean): number {
