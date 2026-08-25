@@ -75,3 +75,14 @@ export function rgbToHex(rgb: Rgb): string {
   const h = (n: number) => Math.round(n).toString(16).padStart(2, "0");
   return `#${h(rgb.r)}${h(rgb.g)}${h(rgb.b)}`;
 }
+
+export function hexToRgb(hex: string): Rgb | null {
+  const raw = hex.trim().replace(/^#/, "");
+  if (!/^[0-9a-fA-F]{3}$/.test(raw) && !/^[0-9a-fA-F]{6}$/.test(raw)) return null;
+  const full = raw.length === 3 ? [...raw].map((ch) => ch + ch).join("") : raw;
+  return {
+    r: Number.parseInt(full.slice(0, 2), 16),
+    g: Number.parseInt(full.slice(2, 4), 16),
+    b: Number.parseInt(full.slice(4, 6), 16),
+  };
+}

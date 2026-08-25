@@ -5,40 +5,88 @@ struct ColorWheelView: View {
     var onChange: (RGB) -> Void
 
     var body: some View {
-        GeometryReader { geo in
-            let size = min(geo.size.width, geo.size.height)
-            ZStack {
-                Circle()
-                    .fill(
-                        AngularGradient(
-                            colors: [.red, .yellow, .green, .cyan, .blue, .purple, .red],
-                            center: .center
+        VStack(spacing: 14) {
+            GeometryReader { geo in
+                let size = min(geo.size.width, geo.size.height)
+                ZStack {
+                    Hexagon()
+                        .fill(color.color)
+                        .blur(radius: 22)
+                        .opacity(0.55)
+                        .scaleEffect(1.08)
+                    Hexagon()
+                        .fill(
+                            AngularGradient(
+                                colors: [.red, .yellow, .green, .cyan, .blue, .purple, .red],
+                                center: .center
+                            )
                         )
-                    )
-                Circle()
-                    .fill(RadialGradient(colors: [.white, .white.opacity(0)], center: .center, startRadius: 0, endRadius: size * 0.38))
-                Circle()
-                    .fill(color.color)
-                    .frame(width: size * 0.28, height: size * 0.28)
-                    .shadow(color: color.color.opacity(0.8), radius: 18)
-            }
-            .frame(width: size, height: size)
-            .gesture(
-                DragGesture(minimumDistance: 0).onChanged { value in
-                    let center = CGPoint(x: size / 2, y: size / 2)
-                    let dx = value.location.x - center.x
-                    let dy = value.location.y - center.y
-                    let sat = min(hypot(dx, dy) / (size / 2), 1)
-                    var hue = atan2(dy, dx) * 180 / .pi + 90
-                    if hue < 0 { hue += 360 }
-                    onChange(hsv(h: hue, s: sat, v: 1))
+                    Hexagon()
+                        .fill(
+                            RadialGradient(
+                                colors: [.white, .white.opacity(0)],
+                                center: .center,
+                                startRadius: 0,
+                                endRadius: size * 0.38
+                            )
+                        )
+                    Hexagon()
+                        .stroke(.white.opacity(0.35), lineWidth: 1.4)
+                    Hexagon()
+                        .fill(color.color)
+                        .frame(width: size * 0.3, height: size * 0.3)
+                        .shadow(color: color.color.opacity(0.85), radius: 16)
                 }
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(width: size, height: size)
+                .gesture(
+                    DragGesture(minimumDistance: 0).onChanged { value in
+                        let center = CGPoint(x: size / 2, y: size / 2)
+                        let dx = value.location.x - center.x
+                        let dy = value.location.y - center.y
+                        let dist = hypot(dx, dy) / (size / 2)
+                        var hue = atan2(dy, dx) * 180 / .pi + 90
+                        if hue < 0 { hue += 360 }
+                        let sat = min(dist / hexRadius(hue), 1)
+                        onChange(hsv(h: hue, s: sat, v: 1))
+                    }
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .aspectRatio(1, contentMode: .fit)
+            .padding(.horizontal, 36)
+
+            Text(color.hex)
+                .font(.system(.body, design: .monospaced))
+                .tracking(2)
+                .foregroundStyle(.secondary)
         }
-        .aspectRatio(1, contentMode: .fit)
-        .padding(.horizontal, 28)
     }
+}
+
+private struct Hexagon: Shape {
+    func path(in rect: CGRect) -> Path {
+        let w = rect.width
+        let h = rect.height
+        let pts = [
+            CGPoint(x: w * 0.50, y: 0),
+            CGPoint(x: w * 0.933, y: h * 0.25),
+            CGPoint(x: w * 0.933, y: h * 0.75),
+            CGPoint(x: w * 0.50, y: h),
+            CGPoint(x: w * 0.067, y: h * 0.75),
+            CGPoint(x: w * 0.067, y: h * 0.25),
+        ]
+        var path = Path()
+        path.move(to: pts[0])
+        for p in pts.dropFirst() { path.addLine(to: p) }
+        path.closeSubpath()
+        return path
+    }
+}
+
+private func hexRadius(_ angle: Double) -> Double {
+    let sector = (angle.truncatingRemainder(dividingBy: 60) + 60).truncatingRemainder(dividingBy: 60)
+    let phi = (sector - 30) * .pi / 180
+    return cos(.pi / 6) / cos(phi)
 }
 
 private func hsv(h: Double, s: Double, v: Double) -> RGB {
@@ -59,4 +107,10 @@ private func hsv(h: Double, s: Double, v: Double) -> RGB {
         g: Int(((rgb.1 + m) * 255).rounded()),
         b: Int(((rgb.2 + m) * 255).rounded())
     )
+}
+
+private extension RGB {
+    var hex: String {
+        String(format: "#%02X%02X%02X", r, g, b)
+    }
 }

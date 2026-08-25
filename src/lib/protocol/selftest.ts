@@ -8,6 +8,7 @@ import {
 import { detectModel, FALLBACK_MODEL } from "./models.ts";
 import { effectPeriodMs, sampleEffect, sampleLed } from "./preview.ts";
 import { EFFECTS } from "./effects.ts";
+import { hexToRgb, rgbToHex } from "../scenes.ts";
 
 function assert(name: string, actual: string, expected: string) {
   if (actual !== expected) {
@@ -166,5 +167,13 @@ for (const effect of EFFECTS) {
     }
   }
 }
+
+const shinnoRed = { r: 225, g: 6, b: 0 };
+assert("hex roundtrip", rgbToHex(hexToRgb(rgbToHex(shinnoRed))!), "#e10600");
+const shortHex = hexToRgb("#F00");
+if (!shortHex || shortHex.r !== 255 || shortHex.g !== 0 || shortHex.b !== 0) {
+  throw new Error("3-digit hex should expand");
+}
+if (hexToRgb("not-a-color") !== null) throw new Error("invalid hex should be null");
 
 console.log("protocol tests passed");

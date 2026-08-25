@@ -115,10 +115,7 @@ export function ShinnoApp() {
           {garage.tab === "color" ? (
             <div className="space-y-5">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-white/50">{zoneLabel}</p>
-                <p className="text-lg tabular-nums">{rgbToHex(color)}</p>
-              </div>
+              <p className="text-sm text-white/50">{zoneLabel}</p>
               <button
                 type="button"
                 disabled={!garage.selected.length}
