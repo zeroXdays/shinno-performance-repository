@@ -154,7 +154,7 @@ function Shot({
   );
 }
 
-function MaskGlow({ src, color }: { src: string; color: string }) {
+function MaskGlow({ src, color, halo = false }: { src: string; color: string; halo?: boolean }) {
   return (
     <span
       aria-hidden
@@ -171,7 +171,7 @@ function MaskGlow({ src, color }: { src: string; color: string }) {
         maskPosition: "center",
         WebkitMaskSize: "100% 100%",
         maskSize: "100% 100%",
-        filter: `drop-shadow(0 0 4px ${color})`,
+        filter: halo ? `drop-shadow(0 0 3px ${color})` : undefined,
       }}
     />
   );
@@ -216,7 +216,7 @@ function EmblemIcon({ controller, elapsed }: { controller?: Controller; elapsed:
   const rim = on ? rgbToCss(ledColor(controller, elapsed, 0, 24), 0.92) : undefined;
   return (
     <Shot src="/products/emblem.png" width={520} height={282}>
-      {on ? <MaskGlow src="/products/emblem-ring.png" color={rim!} /> : null}
+      {on ? <MaskGlow src="/products/emblem-ring.png" color={rim!} halo /> : null}
     </Shot>
   );
 }
@@ -372,12 +372,7 @@ function BadgeIcon({
   if (caption === "Q50") {
     return (
       <Shot src="/products/grille-badge.png" width={406} height={152}>
-        {on ? (
-          <>
-            <MaskGlow src="/products/grille-letters.png" color={rgbToCss(rgb, 0.5)} />
-            <MaskGlow src="/products/grille-letter-edge.png" color={rgbToCss(rgb, 0.96)} />
-          </>
-        ) : null}
+        {on ? <MaskGlow src="/products/grille-letters.png" color={rgbToCss(rgb, 0.82)} /> : null}
       </Shot>
     );
   }
