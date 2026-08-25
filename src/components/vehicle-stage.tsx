@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Image from "next/image";
 import { useClock } from "@/hooks/use-clock";
 import type { CarId, ZoneKind } from "@/lib/catalog";
 import type { Controller } from "@/lib/controller";
@@ -139,15 +138,19 @@ function Shot({
   children?: ReactNode;
 }) {
   return (
-    <span className="relative inline-block h-full max-h-full">
-      <Image
+    <span
+      className="relative inline-block h-full max-h-full"
+      style={{ aspectRatio: `${width} / ${height}` }}
+    >
+      {/* Native img so the glow mask shares the photo's exact box. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
         src={src}
         alt=""
         width={width}
         height={height}
-        unoptimized
         draggable={false}
-        className="block h-full w-auto max-w-full object-contain"
+        className="absolute inset-0 block h-full w-full object-contain"
       />
       {children}
     </span>
