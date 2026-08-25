@@ -34,13 +34,13 @@ Do not upload mock or placeholder screenshots. Capture the real iPhone app on a 
 
 ## Privacy policy (paste onto the site)
 
-Shinno Lights is provided by Shin No Performance LLC. This policy describes how the iPhone app and the companion web controller handle information.
+Shinno Lights is provided by Shin No Performance LLC. This policy describes how the iPhone app handles information.
 
 What the app does
 Shinno Lights is a Bluetooth controller for Shinno RGB lighting kits on Infiniti Q50 — emblem, mirrors, and bumper. It finds nearby lighting devices and sends color, brightness, power, and mode commands over Bluetooth Low Energy. There is no account and no in-app shop.
 
-Information stored on this device
-Pairing names, Bluetooth identifiers of devices you add, zones you assign, last color, brightness, power, mode, and app settings stay in on-device storage (UserDefaults on iPhone, local storage in the browser). This information is used only to run the garage on this device. We do not upload it. We do not create an account. We do not sell information. We do not use analytics, advertising, or tracking SDKs. We do not collect precise location.
+Information stored on this iPhone
+Pairing names, Bluetooth identifiers of devices you add, zones you assign, last color, brightness, power, mode, and app settings stay in on-device storage (UserDefaults). This information is used only to run the garage on this phone. We do not upload it. We do not create an account. We do not sell information. We do not use analytics, advertising, or tracking SDKs. We do not collect precise location.
 
 Bluetooth
 Bluetooth is used only to discover, connect to, and control the lighting devices that ship with Shinno kits. We do not use Bluetooth to track you.
@@ -53,7 +53,7 @@ Shin No Performance LLC
 support@shinnoperformance.com
 https://shinnoperformance.com
 
-The in-app privacy policy is the source of truth for the current build.
+The in-app privacy policy is the source of truth for this build.
 
 ## Review notes (App Review Information)
 
@@ -64,7 +64,7 @@ Shinno Lights is a native Bluetooth Low Energy controller for physical Shinno RG
 3. Allow the Bluetooth permission prompt. The app scans continuously while Bluetooth is on (including `bluetooth-central` so saved devices can reconnect when they power on). Add each device once on Scan, then assign the zone on Devices. After that, turning a kit off and on should reconnect and restore the last color/mode without scanning again.
 4. Color, brightness, power, and Modes write 9-byte frames to the devices. There is no login, no IAP, and no demo/simulator mode — the binary does nothing useful without the hardware.
 
-The Chrome web controller in this repo is a companion for desktop only. Safari has no Web Bluetooth. Please review this iOS binary (`com.shinnoperformance.lights`), not the website.
+Please review this iOS binary (`com.shinnoperformance.lights`). Shinno Lights is a native iPhone app.
 
 Q60/Q70 rows in the car picker are intentionally disabled (labeled “soon”). Grille is not offered in this build.
 

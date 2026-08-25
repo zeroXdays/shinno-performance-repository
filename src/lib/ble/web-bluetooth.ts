@@ -110,7 +110,7 @@ export class WebBluetoothTransport implements BleTransport {
 
   async scan(onFound: (device: DiscoveredDevice) => void): Promise<void> {
     if (!navigator.bluetooth) {
-      throw new Error("Web Bluetooth is not available in this browser.");
+      throw new Error("Bluetooth is not available.");
     }
     const device = await navigator.bluetooth.requestDevice({
       filters: [
