@@ -15,6 +15,10 @@
 		A10000000000000000000026 /* ColorWheelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000036 /* ColorWheelView.swift */; };
 		A10000000000000000000027 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A10000000000000000000037 /* CoreBluetooth.framework */; };
 		A10000000000000000000028 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000038 /* Assets.xcassets */; };
+		A10000000000000000000029 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000040 /* PrivacyInfo.xcprivacy */; };
+		A10000000000000000000061 /* LegalCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000071 /* LegalCopy.swift */; };
+		A10000000000000000000062 /* EffectsCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000072 /* EffectsCatalog.swift */; };
+		A10000000000000000000063 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000073 /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +32,10 @@
 		A10000000000000000000037 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
 		A10000000000000000000038 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A10000000000000000000039 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A10000000000000000000040 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		A10000000000000000000071 /* LegalCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalCopy.swift; sourceTree = "<group>"; };
+		A10000000000000000000072 /* EffectsCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EffectsCatalog.swift; sourceTree = "<group>"; };
+		A10000000000000000000073 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -62,7 +70,9 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000031 /* ShinnoLightsApp.swift */,
+				A10000000000000000000071 /* LegalCopy.swift */,
 				A10000000000000000000039 /* Info.plist */,
+				A10000000000000000000040 /* PrivacyInfo.xcprivacy */,
 				A10000000000000000000038 /* Assets.xcassets */,
 				A10000000000000000000009 /* BLE */,
 				A10000000000000000000010 /* Models */,
@@ -84,6 +94,7 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000034 /* GarageStore.swift */,
+				A10000000000000000000072 /* EffectsCatalog.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -93,6 +104,7 @@
 			children = (
 				A10000000000000000000035 /* ContentView.swift */,
 				A10000000000000000000036 /* ColorWheelView.swift */,
+				A10000000000000000000073 /* SettingsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -156,6 +168,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000000000000000000028 /* Assets.xcassets in Resources */,
+				A10000000000000000000029 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -172,6 +185,9 @@
 				A10000000000000000000024 /* GarageStore.swift in Sources */,
 				A10000000000000000000025 /* ContentView.swift in Sources */,
 				A10000000000000000000026 /* ColorWheelView.swift in Sources */,
+				A10000000000000000000061 /* LegalCopy.swift in Sources */,
+				A10000000000000000000062 /* EffectsCatalog.swift in Sources */,
+				A10000000000000000000063 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -221,6 +237,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -228,6 +245,7 @@
 				INFOPLIST_FILE = ShinnoLights/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Shinno Lights";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
 				MARKETING_VERSION = 1.0;
@@ -235,6 +253,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -245,6 +264,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -252,6 +272,7 @@
 				INFOPLIST_FILE = ShinnoLights/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Shinno Lights";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
 				MARKETING_VERSION = 1.0;
@@ -259,6 +280,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;

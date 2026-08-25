@@ -170,7 +170,7 @@ export function SettingsMenu() {
             <>
               <DialogHeader>
                 <DialogTitle>{t("privacy.title")}</DialogTitle>
-                <DialogDescription className="text-left">{t("privacy.body")}</DialogDescription>
+                <DialogDescription className="whitespace-pre-line text-left">{t("privacy.body")}</DialogDescription>
               </DialogHeader>
               <DialogFooter>
                 <DialogClose render={<Button variant="outline" />}>{t("common.close")}</DialogClose>
@@ -181,7 +181,7 @@ export function SettingsMenu() {
             <>
               <DialogHeader>
                 <DialogTitle>{t("terms.title")}</DialogTitle>
-                <DialogDescription className="text-left">{t("terms.body")}</DialogDescription>
+                <DialogDescription className="whitespace-pre-line text-left">{t("terms.body")}</DialogDescription>
               </DialogHeader>
               <DialogFooter>
                 <DialogClose render={<Button variant="outline" />}>{t("common.close")}</DialogClose>
@@ -192,7 +192,7 @@ export function SettingsMenu() {
             <>
               <DialogHeader>
                 <DialogTitle>{t("updates.title")}</DialogTitle>
-                <DialogDescription className="text-left">
+                <DialogDescription className="whitespace-pre-line text-left">
                   {t("updates.current")} {t("updates.body", { version: APP_VERSION })}
                 </DialogDescription>
               </DialogHeader>

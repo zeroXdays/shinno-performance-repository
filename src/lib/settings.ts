@@ -10,9 +10,8 @@ export interface AppSettings {
 }
 
 export const SETTINGS_KEY = "shinno-settings-v1";
-export const APP_VERSION = "0.1.0";
-export const SUPPORT_EMAIL = "support@shinnoperformance.com";
-export const LEGAL_NAME = "Shin No Performance LLC";
+export const APP_VERSION = "1.0";
+export { LEGAL_NAME, SUPPORT_EMAIL } from "./legal";
 
 export const DEFAULT_SETTINGS: AppSettings = {
   autoAdd: true,

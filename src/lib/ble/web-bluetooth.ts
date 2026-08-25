@@ -175,5 +175,5 @@ async function resolveWriteCharacteristic(
     const chars = await service.getCharacteristics();
     if (chars[0]) return chars[0];
   }
-  throw new Error("Could not find a writable LED characteristic on this controller.");
+  throw new Error("Could not find a writable LED characteristic on this device.");
 }

@@ -23,6 +23,39 @@ enum ZoneKind: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+enum CarKind: String, CaseIterable, Identifiable, Codable {
+    case q50, q60, q70
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .q50: return "Q50"
+        case .q60: return "Q60"
+        case .q70: return "Q70"
+        }
+    }
+    var enabled: Bool { self == .q50 }
+    var pickerLabel: String { enabled ? title : "\(title) — soon" }
+}
+
+enum ControlTarget: Equatable, Hashable {
+    case all
+    case zone(ZoneKind)
+
+    var title: String {
+        switch self {
+        case .all: return "All lights"
+        case .zone(let zone): return zone.title
+        }
+    }
+}
+
+struct AppSettings: Codable, Equatable {
+    var autoAdd = true
+    var autoConnect = true
+    var rememberDevices = true
+    var car: CarKind = .q50
+}
+
 struct ScenePreset: Identifiable {
     let id: String
     let name: String
@@ -30,6 +63,7 @@ struct ScenePreset: Identifiable {
     let brightness: Int
     let power: Bool
     let effectId: Int?
+    let effectSpeed: Int?
 }
 
 struct PairedController: Identifiable, Equatable {
@@ -49,38 +83,50 @@ struct PairedController: Identifiable, Equatable {
 @MainActor
 final class GarageStore: ObservableObject {
     @Published var controllers: [PairedController] = []
-    @Published var target: UUID?
+    @Published var target: ControlTarget = .all
     @Published var lastError: String?
+    @Published var settings = AppSettings()
 
     let hub = BleHub()
 
     var selected: [PairedController] {
-        if let target {
-            return controllers.filter { $0.id == target }
+        switch target {
+        case .all:
+            return controllers
+        case .zone(let zone):
+            return controllers.filter { $0.zone == zone }
         }
-        return controllers
     }
 
     static let scenes: [ScenePreset] = [
-        .init(id: "night", name: "Night", color: RGB(r: 220, g: 232, b: 255), brightness: 28, power: true, effectId: nil),
-        .init(id: "red", name: "Red", color: RGB(r: 196, g: 18, b: 32), brightness: 86, power: true, effectId: nil),
-        .init(id: "white", name: "White", color: RGB(r: 255, g: 252, b: 245), brightness: 100, power: true, effectId: nil),
-        .init(id: "show", name: "Show", color: RGB(r: 255, g: 32, b: 48), brightness: 100, power: true, effectId: 212),
-        .init(id: "ice", name: "Ice", color: RGB(r: 40, g: 210, b: 255), brightness: 72, power: true, effectId: nil),
-        .init(id: "stealth", name: "Off", color: RGB(r: 0, g: 0, b: 0), brightness: 0, power: false, effectId: nil),
+        .init(id: "night", name: "Night", color: RGB(r: 220, g: 232, b: 255), brightness: 28, power: true, effectId: nil, effectSpeed: nil),
+        .init(id: "red", name: "Red", color: RGB(r: 196, g: 18, b: 32), brightness: 86, power: true, effectId: nil, effectSpeed: nil),
+        .init(id: "white", name: "White", color: RGB(r: 255, g: 252, b: 245), brightness: 100, power: true, effectId: nil, effectSpeed: nil),
+        .init(id: "show", name: "Show", color: RGB(r: 255, g: 32, b: 48), brightness: 100, power: true, effectId: 212, effectSpeed: 42),
+        .init(id: "ice", name: "Ice", color: RGB(r: 40, g: 210, b: 255), brightness: 72, power: true, effectId: nil, effectSpeed: nil),
+        .init(id: "stealth", name: "Off", color: RGB(r: 0, g: 0, b: 0), brightness: 0, power: false, effectId: nil, effectSpeed: nil),
     ]
 
     private static let storageKey = "shinno-garage-v1"
+    private static let settingsKey = "shinno-settings-v1"
     private var bag = Set<AnyCancellable>()
 
     init() {
+        loadSettings()
         load()
         hub.onReady = { [weak self] in
-            self?.restoreConnections()
+            guard let self else { return }
+            if self.settings.autoConnect {
+                self.restoreConnections()
+            }
         }
         hub.onConnected = { [weak self] id in
             guard let self, let index = self.controllers.firstIndex(where: { $0.id == id }) else { return }
             self.controllers[index].connected = true
+        }
+        hub.onDisconnected = { [weak self] id in
+            guard let self, let index = self.controllers.firstIndex(where: { $0.id == id }) else { return }
+            self.controllers[index].connected = false
         }
         hub.$discovered
             .sink { [weak self] list in
@@ -94,16 +140,33 @@ final class GarageStore: ObservableObject {
                 self?.persist()
             }
             .store(in: &bag)
-        if hub.bluetoothReady {
+        $settings
+            .dropFirst()
+            .sink { [weak self] _ in
+                self?.persistSettings()
+            }
+            .store(in: &bag)
+        if hub.bluetoothReady, settings.autoConnect {
             restoreConnections()
         }
     }
 
     func persist() {
+        guard settings.rememberDevices else {
+            UserDefaults.standard.removeObject(forKey: Self.storageKey)
+            return
+        }
         let rows = controllers.map(PersistedController.init)
         if let data = try? JSONEncoder().encode(rows) {
             UserDefaults.standard.set(data, forKey: Self.storageKey)
         }
+    }
+
+    func persistSettings() {
+        if let data = try? JSONEncoder().encode(settings) {
+            UserDefaults.standard.set(data, forKey: Self.settingsKey)
+        }
+        persist()
     }
 
     func pair(_ peripheral: CBPeripheral) async {
@@ -114,6 +177,7 @@ final class GarageStore: ObservableObject {
         let model = ElkProtocol.detect(name: name)
         do {
             try await hub.connect(peripheral)
+            lastError = nil
             controllers.append(
                 PairedController(
                     id: peripheral.identifier,
@@ -135,6 +199,7 @@ final class GarageStore: ObservableObject {
     }
 
     func adopt(_ peripherals: [CBPeripheral]) async {
+        guard settings.autoAdd else { return }
         for peripheral in peripherals {
             await pair(peripheral)
         }
@@ -142,6 +207,63 @@ final class GarageStore: ObservableObject {
 
     func restoreConnections() {
         hub.restore(controllers.map(\.id))
+    }
+
+    func connect(_ id: UUID) async {
+        guard let peripheral = hub.peripheral(id: id) ?? hub.discovered.first(where: { $0.identifier == id }) else {
+            lastError = "That device is not nearby. Power it and wait for Scan to find it."
+            return
+        }
+        do {
+            try await hub.connect(peripheral)
+            lastError = nil
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
+    func disconnect(_ id: UUID) {
+        hub.disconnect(id)
+        if let index = controllers.firstIndex(where: { $0.id == id }) {
+            controllers[index].connected = false
+        }
+    }
+
+    func forget(_ id: UUID) {
+        hub.forget(id)
+        controllers.removeAll { $0.id == id }
+        persist()
+    }
+
+    func forgetAll() {
+        for controller in controllers {
+            hub.forget(controller.id)
+        }
+        controllers.removeAll()
+        persist()
+    }
+
+    func rename(_ id: UUID, _ name: String) {
+        guard let index = controllers.firstIndex(where: { $0.id == id }) else { return }
+        controllers[index].name = name
+    }
+
+    func setZone(_ id: UUID, _ zone: ZoneKind) {
+        guard let index = controllers.firstIndex(where: { $0.id == id }) else { return }
+        controllers[index].zone = zone
+        if controllers[index].name == ZoneKind.emblem.title
+            || controllers[index].name == ZoneKind.mirrors.title
+            || controllers[index].name == ZoneKind.bumper.title
+            || controllers[index].name == ZoneKind.custom.title
+            || controllers[index].name == ZoneKind.grille.title
+        {
+            controllers[index].name = zone.title
+        }
+    }
+
+    func setCar(_ car: CarKind) {
+        guard car.enabled else { return }
+        settings.car = car
     }
 
     func setPower(_ on: Bool) {
@@ -181,7 +303,15 @@ final class GarageStore: ObservableObject {
             hub.write(peripheral, frames: [
                 ElkProtocol.power(model, on: true),
                 ElkProtocol.effect(model, id: id),
+                ElkProtocol.speed(model, percent: controller.effectSpeed),
             ])
+        }
+    }
+
+    func setEffectSpeed(_ percent: Int) {
+        mutate { controller, peripheral, model in
+            controller.effectSpeed = percent
+            hub.write(peripheral, frames: [ElkProtocol.speed(model, percent: percent)])
         }
     }
 
@@ -191,12 +321,16 @@ final class GarageStore: ObservableObject {
             controller.color = scene.color
             controller.brightness = scene.brightness
             controller.effectId = scene.effectId
+            if let speed = scene.effectSpeed {
+                controller.effectSpeed = speed
+            }
             var frames = [ElkProtocol.power(model, on: scene.power)]
             if scene.power {
                 frames.append(ElkProtocol.color(model, rgb: scene.color))
                 frames.append(ElkProtocol.brightness(model, percent: scene.brightness))
                 if let effect = scene.effectId {
                     frames.append(ElkProtocol.effect(model, id: effect))
+                    frames.append(ElkProtocol.speed(model, percent: scene.effectSpeed ?? controller.effectSpeed))
                 }
             }
             hub.write(peripheral, frames: frames)
@@ -204,12 +338,17 @@ final class GarageStore: ObservableObject {
     }
 
     private func mutate(_ body: (inout PairedController, CBPeripheral, ModelProfile) -> Void) {
+        var wrote = false
         for index in controllers.indices {
             let id = controllers[index].id
-            if let target, target != id { continue }
+            if case .zone(let zone) = target, controllers[index].zone != zone { continue }
             guard let peripheral = hub.peripheral(id: id) else { continue }
             let model = ElkProtocol.detect(name: controllers[index].advertisedName)
             body(&controllers[index], peripheral, model)
+            wrote = true
+        }
+        if !wrote, !controllers.isEmpty {
+            lastError = "No linked device for this zone. Open Scan, add the device, then try again."
         }
     }
 
@@ -224,10 +363,21 @@ final class GarageStore: ObservableObject {
     }
 
     private func load() {
+        guard settings.rememberDevices else { return }
         guard let data = UserDefaults.standard.data(forKey: Self.storageKey),
               let rows = try? JSONDecoder().decode([PersistedController].self, from: data)
         else { return }
         controllers = rows.map(\.controller)
+    }
+
+    private func loadSettings() {
+        guard let data = UserDefaults.standard.data(forKey: Self.settingsKey),
+              let decoded = try? JSONDecoder().decode(AppSettings.self, from: data)
+        else { return }
+        settings = decoded
+        if !settings.car.enabled {
+            settings.car = .q50
+        }
     }
 }
 
@@ -261,7 +411,7 @@ private struct PersistedController: Codable {
             id: id,
             name: name,
             advertisedName: advertisedName,
-            zone: zone,
+            zone: zone == .grille ? .custom : zone,
             modelId: modelId,
             power: power,
             color: color,
@@ -272,4 +422,3 @@ private struct PersistedController: Codable {
         )
     }
 }
-

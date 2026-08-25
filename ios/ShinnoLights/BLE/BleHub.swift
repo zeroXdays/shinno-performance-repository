@@ -2,10 +2,48 @@ import Combine
 import CoreBluetooth
 import Foundation
 
+enum BluetoothState: Equatable {
+    case waiting
+    case poweredOn
+    case poweredOff
+    case unauthorized
+    case unsupported
+    case resetting
+
+    var title: String {
+        switch self {
+        case .waiting: return "Waiting for Bluetooth"
+        case .poweredOn: return "Bluetooth on"
+        case .poweredOff: return "Bluetooth is off"
+        case .unauthorized: return "Bluetooth access is off"
+        case .unsupported: return "Bluetooth LE is not available"
+        case .resetting: return "Bluetooth is restarting"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .waiting:
+            return "Shinno Lights is waiting for Bluetooth so it can find your lighting devices."
+        case .poweredOn:
+            return "Shinno Lights scans continuously for the lighting devices that ship with Shinno RGB kits."
+        case .poweredOff:
+            return "Turn Bluetooth on in iOS Settings to find and control your Shinno lighting devices."
+        case .unauthorized:
+            return "Allow Bluetooth for Shinno Lights in iOS Settings. The app uses it only to talk to your lighting devices."
+        case .unsupported:
+            return "This iPhone cannot use Bluetooth Low Energy, which Shinno Lights needs to control the kits."
+        case .resetting:
+            return "Bluetooth is restarting. Scanning will resume automatically."
+        }
+    }
+}
+
 final class BleHub: NSObject, ObservableObject {
     @Published var discovered: [CBPeripheral] = []
     @Published var scanning = false
     @Published var bluetoothReady = false
+    @Published var bluetoothState: BluetoothState = .waiting
     @Published var status = "Waiting for Bluetooth"
 
     private var central: CBCentralManager!
@@ -13,9 +51,11 @@ final class BleHub: NSObject, ObservableObject {
     private var peripherals: [UUID: CBPeripheral] = [:]
     private var connectWaiters: [UUID: CheckedContinuation<Void, Error>] = [:]
     private var lastWrite: [UUID: Date] = [:]
+    private var shouldReconnect: Set<UUID> = []
 
     var onReady: (() -> Void)?
     var onConnected: ((UUID) -> Void)?
+    var onDisconnected: ((UUID) -> Void)?
 
     override init() {
         super.init()
@@ -27,7 +67,10 @@ final class BleHub: NSObject, ObservableObject {
         if !scanning {
             scanning = true
             status = "Scanning for devices"
-            central.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
+            central.scanForPeripherals(
+                withServices: nil,
+                options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
+            )
         }
     }
 
@@ -36,23 +79,33 @@ final class BleHub: NSObject, ObservableObject {
         for peripheral in central.retrievePeripherals(withIdentifiers: ids) {
             peripherals[peripheral.identifier] = peripheral
             peripheral.delegate = self
+            shouldReconnect.insert(peripheral.identifier)
             if peripheral.state != .connected {
                 central.connect(peripheral, options: nil)
             }
         }
     }
 
-    func stopScan() {
-        central.stopScan()
-        scanning = false
-        if status == "Scanning for devices" {
-            status = discovered.isEmpty ? "No devices nearby" : "Scan complete"
+    func forget(_ id: UUID) {
+        shouldReconnect.remove(id)
+        if let peripheral = peripherals[id] {
+            central.cancelPeripheralConnection(peripheral)
+        }
+        writeChars[id] = nil
+        discovered.removeAll { $0.identifier == id }
+    }
+
+    func disconnect(_ id: UUID) {
+        shouldReconnect.remove(id)
+        if let peripheral = peripherals[id] {
+            central.cancelPeripheralConnection(peripheral)
         }
     }
 
     func connect(_ peripheral: CBPeripheral) async throws {
         peripherals[peripheral.identifier] = peripheral
         peripheral.delegate = self
+        shouldReconnect.insert(peripheral.identifier)
         if peripheral.state == .connected, writeChars[peripheral.identifier] != nil {
             return
         }
@@ -88,8 +141,8 @@ enum BleError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .timeout: return "The controller did not accept the connection."
-        case .noCharacteristic: return "No writable LED characteristic was found."
+        case .timeout: return "The device did not accept the connection. Keep it powered and close, then try Add again."
+        case .noCharacteristic: return "No writable LED characteristic was found on this device."
         }
     }
 }
@@ -97,13 +150,32 @@ enum BleError: LocalizedError {
 extension BleHub: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         bluetoothReady = central.state == .poweredOn
-        if bluetoothReady {
-            status = "Bluetooth on"
+        switch central.state {
+        case .poweredOn:
+            bluetoothState = .poweredOn
+            status = "Scanning for devices"
             onReady?()
             startScan()
-        } else {
+        case .poweredOff:
             scanning = false
-            status = "Turn Bluetooth on"
+            bluetoothState = .poweredOff
+            status = BluetoothState.poweredOff.detail
+        case .unauthorized:
+            scanning = false
+            bluetoothState = .unauthorized
+            status = BluetoothState.unauthorized.detail
+        case .unsupported:
+            scanning = false
+            bluetoothState = .unsupported
+            status = BluetoothState.unsupported.detail
+        case .resetting:
+            scanning = false
+            bluetoothState = .resetting
+            status = BluetoothState.resetting.detail
+        default:
+            scanning = false
+            bluetoothState = .waiting
+            status = BluetoothState.waiting.detail
         }
     }
 
@@ -117,7 +189,8 @@ extension BleHub: CBCentralManagerDelegate {
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        status = "Connected \(peripheral.name ?? "controller")"
+        let name = peripheral.name ?? "device"
+        status = "Connected \(name)"
         peripheral.discoverServices(nil)
     }
 
@@ -127,8 +200,12 @@ extension BleHub: CBCentralManagerDelegate {
 
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         writeChars[peripheral.identifier] = nil
-        status = "Reconnecting \(peripheral.name ?? "controller")"
-        central.connect(peripheral, options: nil)
+        onDisconnected?(peripheral.identifier)
+        if shouldReconnect.contains(peripheral.identifier) {
+            let name = peripheral.name ?? "device"
+            status = "Reconnecting \(name)"
+            central.connect(peripheral, options: nil)
+        }
     }
 }
 

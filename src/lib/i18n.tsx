@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { HOWTO_BODY, PRIVACY_BODY, TERMS_BODY } from "./legal";
 import { getSettings, getServerSettings, subscribeSettings, type LangId } from "./settings";
 
 const EN: Record<string, string> = {
@@ -73,14 +74,11 @@ const EN: Record<string, string> = {
   "settings.feedback": "Feedback",
   "settings.version": "Version",
   "howto.title": "How to use Shinno Lights",
-  "howto.body":
-    "1. Power the lighting devices on the car.\n2. Open Scan and add each device (Chrome asks you to pick it; the iPhone app finds them nearby).\n3. Name it Emblem, Mirrors, or Bumper on Devices.\n4. Tap a zone to control only that kit, or leave All lights selected.\n5. Color sets a solid RGB. Modes run the lighting animations. Speed 0 is slow, 100 is fast.\n6. Remove a device anytime from Devices.",
+  "howto.body": HOWTO_BODY,
   "privacy.title": "Privacy policy",
-  "privacy.body":
-    "Shinno Lights is provided by Shin No Performance LLC. The app talks to your lighting devices over Bluetooth on this phone or computer. Pairing names, colors, and settings stay in local storage. We do not create an account, do not upload garage data, and do not sell information. Feedback sent to support@shinnoperformance.com is only used to improve the app.",
+  "privacy.body": PRIVACY_BODY,
   "terms.title": "User agreement",
-  "terms.body":
-    "This app is a controller for Shinno RGB kits you already own. It is provided by Shin No Performance LLC. You are responsible for using lights in a way that is legal and safe for driving. Hardware pairing requires a supported browser or the iOS app. The app is provided as-is.",
+  "terms.body": TERMS_BODY,
   "updates.title": "Updates",
   "updates.current": "This build is current.",
   "updates.body": "You are running Shinno Lights {version}. New versions ship with the app update or TestFlight build.",
@@ -164,13 +162,13 @@ const ES: Record<string, string> = {
   "settings.version": "Versión",
   "howto.title": "Cómo usar Shinno Lights",
   "howto.body":
-    "1. Enciende los dispositivos de iluminación del auto.\n2. Abre Buscar y añade cada dispositivo (Chrome te pide elegirlo; la app de iPhone los encuentra cerca).\n3. Nómbralo Emblema, Espejos o Parachoques en Dispositivos.\n4. Toca una zona para controlarla sola, o deja Todas las luces.\n5. Color fija un RGB. Los modos son las animaciones. Velocidad 0 es lento, 100 es rápido.\n6. Quita un dispositivo cuando quieras en Dispositivos.",
+    "1. Enciende los dispositivos de iluminación del auto.\n2. Abre Buscar y añade cada dispositivo (Chrome te pide elegirlo; la app de iPhone los encuentra cerca y sigue buscando mientras Bluetooth está encendido).\n3. Nómbralo Emblema, Espejos o Parachoques en Dispositivos.\n4. Toca una zona para controlarla sola, o deja Todas las luces.\n5. Color fija un RGB. Los modos son las animaciones. Velocidad 0 es lento, 100 es rápido.\n6. Quita un dispositivo cuando quieras en Dispositivos.\n\nUsa las luces de forma legal y segura al conducir.",
   "privacy.title": "Política de privacidad",
   "privacy.body":
-    "Shinno Lights lo ofrece Shin No Performance LLC. La app habla con tus dispositivos de iluminación por Bluetooth en este teléfono o computadora. Nombres, colores y ajustes quedan en el almacenamiento local. No creamos cuenta, no subimos el garaje y no vendemos datos. Los comentarios a support@shinnoperformance.com solo se usan para mejorar la app.",
+    "Shinno Lights lo ofrece Shin No Performance LLC. Esta política describe cómo la app de iPhone y el controlador web tratan la información.\n\nQué hace la app\nShinno Lights controla por Bluetooth los kits RGB Shinno para Infiniti Q50: emblema, espejos y parachoques. Encuentra dispositivos de iluminación cercanos y envía color, brillo, encendido y modos por Bluetooth Low Energy. No hay cuenta ni tienda en la app.\n\nInformación en este dispositivo\nNombres, identificadores Bluetooth de los dispositivos que añades, zonas, último color, brillo, encendido, modo y ajustes quedan en el almacenamiento del dispositivo (UserDefaults en iPhone, almacenamiento local en el navegador). Solo sirve para el garaje en este aparato. No lo subimos. No creamos cuenta. No vendemos datos. No usamos analítica, publicidad ni rastreo. No pedimos ubicación precisa.\n\nBluetooth\nBluetooth se usa solo para descubrir, conectar y controlar los dispositivos de iluminación de los kits Shinno. No lo usamos para rastrearte.\n\nComentarios\nSi escribes a support@shinnoperformance.com, el mensaje y tu correo solo se usan para responder y mejorar el producto.\n\nContacto\nShin No Performance LLC\nsupport@shinnoperformance.com\nhttps://shinnoperformance.com\n\nLa política de privacidad dentro de la app es la referencia de esta versión.",
   "terms.title": "Acuerdo de usuario",
   "terms.body":
-    "Esta app controla kits RGB Shinno que ya tienes. La ofrece Shin No Performance LLC. Tú eres responsable de usar las luces de forma legal y segura al conducir. El emparejado requiere un navegador compatible o la app iOS. La app se ofrece tal cual.",
+    "Shinno Lights controla kits RGB Shinno que ya tienes. Lo ofrece Shin No Performance LLC.\n\nTú eres responsable de usar las luces del auto de forma legal y segura al conducir. No uses luces intermitentes o de color de un modo que imite vehículos de emergencia o incumpla la ley local.\n\nLa app de iPhone habla con el hardware por Bluetooth. El compañero web necesita un navegador con Web Bluetooth (Chrome o Edge en una computadora). Los kits Q50 de emblema, espejos y parachoques están soportados. Q60 y Q70 aparecen como pronto y no se pueden elegir. El distintivo de parrilla no está en esta versión.\n\nLa app se ofrece tal cual, sin garantías. El emparejado y el comportamiento dependen de los dispositivos que vinieron con tus kits.\n\nPreguntas: support@shinnoperformance.com",
   "updates.title": "Actualizaciones",
   "updates.current": "Esta versión está al día.",
   "updates.body": "Estás usando Shinno Lights {version}. Las versiones nuevas llegan con la actualización o TestFlight.",

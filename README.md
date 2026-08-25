@@ -41,6 +41,10 @@ iOS Safari has no Web Bluetooth. Pairing on a phone means the native app:
 
 CoreBluetooth writes 9-byte frames without response and reconnects if a device drops.
 
+Settings (gear) includes how to use, privacy policy, user agreement, and feedback to support@shinnoperformance.com.
+
+App Store Connect paste copy and the remaining Apple UI checklist: [`APP_STORE.md`](APP_STORE.md). Privacy policy is also at `/privacy` when this web app is hosted.
+
 ```bash
 npm test    # frame encoding
 npm run lint
