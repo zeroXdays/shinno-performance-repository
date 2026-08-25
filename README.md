@@ -22,7 +22,7 @@ npm install
 npm run dev
 ```
 
-Opens at [http://127.0.0.1:43147](http://127.0.0.1:43147). First load builds a demo Q50 with four simulated controllers so you can drive the UI without hardware. Tap the car photo (emblem, grille, bumper, mirrors) to isolate a zone. The **Modes** tab uses Lotus Lamp X / Magic Lantern firmware animations as square tiles with a path of LEDs showing how each effect moves. Speed 0 is fast, 100 is slow — same as the ELK boxes.
+Opens at [http://127.0.0.1:43147](http://127.0.0.1:43147). First load builds a demo garage with four simulated controllers so you can drive the UI without hardware. Tap **Emblem**, **Mirrors**, **Bumper**, or **Grille** to isolate a zone. The **Modes** tab uses Lotus Lamp X / Magic Lantern firmware animations as square tiles with a path of LEDs showing how each effect moves. Speed 0 is fast, 100 is slow — same as the ELK boxes.
 
 Chrome on macOS or Android can also **Pair real box** via Web Bluetooth. iPhone Safari cannot; use the Xcode app.
 
