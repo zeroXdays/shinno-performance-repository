@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import { Bluetooth, Loader2, Power, ScanLine, Trash2, Unplug, Car } from "lucide-react";
 import { EffectStrip, PlayingBar } from "@/components/effect-preview";
 import { ColorWheel } from "@/components/color-wheel";
@@ -36,13 +37,16 @@ export function ShinnoApp() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
-      <header className="border-b border-white/10 bg-black/30">
+      <header className="border-b border-white/10 bg-black">
         <div className="mx-auto flex max-w-lg items-center justify-between gap-3 px-4 py-3">
-          <div className="flex items-center gap-2.5">
-            <span className="h-5 w-[3px] rounded-full bg-[#e10600]" />
-            <p className="text-[15px] font-medium tracking-wide text-white">Shinno</p>
-            <span className="text-[13px] text-white/35">Lights</span>
-          </div>
+          <Image
+            src="/shinno-logo-header.png"
+            alt="Shinno Performance"
+            width={507}
+            height={96}
+            className="h-8 w-auto sm:h-9"
+            priority
+          />
           <label className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-sm text-white/80">
             <Car className="size-3.5 text-white/50" />
             <select
