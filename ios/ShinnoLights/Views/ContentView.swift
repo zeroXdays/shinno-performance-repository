@@ -2,7 +2,7 @@ import CoreBluetooth
 import SwiftUI
 import UIKit
 
-private let shinnoRed = Color(red: 0.88, green: 0.02, blue: 0)
+private let shinnoRed = Color(red: 196 / 255, green: 18 / 255, blue: 32 / 255)
 
 struct ContentView: View {
     @EnvironmentObject var garage: GarageStore

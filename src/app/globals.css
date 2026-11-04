@@ -40,6 +40,7 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-shinno: var(--shinno);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -68,12 +69,13 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
+  --shinno: #c41220;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --radius: 0.875rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -85,37 +87,38 @@
 }
 
 .dark {
-  --background: #070708;
-  --foreground: #f4f1ea;
-  --card: #121214;
-  --card-foreground: #f4f1ea;
-  --popover: #161618;
-  --popover-foreground: #f4f1ea;
-  --primary: #e10600;
-  --primary-foreground: #fff7f5;
-  --secondary: #1c1c20;
-  --secondary-foreground: #f4f1ea;
-  --muted: #1c1c20;
-  --muted-foreground: #9a968c;
-  --accent: #241111;
-  --accent-foreground: #f4f1ea;
+  --background: #050505;
+  --foreground: #f5f5f5;
+  --card: #121212;
+  --card-foreground: #f5f5f5;
+  --popover: #161616;
+  --popover-foreground: #f5f5f5;
+  --primary: #c41220;
+  --primary-foreground: #ffffff;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #f5f5f5;
+  --muted: #1a1a1a;
+  --muted-foreground: #9a9a9a;
+  --accent: #1f1214;
+  --accent-foreground: #f5f5f5;
   --destructive: oklch(0.704 0.191 22.216);
-  --border: rgb(255 255 255 / 10%);
-  --input: rgb(255 255 255 / 12%);
-  --ring: #e10600;
+  --border: rgb(255 255 255 / 8%);
+  --input: rgb(255 255 255 / 10%);
+  --ring: #c41220;
+  --shinno: #c41220;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: #121214;
-  --sidebar-foreground: #f4f1ea;
-  --sidebar-primary: #e10600;
-  --sidebar-primary-foreground: #fff7f5;
-  --sidebar-accent: #1c1c20;
-  --sidebar-accent-foreground: #f4f1ea;
-  --sidebar-border: rgb(255 255 255 / 10%);
-  --sidebar-ring: #e10600;
+  --sidebar: #121212;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-primary: #c41220;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #f5f5f5;
+  --sidebar-border: rgb(255 255 255 / 8%);
+  --sidebar-ring: #c41220;
 }
 
 @layer base {
@@ -124,7 +127,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-color: #141416;
+    background-color: #050505;
   }
   html {
     @apply font-sans;
@@ -132,43 +135,38 @@
 }
 
 .app-shell {
-  background-color: #141416;
+  background-color: #050505;
   background-attachment: fixed;
   background-image:
-    radial-gradient(circle, rgba(255, 255, 255, 0.045) 1px, transparent 1.4px),
-    radial-gradient(880px 420px at 50% -8%, rgba(225, 6, 0, 0.28), transparent 60%),
-    radial-gradient(560px 280px at 100% 110%, rgba(80, 90, 140, 0.16), transparent 55%),
-    linear-gradient(180deg, #1c1c20 0%, #141416 42%, #121214 100%);
-  background-size: 18px 18px, auto, auto, auto;
+    radial-gradient(920px 460px at 50% -12%, rgba(196, 18, 32, 0.22), transparent 58%),
+    radial-gradient(520px 280px at 100% 108%, rgba(196, 18, 32, 0.08), transparent 55%),
+    linear-gradient(180deg, #0c0c0c 0%, #050505 48%, #030303 100%);
 }
 
 .app-shell[data-theme="graphite"] {
-  --card: #14171d;
-  --popover: #171b22;
-  --muted: #1a1e26;
+  --card: #12151a;
+  --popover: #161a20;
+  --muted: #191d24;
   --accent: #1a2030;
-  background-color: #16191f;
+  background-color: #08090b;
   background-attachment: fixed;
   background-image:
-    radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1.4px),
-    radial-gradient(880px 420px at 50% -8%, rgba(130, 150, 190, 0.2), transparent 60%),
-    linear-gradient(180deg, #1c212a 0%, #16191f 45%, #12151a 100%);
-  background-size: 18px 18px, auto, auto;
+    radial-gradient(920px 460px at 50% -12%, rgba(196, 18, 32, 0.14), transparent 58%),
+    radial-gradient(560px 300px at 100% 110%, rgba(90, 110, 150, 0.12), transparent 55%),
+    linear-gradient(180deg, #10131a 0%, #08090b 48%, #06070a 100%);
 }
 
 .app-shell[data-theme="studio"] {
-  --card: #191210;
-  --popover: #1c1412;
-  --muted: #221714;
-  --accent: #2a1612;
-  background-color: #181210;
+  --card: #161210;
+  --popover: #1a1512;
+  --muted: #1f1814;
+  --accent: #241612;
+  background-color: #090706;
   background-attachment: fixed;
   background-image:
-    radial-gradient(circle, rgba(255, 230, 210, 0.04) 1px, transparent 1.4px),
-    radial-gradient(880px 420px at 50% -8%, rgba(225, 6, 0, 0.22), transparent 60%),
-    radial-gradient(500px 240px at 90% 110%, rgba(180, 120, 60, 0.14), transparent 50%),
-    linear-gradient(180deg, #221816 0%, #181210 45%, #120e0c 100%);
-  background-size: 18px 18px, auto, auto, auto;
+    radial-gradient(920px 460px at 50% -12%, rgba(196, 18, 32, 0.2), transparent 58%),
+    radial-gradient(480px 240px at 90% 110%, rgba(150, 90, 40, 0.1), transparent 50%),
+    linear-gradient(180deg, #14100e 0%, #090706 48%, #070504 100%);
 }
 
 @media (prefers-reduced-motion: reduce) {

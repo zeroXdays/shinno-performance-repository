@@ -42,10 +42,10 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
                 "flex flex-col items-stretch gap-2 rounded-2xl border px-3 py-3.5 text-left transition",
                 wide && "col-span-2",
                 selected
-                  ? "border-[#e10600]/80 bg-white/[0.07] shadow-[0_0_22px_rgba(225,6,0,0.2)]"
+                  ? "border-[#c41220]/80 bg-[#121212] shadow-[0_0_22px_rgba(196,18,32,0.22)]"
                   : target === "all"
-                    ? "border-white/10 bg-black/20"
-                    : "border-white/5 bg-black/15 opacity-45",
+                    ? "border-white/[0.08] bg-[#121212]/90"
+                    : "border-white/[0.05] bg-[#0a0a0a] opacity-45",
               )}
             >
               <span className={cn("flex w-full items-center justify-center", wide ? "h-[6rem]" : "h-[5rem]")}>

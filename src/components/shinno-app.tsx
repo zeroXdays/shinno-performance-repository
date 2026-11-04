@@ -59,8 +59,8 @@ export function ShinnoApp() {
 
   return (
     <div className="flex min-h-dvh flex-col text-foreground">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-black/45 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3 px-5 py-3">
+      <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-[#050505]/80 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3 px-5 py-3.5">
           <Image
             src="/shinno-logo-header.png"
             alt="Shinno Performance"
@@ -70,8 +70,8 @@ export function ShinnoApp() {
             priority
           />
           <div className="flex items-center gap-1.5">
-            <label className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-sm text-white/80">
-              <Car className="size-3.5 text-white/50" />
+            <label className="flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-[#121212] px-2.5 py-1.5 text-sm text-white/85">
+              <Car className="size-3.5 text-white/45" />
               <select
                 className="bg-transparent text-sm outline-none"
                 value={garage.car}
@@ -95,7 +95,7 @@ export function ShinnoApp() {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-[5.75rem] pt-4">
+      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-[6.25rem] pt-4">
         <VehicleStage
           car={garage.car}
           controllers={garage.controllers}
@@ -107,28 +107,31 @@ export function ShinnoApp() {
         />
 
         {garage.controllers.length === 0 ? (
-          <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-center">
-            <p className="text-sm text-white/55">{t("devices.empty")}</p>
-            <Button className="mt-3 min-h-12 w-full" onClick={() => void garage.scan()}>
+          <div className="mt-4 rounded-2xl border border-white/[0.08] bg-[#121212] px-4 py-5 text-center shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+            <p className="text-sm text-white/50">{t("devices.empty")}</p>
+            <Button
+              className="mt-3 min-h-12 w-full rounded-xl bg-[#c41220] text-white shadow-[0_8px_24px_rgba(196,18,32,0.35)] hover:bg-[#d01a28]"
+              onClick={() => void garage.scan()}
+            >
               {t("home.scanCta")}
             </Button>
           </div>
         ) : null}
 
-        <div className="mt-4 flex min-h-0 flex-1 flex-col rounded-3xl border border-white/10 bg-white/[0.05] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+        <div className="mt-4 flex min-h-0 flex-1 flex-col rounded-[1.35rem] border border-white/[0.08] bg-[#121212] p-4 shadow-[0_12px_40px_rgba(0,0,0,0.4)]">
           {garage.tab === "color" ? (
             <div className="space-y-5">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-white/50">{zoneLabel}</p>
+              <p className="text-sm font-medium text-white/70">{zoneLabel}</p>
               <button
                 type="button"
                 disabled={!garage.selected.length}
                 onClick={() => void garage.setPower(!power)}
                 className={cn(
-                  "flex size-11 items-center justify-center rounded-full border",
+                  "flex size-11 items-center justify-center rounded-full border transition",
                   power
-                    ? "border-red-500/40 bg-red-600 text-white shadow-[0_0_18px_rgba(225,6,0,0.45)]"
-                    : "border-white/15 bg-white/5 text-white/60",
+                    ? "border-[#c41220]/50 bg-[#c41220] text-white shadow-[0_0_20px_rgba(196,18,32,0.45)]"
+                    : "border-white/12 bg-white/[0.04] text-white/55",
                 )}
                 aria-label={power ? t("power.off") : t("power.on")}
               >
@@ -141,9 +144,9 @@ export function ShinnoApp() {
               disabled={!garage.selected.length}
             />
             <div>
-              <div className="mb-1 flex justify-between text-sm text-white/55">
+              <div className="mb-1.5 flex justify-between text-sm text-white/55">
                 <span>{t("color.brightness")}</span>
-                <span className="tabular-nums">{brightness}%</span>
+                <span className="tabular-nums text-white/75">{brightness}%</span>
               </div>
               <Slider
                 min={1}
@@ -202,10 +205,10 @@ export function ShinnoApp() {
                     disabled={!garage.controllers.length}
                     onClick={() => void garage.applyScene(scene)}
                     className={cn(
-                      "flex flex-col items-center gap-1.5 rounded-xl border bg-black/25 px-1.5 py-2.5 disabled:opacity-40",
+                      "flex flex-col items-center gap-1.5 rounded-xl border bg-[#0a0a0a] px-1.5 py-2.5 disabled:opacity-40",
                       active
-                        ? "border-red-500/70 shadow-[0_0_14px_rgba(225,6,0,0.22)]"
-                        : "border-white/10",
+                        ? "border-[#c41220]/70 shadow-[0_0_16px_rgba(196,18,32,0.28)]"
+                        : "border-white/[0.08]",
                     )}
                   >
                     <span className="relative size-7">
@@ -243,8 +246,8 @@ export function ShinnoApp() {
         </div>
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-black/55 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-lg px-2 pt-1.5 pb-[max(0.45rem,env(safe-area-inset-bottom))]">
+      <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-20 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="pointer-events-auto mx-auto flex w-full max-w-lg items-center gap-1 rounded-full border border-white/[0.08] bg-[#121212]/92 px-2 py-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl">
           {TABS.map((item) => {
             const Icon = item.icon;
             const active = garage.tab === item.id;
@@ -254,11 +257,11 @@ export function ShinnoApp() {
                 type="button"
                 onClick={() => openTab(item.id)}
                 className={cn(
-                  "flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[11px]",
-                  active ? "text-white" : "text-white/40",
+                  "flex flex-1 flex-col items-center gap-0.5 rounded-full px-1 py-1.5 text-[11px] transition",
+                  active ? "bg-white/[0.08] text-white" : "text-white/40",
                 )}
               >
-                <Icon className={cn("size-5", active && "text-[#e10600]")} />
+                <Icon className={cn("size-5", active && "text-[#c41220]")} />
                 {t(`tab.${item.id}`)}
               </button>
             );
@@ -325,8 +328,10 @@ function EffectsPanel() {
               setQuery("");
             }}
             className={cn(
-              "shrink-0 rounded-full px-2.5 py-1 text-xs",
-              !query && group === item.id ? "bg-white text-black" : "bg-white/10 text-white/70",
+              "shrink-0 rounded-full px-2.5 py-1 text-xs transition",
+              !query && group === item.id
+                ? "bg-[#c41220] text-white shadow-[0_4px_14px_rgba(196,18,32,0.35)]"
+                : "bg-white/[0.08] text-white/65",
             )}
           >
             {item.label}
@@ -344,10 +349,10 @@ function EffectsPanel() {
               disabled={!garage.selected.length}
               onClick={() => void garage.setEffect(effect.id)}
               className={cn(
-                "flex flex-col rounded-xl border bg-black/20 p-1.5 text-center",
+                "flex flex-col rounded-xl border bg-[#0a0a0a] p-1.5 text-center",
                 active === effect.id
-                  ? "border-red-500/70 shadow-[0_0_18px_rgba(225,6,0,0.25)]"
-                  : "border-white/10",
+                  ? "border-[#c41220]/70 shadow-[0_0_18px_rgba(196,18,32,0.28)]"
+                  : "border-white/[0.08]",
               )}
             >
               <div className="aspect-square w-full">
@@ -370,7 +375,7 @@ function ScanPanel() {
   return (
     <div className="space-y-4">
       <Button
-        className="min-h-12 w-full"
+        className="min-h-12 w-full rounded-xl bg-[#c41220] text-white shadow-[0_8px_24px_rgba(196,18,32,0.35)] hover:bg-[#d01a28]"
         onClick={() => void garage.scan()}
         disabled={garage.scanning || !garage.webBluetooth}
       >
@@ -392,7 +397,7 @@ function ScanPanel() {
             return (
               <li
                 key={device.id}
-                className="rounded-xl border border-white/10 bg-black/20 px-3 py-3"
+                className="rounded-xl border border-white/[0.08] bg-[#0a0a0a] px-3 py-3"
               >
                 <div>
                   <p className="text-sm">{device.name}</p>
@@ -425,7 +430,7 @@ function DeviceList() {
         </Button>
       </div>
       {garage.controllers.map((controller) => (
-        <div key={controller.id} className="rounded-xl border border-white/10 bg-black/20 p-3">
+        <div key={controller.id} className="rounded-xl border border-white/[0.08] bg-[#0a0a0a] p-3">
           <div className="flex items-center justify-between gap-2">
             <Input
               aria-label={t("devices.rename")}
