@@ -1,23 +1,31 @@
 import SwiftUI
 
-/// Zone tiles matching the web VehicleStage — shown even before devices are paired.
+/// Zone tiles matching the web VehicleStage — Emblem full-width, Mirrors|Bumper equal halves.
 struct VehicleStageView: View {
     @EnvironmentObject var garage: GarageStore
 
     private var zones: [ZoneKind] { garage.settings.car.kitZones }
     private var singleZone: Bool { zones.count == 1 }
+    private var halfZones: [ZoneKind] {
+        zones.filter { $0 != .emblem }
+    }
 
     var body: some View {
-        VStack(spacing: 10) {
-            LazyVGrid(
-                columns: singleZone
-                    ? [GridItem(.flexible())]
-                    : [GridItem(.flexible()), GridItem(.flexible())],
-                spacing: 8
-            ) {
-                ForEach(zones) { zone in
-                    zoneTile(zone)
-                        .gridCellColumns(zone == .emblem || singleZone ? (singleZone ? 1 : 2) : 1)
+        VStack(spacing: 8) {
+            if singleZone, let only = zones.first {
+                zoneTile(only, wide: true)
+            } else {
+                if zones.contains(.emblem) {
+                    zoneTile(.emblem, wide: true)
+                }
+                if !halfZones.isEmpty {
+                    HStack(alignment: .top, spacing: 8) {
+                        ForEach(halfZones) { zone in
+                            zoneTile(zone, wide: false)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        }
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
@@ -25,6 +33,7 @@ struct VehicleStageView: View {
                 .font(.caption2)
                 .tracking(0.6)
                 .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity)
         }
     }
 
@@ -39,7 +48,7 @@ struct VehicleStageView: View {
     }
 
     @ViewBuilder
-    private func zoneTile(_ zone: ZoneKind) -> some View {
+    private func zoneTile(_ zone: ZoneKind, wide: Bool) -> some View {
         let controller = garage.controllers.first { $0.zone == zone }
         let selected: Bool = {
             if case .zone(let z) = garage.target { return z == zone }
@@ -59,19 +68,17 @@ struct VehicleStageView: View {
             }
         } label: {
             VStack(spacing: 8) {
-                ZStack {
+                Group {
                     if zone == .emblem {
                         EmblemStageGlyph(controller: controller)
-                            .frame(height: singleZone ? 118 : 96)
                     } else if zone == .mirrors {
                         CellsStageGlyph(count: 9, controller: controller)
-                            .frame(height: 72)
                     } else {
                         DotsStageGlyph(count: 5, controller: controller)
-                            .frame(height: 72)
                     }
                 }
                 .frame(maxWidth: .infinity)
+                .frame(height: wide ? 116 : 80)
 
                 HStack(spacing: 6) {
                     Circle()
@@ -81,15 +88,19 @@ struct VehicleStageView: View {
                         .font(.caption2.weight(.semibold))
                         .tracking(1.2)
                         .foregroundStyle(.white.opacity(0.85))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                     Spacer(minLength: 0)
                     Text(statusLine(controller))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 12)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity, alignment: .top)
             .background(Color(white: 0.07), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -117,7 +128,9 @@ struct VehicleStageView: View {
     private func statusLine(_ controller: PairedController?) -> String {
         guard let controller else { return "Empty" }
         if !controller.power { return "Off" }
-        if controller.effectId != nil { return "Mode" }
+        if let effectId = controller.effectId {
+            return EffectsCatalog.named(effectId) ?? "Mode"
+        }
         return "On"
     }
 }
@@ -143,7 +156,6 @@ private struct EmblemStageGlyph: View {
                     .frame(width: 140, height: 70)
             }
 
-            // LED ring
             TimelineView(.animation(minimumInterval: 1 / 20)) { timeline in
                 Canvas { context, size in
                     let cx = size.width / 2
@@ -160,13 +172,15 @@ private struct EmblemStageGlyph: View {
                             guard on, let controller else {
                                 return RGB(r: 60, g: 60, b: 60)
                             }
-                            if let effectId = controller.effectId {
-                                // Simple chase when a mode is active
-                                let lit = Int((t * Double(max(8, controller.effectSpeed)) / 12).truncatingRemainder(dividingBy: Double(n)))
-                                if i == lit {
-                                    return controller.color
-                                }
-                                return RGB(r: max(20, controller.color.r / 5), g: max(20, controller.color.g / 5), b: max(20, controller.color.b / 5))
+                            if let _ = controller.effectId {
+                                let lit = Int((t * Double(max(8, controller.effectSpeed)) / 12)
+                                    .truncatingRemainder(dividingBy: Double(n)))
+                                if i == lit { return controller.color }
+                                return RGB(
+                                    r: max(20, controller.color.r / 5),
+                                    g: max(20, controller.color.g / 5),
+                                    b: max(20, controller.color.b / 5)
+                                )
                             }
                             return controller.color
                         }()
@@ -175,7 +189,11 @@ private struct EmblemStageGlyph: View {
                             Path(ellipseIn: rect),
                             with: .color(
                                 on
-                                    ? Color(red: Double(rgb.r) / 255, green: Double(rgb.g) / 255, blue: Double(rgb.b) / 255)
+                                    ? Color(
+                                        red: Double(rgb.r) / 255,
+                                        green: Double(rgb.g) / 255,
+                                        blue: Double(rgb.b) / 255
+                                    )
                                     : Color.white.opacity(0.16)
                             )
                         )
@@ -189,7 +207,6 @@ private struct EmblemStageGlyph: View {
                 .frame(maxWidth: 150, maxHeight: 78)
                 .shadow(color: .black.opacity(0.7), radius: 8, y: 4)
 
-            // Glossy sheen
             Ellipse()
                 .fill(
                     RadialGradient(
@@ -203,10 +220,11 @@ private struct EmblemStageGlyph: View {
                 .blendMode(.softLight)
                 .allowsHitTesting(false)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
+/// Horizontal tapered LED strip — matches web CellsGlyph (not a 3×3 keypad).
 private struct CellsStageGlyph: View {
     var count: Int
     var controller: PairedController?
@@ -214,30 +232,51 @@ private struct CellsStageGlyph: View {
     var body: some View {
         let on = controller?.power == true
         let color = controller?.color ?? RGB(r: 196, g: 18, b: 32)
-        let cols = 3
-        let rows = max(1, Int(ceil(Double(count) / Double(cols))))
-        VStack(spacing: 4) {
-            ForEach(0..<rows, id: \.self) { row in
-                HStack(spacing: 4) {
-                    ForEach(0..<cols, id: \.self) { col in
-                        let index = row * cols + col
-                        if index < count {
-                            RoundedRectangle(cornerRadius: 3, style: .continuous)
-                                .fill(
-                                    on
-                                        ? Color(red: Double(color.r) / 255, green: Double(color.g) / 255, blue: Double(color.b) / 255)
-                                        : Color.white.opacity(0.14)
-                                )
-                                .frame(width: 18, height: 14)
-                                .shadow(color: on ? Color(red: Double(color.r) / 255, green: Double(color.g) / 255, blue: Double(color.b) / 255).opacity(0.6) : .clear, radius: 4)
+        TimelineView(.animation(minimumInterval: 1 / 20)) { timeline in
+            Canvas { context, size in
+                let n = max(1, count)
+                let tNow = timeline.date.timeIntervalSinceReferenceDate
+                for i in 0..<n {
+                    let t = n == 1 ? 0.5 : Double(i) / Double(n - 1)
+                    let w = (9 - Double(i) * 0.35) / 118 * size.width
+                    let h = (18 - abs(t - 0.5) * 6) / 36 * size.height
+                    let x = (6 + t * 100) / 118 * size.width
+                    let y = (18 + sin(t * .pi) * -2) / 36 * size.height - h / 2
+                    let lit: Bool = {
+                        guard on, controller?.effectId != nil else { return on }
+                        let speed = Double(max(8, controller?.effectSpeed ?? 50))
+                        let head = Int((tNow * speed / 14).truncatingRemainder(dividingBy: Double(n)))
+                        return i == head
+                    }()
+                    let fill: Color = {
+                        if !on { return Color.white.opacity(0.16) }
+                        if controller?.effectId != nil && !lit {
+                            return Color(
+                                red: Double(color.r) / 255,
+                                green: Double(color.g) / 255,
+                                blue: Double(color.b) / 255
+                            ).opacity(0.22)
                         }
-                    }
+                        return Color(
+                            red: Double(color.r) / 255,
+                            green: Double(color.g) / 255,
+                            blue: Double(color.b) / 255
+                        )
+                    }()
+                    let rect = CGRect(x: x - w / 2, y: y, width: max(2, w), height: max(2, h))
+                    context.fill(
+                        Path(roundedRect: rect, cornerRadius: 1.6),
+                        with: .color(fill)
+                    )
                 }
             }
         }
+        .frame(maxWidth: 200, maxHeight: 36)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
+/// Horizontal bumper dots — matches web DotsGlyph density in the shared 80pt slot.
 private struct DotsStageGlyph: View {
     var count: Int
     var controller: PairedController?
@@ -245,17 +284,44 @@ private struct DotsStageGlyph: View {
     var body: some View {
         let on = controller?.power == true
         let color = controller?.color ?? RGB(r: 196, g: 18, b: 32)
-        HStack(spacing: 8) {
-            ForEach(0..<count, id: \.self) { _ in
-                Circle()
-                    .fill(
-                        on
-                            ? Color(red: Double(color.r) / 255, green: Double(color.g) / 255, blue: Double(color.b) / 255)
-                            : Color.white.opacity(0.16)
+        TimelineView(.animation(minimumInterval: 1 / 20)) { timeline in
+            Canvas { context, size in
+                let n = max(1, count)
+                let tNow = timeline.date.timeIntervalSinceReferenceDate
+                for i in 0..<n {
+                    let t = n == 1 ? 0.5 : Double(i) / Double(n - 1)
+                    let x = (18 + t * 84) / 120 * size.width
+                    let y = size.height / 2
+                    let r = 5.2 / 28 * size.height
+                    let lit: Bool = {
+                        guard on, controller?.effectId != nil else { return on }
+                        let speed = Double(max(8, controller?.effectSpeed ?? 50))
+                        let head = Int((tNow * speed / 14).truncatingRemainder(dividingBy: Double(n)))
+                        return i == head
+                    }()
+                    let fill: Color = {
+                        if !on { return Color.white.opacity(0.16) }
+                        if controller?.effectId != nil && !lit {
+                            return Color(
+                                red: Double(color.r) / 255,
+                                green: Double(color.g) / 255,
+                                blue: Double(color.b) / 255
+                            ).opacity(0.22)
+                        }
+                        return Color(
+                            red: Double(color.r) / 255,
+                            green: Double(color.g) / 255,
+                            blue: Double(color.b) / 255
+                        )
+                    }()
+                    context.fill(
+                        Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)),
+                        with: .color(fill)
                     )
-                    .frame(width: 12, height: 12)
-                    .shadow(color: on ? Color(red: Double(color.r) / 255, green: Double(color.g) / 255, blue: Double(color.b) / 255).opacity(0.55) : .clear, radius: 4)
+                }
             }
         }
+        .frame(maxWidth: 200, maxHeight: 28)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

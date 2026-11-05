@@ -187,103 +187,108 @@ struct ColorScreen: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                VehicleStageView()
-                    .environmentObject(garage)
+        VStack(spacing: 0) {
+            VehicleStageView()
+                .environmentObject(garage)
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
 
-                if garage.controllers.isEmpty {
-                    EmptyGarageCard(
-                        tab: $tab,
-                        title: "No devices yet",
-                        detail: "Scan to add the lighting devices on your car, then set color here."
-                    )
-                    .padding(.top, 8)
-                } else {
-                    HStack {
-                        Menu {
-                            Button("All lights") { garage.target = .all }
-                            ForEach(ZoneKind.assignable(for: garage.settings.car)) { zone in
-                                Button(zone.title) { garage.target = .zone(zone) }
-                            }
-                        } label: {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(garage.target.title)
-                                    .foregroundStyle(.secondary)
-                                Text("Color")
-                                    .font(.title.bold())
-                            }
-                        }
-                        Spacer()
-                        Toggle("Power", isOn: Binding(
-                            get: { powerOn },
-                            set: { garage.setPower($0) }
-                        ))
-                        .labelsHidden()
-                        .tint(shinnoRed)
-                        .accessibilityLabel(powerOn ? "Turn off" : "Turn on")
-                    }
-                    ColorWheelView(color: live?.color ?? RGB(r: 196, g: 18, b: 32)) { garage.setColor($0) }
-                    VStack(alignment: .leading) {
+            if garage.controllers.isEmpty {
+                EmptyGarageCard(
+                    tab: $tab,
+                    title: "No devices yet",
+                    detail: "Scan to add the lighting devices on your car, then set color here."
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.horizontal, 16)
+            } else {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 20) {
                         HStack {
-                            Text("Brightness")
-                            Spacer()
-                            Text("\(live?.brightness ?? 80)%")
-                                .monospacedDigit()
-                                .foregroundStyle(.secondary)
-                        }
-                        Slider(
-                            value: Binding(
-                                get: { Double(live?.brightness ?? 80) },
-                                set: { garage.setBrightness(Int($0)) }
-                            ),
-                            in: 1...100
-                        )
-                        .tint(shinnoRed)
-                    }
-                    HStack(spacing: 8) {
-                        ForEach(Self.swatches, id: \.self) { swatch in
-                            Button { garage.setColor(swatch) } label: {
-                                HexCell()
-                                    .fill(swatch.color)
-                                    .frame(width: 28, height: 28)
-                                    .overlay(
-                                        HexCell()
-                                            .stroke(.white.opacity(live?.color == swatch ? 0.95 : 0.22), lineWidth: live?.color == swatch ? 2 : 1)
-                                    )
-                                    .shadow(color: live?.color == swatch ? swatch.color.opacity(0.7) : .clear, radius: 6)
-                            }
-                            .accessibilityLabel("Color swatch")
-                        }
-                    }
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                        ForEach(GarageStore.scenes) { scene in
-                            Button {
-                                garage.apply(scene)
-                            } label: {
-                                VStack(spacing: 6) {
-                                    HexCell()
-                                        .fill(scene.color.r + scene.color.g + scene.color.b == 0 ? Color.white.opacity(0.12) : scene.color.color)
-                                        .frame(width: 22, height: 22)
-                                        .overlay(HexCell().stroke(.white.opacity(0.28), lineWidth: 1))
-                                    Text(scene.name)
-                                        .font(.caption)
-                                        .foregroundStyle(.white.opacity(0.85))
+                            Menu {
+                                Button("All lights") { garage.target = .all }
+                                ForEach(ZoneKind.assignable(for: garage.settings.car)) { zone in
+                                    Button(zone.title) { garage.target = .zone(zone) }
                                 }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                                .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .stroke(.white.opacity(0.1), lineWidth: 1)
-                                )
+                            } label: {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(garage.target.title)
+                                        .foregroundStyle(.secondary)
+                                    Text("Color")
+                                        .font(.title.bold())
+                                }
                             }
-                            .buttonStyle(.plain)
+                            Spacer()
+                            Toggle("Power", isOn: Binding(
+                                get: { powerOn },
+                                set: { garage.setPower($0) }
+                            ))
+                            .labelsHidden()
+                            .tint(shinnoRed)
+                            .accessibilityLabel(powerOn ? "Turn off" : "Turn on")
+                        }
+                        ColorWheelView(color: live?.color ?? RGB(r: 196, g: 18, b: 32)) { garage.setColor($0) }
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Text("Brightness")
+                                Spacer()
+                                Text("\(live?.brightness ?? 80)%")
+                                    .monospacedDigit()
+                                    .foregroundStyle(.secondary)
+                            }
+                            Slider(
+                                value: Binding(
+                                    get: { Double(live?.brightness ?? 80) },
+                                    set: { garage.setBrightness(Int($0)) }
+                                ),
+                                in: 1...100
+                            )
+                            .tint(shinnoRed)
+                        }
+                        HStack(spacing: 8) {
+                            ForEach(Self.swatches, id: \.self) { swatch in
+                                Button { garage.setColor(swatch) } label: {
+                                    HexCell()
+                                        .fill(swatch.color)
+                                        .frame(width: 28, height: 28)
+                                        .overlay(
+                                            HexCell()
+                                                .stroke(.white.opacity(live?.color == swatch ? 0.95 : 0.22), lineWidth: live?.color == swatch ? 2 : 1)
+                                        )
+                                        .shadow(color: live?.color == swatch ? swatch.color.opacity(0.7) : .clear, radius: 6)
+                                }
+                                .accessibilityLabel("Color swatch")
+                            }
+                        }
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                            ForEach(GarageStore.scenes) { scene in
+                                Button {
+                                    garage.apply(scene)
+                                } label: {
+                                    VStack(spacing: 6) {
+                                        HexCell()
+                                            .fill(scene.color.r + scene.color.g + scene.color.b == 0 ? Color.white.opacity(0.12) : scene.color.color)
+                                            .frame(width: 22, height: 22)
+                                            .overlay(HexCell().stroke(.white.opacity(0.28), lineWidth: 1))
+                                        Text(scene.name)
+                                            .font(.caption)
+                                            .foregroundStyle(.white.opacity(0.85))
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .stroke(.white.opacity(0.1), lineWidth: 1)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
                     }
+                    .padding(16)
                 }
             }
-            .padding()
         }
         .background(Color.black.ignoresSafeArea())
     }
@@ -320,22 +325,37 @@ struct ModesScreen: View {
 
     var live: PairedController? { garage.selected.first }
     var activePath: ZonePath? { ZonePaths.named(garage.activePathId ?? "") }
+    var speed: Int {
+        garage.activePathId == nil ? (live?.effectSpeed ?? 50) : garage.pathSpeed
+    }
+    var hasDevices: Bool { !garage.controllers.isEmpty }
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 0) {
             VehicleStageView()
                 .environmentObject(garage)
-                .padding(.horizontal)
-                .padding(.top, 8)
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 10)
 
-            if garage.controllers.isEmpty {
-                EmptyGarageCard(
-                    tab: $tab,
-                    title: "No devices yet",
-                    detail: "Add lighting devices on Scan before running modes."
-                )
-                Spacer()
-            } else {
+            VStack(spacing: 12) {
+                if !hasDevices {
+                    HStack(spacing: 10) {
+                        Text("Add kits on Scan to run modes on the car.")
+                            .font(.caption)
+                            .foregroundStyle(Color.white.opacity(0.55))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Button("Scan") { tab = .scan }
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(shinnoRed, in: Capsule())
+                            .foregroundStyle(.white)
+                    }
+                    .padding(12)
+                    .background(Color(white: 0.06), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+
                 if let path = activePath {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
@@ -375,22 +395,18 @@ struct ModesScreen: View {
                     .padding(12)
                     .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 } else {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(garage.target.title)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text(EffectsCatalog.named(live?.effectId) ?? "Pick a mode")
-                                .font(.headline)
-                        }
-                        Spacer()
-                    }
+                    ModePlayingBar(
+                        effect: EffectsCatalog.all.first { $0.id == live?.effectId },
+                        speed: speed,
+                        powered: live?.power == true
+                    )
                 }
+
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text(garage.activePathId == nil ? "Speed" : "Path speed")
                         Spacer()
-                        Text("\(garage.activePathId == nil ? (live?.effectSpeed ?? 50) : garage.pathSpeed)")
+                        Text("\(speed)")
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                     }
@@ -404,21 +420,23 @@ struct ModesScreen: View {
                     .textCase(.uppercase)
                     Slider(
                         value: Binding(
-                            get: {
-                                Double(garage.activePathId == nil ? (live?.effectSpeed ?? 50) : garage.pathSpeed)
-                            },
+                            get: { Double(speed) },
                             set: {
                                 if garage.activePathId != nil || browser == .paths {
                                     garage.pathSpeed = Int($0)
-                                } else {
+                                } else if hasDevices {
                                     garage.setEffectSpeed(Int($0))
+                                } else {
+                                    garage.pathSpeed = Int($0)
                                 }
                             }
                         ),
                         in: 0...100
                     )
                     .tint(shinnoRed)
+                    .disabled(!hasDevices && garage.activePathId == nil)
                 }
+
                 if browser != .paths {
                     TextField("Search Auto Play, curtain, water…", text: $query)
                         .textFieldStyle(.roundedBorder)
@@ -428,53 +446,34 @@ struct ModesScreen: View {
                         .font(.caption)
                         .foregroundStyle(Color.white.opacity(0.65))
                 }
+
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        Button {
+                        modeChip("Paths", selected: query.isEmpty && browser == .paths) {
                             browser = .paths
                             query = ""
-                        } label: {
-                            Text("Paths")
-                                .font(.caption.weight(.semibold))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(
-                                    query.isEmpty && browser == .paths ? shinnoRed : Color.white.opacity(0.12),
-                                    in: Capsule()
-                                )
-                                .overlay(
-                                    Capsule().stroke(
-                                        query.isEmpty && browser == .paths ? shinnoRed : Color.white.opacity(0.22),
-                                        lineWidth: 1
-                                    )
-                                )
-                                .foregroundStyle(.white)
                         }
                         ForEach(EffectGroup.allCases) { item in
-                            Button {
+                            modeChip(item.title, selected: query.isEmpty && browser == .group(item)) {
                                 browser = .group(item)
                                 query = ""
-                            } label: {
-                                Text(item.title)
-                                    .font(.caption)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(
-                                        query.isEmpty && browser == .group(item) ? shinnoRed : Color.white.opacity(0.1),
-                                        in: Capsule()
-                                    )
-                                    .foregroundStyle(.white)
                             }
                         }
                     }
-                    .padding(.bottom, 2)
                 }
-                .padding(.bottom, 6)
+
                 if browser == .paths && query.isEmpty {
                     ScrollView(showsIndicators: false) {
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                        LazyVGrid(
+                            columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)],
+                            spacing: 10
+                        ) {
                             ForEach(ZonePaths.forCar(garage.settings.car)) { path in
                                 Button {
+                                    guard hasDevices else {
+                                        tab = .scan
+                                        return
+                                    }
                                     if garage.activePathId == path.id {
                                         garage.stopPath()
                                     } else {
@@ -489,12 +488,16 @@ struct ModesScreen: View {
                                         Text(path.name)
                                             .font(.subheadline.weight(.semibold))
                                             .foregroundStyle(.white)
+                                            .lineLimit(1)
                                         Text(path.blurb)
                                             .font(.caption2)
                                             .foregroundStyle(Color.white.opacity(0.68))
                                             .multilineTextAlignment(.leading)
+                                            .lineLimit(3)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                        Spacer(minLength: 0)
                                     }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .frame(maxWidth: .infinity, minHeight: 116, alignment: .topLeading)
                                     .padding(12)
                                     .background(Color(white: 0.09), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                                     .overlay(
@@ -504,6 +507,7 @@ struct ModesScreen: View {
                                                 lineWidth: 1
                                             )
                                     )
+                                    .opacity(hasDevices ? 1 : 0.72)
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -512,43 +516,214 @@ struct ModesScreen: View {
                         .background(Color(white: 0.05), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                                .stroke(shinnoRed.opacity(0.35), lineWidth: 1)
                         )
+                        .padding(.bottom, 8)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if items.isEmpty {
                     Text("No modes match.")
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ScrollView(showsIndicators: false) {
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                        LazyVGrid(
+                            columns: [
+                                GridItem(.flexible(), spacing: 8),
+                                GridItem(.flexible(), spacing: 8),
+                                GridItem(.flexible(), spacing: 8),
+                            ],
+                            spacing: 8
+                        ) {
                             ForEach(items) { effect in
                                 Button {
+                                    guard hasDevices else {
+                                        tab = .scan
+                                        return
+                                    }
                                     garage.setEffect(effect.id)
                                 } label: {
-                                    Text(effect.name)
-                                        .font(.caption)
-                                        .multilineTextAlignment(.center)
-                                        .frame(maxWidth: .infinity, minHeight: 64)
-                                        .padding(6)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .stroke(
-                                                    live?.effectId == effect.id ? shinnoRed : Color.white.opacity(0.12),
-                                                    lineWidth: live?.effectId == effect.id ? 2 : 1
-                                                )
-                                        )
+                                    VStack(spacing: 6) {
+                                        ModeGlyphView(effect: effect, speed: speed)
+                                            .aspectRatio(1, contentMode: .fit)
+                                            .frame(maxWidth: .infinity)
+                                        Text(effect.name)
+                                            .font(.caption2)
+                                            .foregroundStyle(Color.white.opacity(0.75))
+                                            .multilineTextAlignment(.center)
+                                            .lineLimit(2)
+                                            .minimumScaleFactor(0.85)
+                                            .frame(minHeight: 28, alignment: .top)
+                                    }
+                                    .padding(6)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color(white: 0.05), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .stroke(
+                                                live?.effectId == effect.id && garage.activePathId == nil
+                                                    ? shinnoRed.opacity(0.7)
+                                                    : Color.white.opacity(0.08),
+                                                lineWidth: live?.effectId == effect.id && garage.activePathId == nil ? 2 : 1
+                                            )
+                                    )
+                                    .opacity(hasDevices ? 1 : 0.72)
                                 }
-                                .foregroundStyle(.white)
+                                .buttonStyle(.plain)
                             }
                         }
                         .padding(.bottom, 12)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        }
+        .background(Color.black.ignoresSafeArea())
+    }
+
+    private func modeChip(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption.weight(selected ? .semibold : .regular))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(selected ? shinnoRed : Color.white.opacity(0.1), in: Capsule())
+                .overlay(
+                    Capsule().stroke(selected ? shinnoRed : Color.white.opacity(0.18), lineWidth: 1)
+                )
+                .foregroundStyle(.white)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Compact live preview above the modes browser — matches web PlayingBar.
+private struct ModePlayingBar: View {
+    var effect: LedEffect?
+    var speed: Int
+    var powered: Bool
+
+    var body: some View {
+        VStack(spacing: 6) {
+            if let effect, powered {
+                ModeGlyphView(effect: effect, speed: speed)
+                    .frame(width: 96, height: 96)
+            } else {
+                Text(effect == nil ? "Pick a mode" : "Power off")
+                    .font(.caption)
+                    .foregroundStyle(Color.white.opacity(0.35))
+                    .frame(width: 96, height: 96)
+            }
+            Text(effect?.name ?? "Paths run across zones")
+                .font(.caption)
+                .foregroundStyle(Color.white.opacity(0.5))
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(Color(white: 0.04), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
+    }
+}
+
+/// Animated LED glyph for each mode tile — same idea as web ModeGlyph.
+struct ModeGlyphView: View {
+    var effect: LedEffect
+    var speed: Int
+
+    private let ledCount = 20
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1 / 24)) { timeline in
+            Canvas { context, size in
+                let points = pathPoints(in: size)
+                if points.count >= 2 {
+                    var stroke = Path()
+                    stroke.move(to: points[0])
+                    for point in points.dropFirst() { stroke.addLine(to: point) }
+                    context.stroke(stroke, with: .color(Color.white.opacity(0.12)), lineWidth: 2.2)
+                }
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                let pace = Double(max(8, speed)) / 18
+                for (index, point) in points.enumerated() {
+                    let phase = (t * pace + Double(index) * 0.35).truncatingRemainder(dividingBy: Double(ledCount))
+                    let lit = Int(phase)
+                    let rgb = paletteColor(at: (index + lit) % palette.count)
+                    let r: CGFloat = min(size.width, size.height) * 0.031
+                    context.fill(
+                        Path(ellipseIn: CGRect(x: point.x - r, y: point.y - r, width: r * 2, height: r * 2)),
+                        with: .color(Color(red: rgb.r, green: rgb.g, blue: rgb.b))
+                    )
                 }
             }
         }
-        .padding()
-        .background(Color.black.ignoresSafeArea())
+    }
+
+    private var palette: [(r: Double, g: Double, b: Double)] {
+        switch effect.group {
+        case .water, .curtain: return [
+            (1, 0.11, 0.11), (0.14, 0.86, 0.28), (0.16, 0.35, 1),
+            (1, 0.86, 0.12), (0.19, 0.84, 1), (0.66, 0.19, 1), (1, 0.99, 0.96),
+        ]
+        case .tail, .run, .runback, .flow: return [
+            (1, 0.11, 0.11), (0.14, 0.86, 0.28), (0.16, 0.35, 1), (1, 0.99, 0.96),
+        ]
+        default: return [
+            (0.77, 0.07, 0.12), (1, 0.59, 0.09), (1, 0.86, 0.12),
+            (0.14, 0.86, 0.28), (0.19, 0.84, 1), (0.16, 0.35, 1), (0.66, 0.19, 1),
+        ]
+        }
+    }
+
+    private func paletteColor(at index: Int) -> (r: Double, g: Double, b: Double) {
+        palette[index % palette.count]
+    }
+
+    private func pathPoints(in size: CGSize) -> [CGPoint] {
+        let w = size.width
+        let h = size.height
+        switch effect.group {
+        case .water:
+            return (0..<ledCount).map { i in
+                let t = Double(i) / Double(ledCount - 1)
+                return CGPoint(x: w * (0.1 + t * 0.8), y: h * (0.5 + sin(t * .pi * 3) * 0.18))
+            }
+        case .curtain:
+            let half = ledCount / 2
+            let left = (0..<half).map { i in
+                CGPoint(x: w * 0.18, y: h * (0.14 + Double(i) / Double(max(1, half - 1)) * 0.72))
+            }
+            let right = (0..<half).map { i in
+                CGPoint(x: w * 0.82, y: h * (0.14 + Double(i) / Double(max(1, half - 1)) * 0.72))
+            }
+            return left + right
+        case .run, .runback, .tail, .flow, .trans:
+            return (0..<ledCount).map { i in
+                let t = Double(i) / Double(ledCount - 1)
+                return CGPoint(x: w * (0.1 + t * 0.8), y: h * 0.5)
+            }
+        default:
+            let inset = min(w, h) * 0.16
+            let rw = w - inset * 2
+            let rh = h - inset * 2
+            let perim = 2 * (rw + rh)
+            return (0..<ledCount).map { i in
+                var d = Double(i) / Double(ledCount) * perim
+                if d < rw { return CGPoint(x: inset + d, y: inset) }
+                d -= rw
+                if d < rh { return CGPoint(x: inset + rw, y: inset + d) }
+                d -= rh
+                if d < rw { return CGPoint(x: inset + rw - d, y: inset + rh) }
+                d -= rw
+                return CGPoint(x: inset, y: inset + rh - d)
+            }
+        }
     }
 }
 
