@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import { Bluetooth, Loader2, Power, Trash2, Unplug, Car, Plug, Palette, Sparkles, Cpu } from "lucide-react";
 import { ModeGlyph, PlayingBar } from "@/components/effect-preview";
@@ -42,9 +42,15 @@ const TABS: { id: TabId; icon: typeof Palette }[] = [
   { id: "devices", icon: Cpu },
 ];
 
+function subscribeNoop() {
+  return () => {};
+}
+
 export function ShinnoApp() {
   const garage = useGarage();
   const { t } = useI18n();
+  // Client-only garage counts (localStorage) — false on server to keep SSR labels stable.
+  const garageReady = useSyncExternalStore(subscribeNoop, () => true, () => false);
   const live = garage.selected[0];
   const color = live?.color ?? { r: 196, g: 18, b: 32 };
   const brightness = live?.brightness ?? 80;
@@ -77,24 +83,34 @@ export function ShinnoApp() {
             </span>
           </div>
           <div className="flex items-center gap-1.5">
-            <label className="flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-[#121212] px-2.5 py-1.5 text-sm text-white/85">
-              <Car className="size-3.5 text-white/45" />
+            <label className="flex max-w-[11.5rem] items-center gap-1.5 rounded-full border border-white/[0.08] bg-[#121212] px-2.5 py-1.5 text-sm text-white/85">
+              <Car className="size-3.5 shrink-0 text-[#c41220]" />
               <select
-                className="bg-transparent text-sm outline-none"
+                className="min-w-0 flex-1 truncate bg-transparent text-sm outline-none"
                 value={garage.car}
                 onChange={(event) => garage.setCar(event.target.value as typeof garage.car)}
                 aria-label={t("car.label")}
+                title={t("car.garageHint")}
               >
-                {CARS.map((car) => (
-                  <option
-                    key={car.id}
-                    value={car.id}
-                    disabled={!car.enabled}
-                    className="bg-neutral-900"
-                  >
-                    {car.enabled ? car.name : `${car.name} — ${t("car.soon")}`}
-                  </option>
-                ))}
+                {CARS.map((car) => {
+                  const base = car.enabled ? car.name : `${car.name} — ${t("car.soon")}`;
+                  // Counts come from localStorage — wait until mount to avoid hydration mismatch.
+                  let label = base;
+                  if (garageReady && car.enabled) {
+                    const count = garage.vehicleDeviceCounts[car.id] ?? 0;
+                    label = count > 0 ? `${base} · ${count}` : `${base} · ${t("car.empty")}`;
+                  }
+                  return (
+                    <option
+                      key={car.id}
+                      value={car.id}
+                      disabled={!car.enabled}
+                      className="bg-neutral-900"
+                    >
+                      {label}
+                    </option>
+                  );
+                })}
               </select>
             </label>
             <SettingsMenu />
@@ -398,7 +414,7 @@ function EffectsPanel({ onGoScan }: { onGoScan: () => void }) {
       ) : (
         <p className="text-xs text-white/65">{t("paths.hint")}</p>
       )}
-      <div className="flex gap-1 overflow-x-auto pb-0.5">
+      <div className="mb-1.5 flex gap-1.5 overflow-x-auto pb-1.5">
         <button
           type="button"
           onClick={() => {
@@ -584,12 +600,16 @@ function ScanPanel() {
 function DeviceList({ onGoScan }: { onGoScan: () => void }) {
   const garage = useGarage();
   const { t } = useI18n();
+  const carName = CARS.find((car) => car.id === garage.car)?.name ?? garage.car.toUpperCase();
   if (!garage.controllers.length) {
     return (
       <div className="flex flex-1 flex-col gap-3">
+        <p className="text-center text-xs tracking-wide text-white/45 uppercase">
+          {t("car.active", { car: carName })}
+        </p>
         <EmptyGarage
           title={t("devices.empty")}
-          hint={t("devices.emptyHint")}
+          hint={garage.car === "g37" ? t("devices.emptyHintG37") : t("devices.emptyHint")}
           actionLabel={t("devices.goScan")}
           onAction={onGoScan}
         />
@@ -600,6 +620,9 @@ function DeviceList({ onGoScan }: { onGoScan: () => void }) {
   }
   return (
     <div className="space-y-2">
+      <p className="text-xs tracking-wide text-white/45 uppercase">
+        {t("car.active", { car: carName })}
+      </p>
       <div className="flex items-center justify-between gap-2">
         <Button size="sm" variant="outline" onClick={onGoScan}>
           <Bluetooth className="size-3.5" />

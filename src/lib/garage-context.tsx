@@ -30,9 +30,11 @@ import { dimBrightness, pathByIdForCar, pathStepMs, type ZonePath } from "@/lib/
 import { getSettings } from "@/lib/settings";
 import {
   getCar,
+  getControllersForCar,
   getGarageControllers,
   getServerCar,
   getServerGarage,
+  getVehicleDeviceCounts,
   subscribeCar,
   subscribeGarage,
   writeCar,
@@ -43,7 +45,6 @@ import {
   buildDemoControllers,
   isDemoController,
 } from "@/lib/demo-devices";
-
 type Target = "all" | ZoneKind;
 
 interface GarageContextValue {
@@ -57,6 +58,8 @@ interface GarageContextValue {
   setTarget: (target: Target) => void;
   car: CarId;
   setCar: (car: CarId) => void;
+  /** Saved kit counts per enabled car (Q50 / G37 …). */
+  vehicleDeviceCounts: Record<CarId, number>;
   selected: Controller[];
   syncAll: boolean;
   busy: boolean;
@@ -119,9 +122,21 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
   const webBluetooth = webBluetoothAvailable();
 
+  const vehicleDeviceCounts = useMemo(() => {
+    // Recompute when active garage or car changes (storage notifies both).
+    void controllers;
+    void car;
+    return getVehicleDeviceCounts();
+  }, [controllers, car]);
+
   const setCar = useCallback((next: CarId) => {
-    writeCar(next);
-    const kit = new Set(kitZonesForCar(next));
+    if (next === getCar()) return;
+    // Drop live BLE links for the car we are leaving; the other car's kits stay saved.
+    for (const controller of getGarageControllers()) {
+      if (isDemoController(controller)) continue;
+      void transports.current.get(controller.id)?.disconnect(controller.id);
+      transports.current.delete(controller.id);
+    }
     pathRunId.current += 1;
     if (pathTimer.current) {
       clearTimeout(pathTimer.current);
@@ -129,11 +144,14 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     }
     setActivePathId(null);
     setActivePathZones([]);
-    setControllers((prev) =>
-      prev.filter((row) => !(isDemoController(row) && !kit.has(row.zone))),
-    );
+    writeCar(next);
+    const kit = new Set(kitZonesForCar(next));
     setTarget((current) => (current !== "all" && !kit.has(current) ? "all" : current));
-  }, [setControllers]);
+    // Touch saved demos for the newly active car so stale out-of-kit zones are pruned.
+    const incoming = getControllersForCar(next);
+    const pruned = incoming.filter((row) => !isDemoController(row) || kit.has(row.zone));
+    if (pruned.length !== incoming.length) writeGarage(pruned);
+  }, []);
 
   const patch = useCallback(
     (id: string, update: Partial<Controller>) => {
@@ -340,6 +358,14 @@ export function GarageProvider({ children }: { children: ReactNode }) {
       void reconnectKnown();
     });
   }, [reconnectKnown]);
+
+  // After switching vehicles, link the newly active car's saved kits.
+  const previousCar = useRef(car);
+  useEffect(() => {
+    if (previousCar.current === car) return;
+    previousCar.current = car;
+    void reconnectKnown();
+  }, [car, reconnectKnown]);
 
   const refreshNearby = useCallback(async () => {
     if (!webBluetoothAvailable()) return;
@@ -720,6 +746,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     setTarget,
     car,
     setCar,
+    vehicleDeviceCounts,
     selected,
     syncAll: target === "all",
     busy,

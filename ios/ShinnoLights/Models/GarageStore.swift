@@ -108,6 +108,8 @@ final class GarageStore: ObservableObject {
     let hub = BleHub()
     private var pathTimer: Timer?
     private var pathStepIndex = 0
+    /// Kits saved per car so Q50 and G37 can both stay in the garage.
+    private var garageByCar: [CarKind: [PairedController]] = [:]
 
     var selected: [PairedController] {
         switch target {
@@ -116,6 +118,11 @@ final class GarageStore: ObservableObject {
         case .zone(let zone):
             return controllers.filter { $0.zone == zone }
         }
+    }
+
+    func deviceCount(for car: CarKind) -> Int {
+        if car == settings.car { return controllers.count }
+        return garageByCar[car]?.count ?? 0
     }
 
     static let scenes: [ScenePreset] = [
@@ -128,6 +135,7 @@ final class GarageStore: ObservableObject {
     ]
 
     private static let storageKey = "shinno-garage-v1"
+    private static let garageByCarKey = "shinno-garage-by-car-v1"
     private static let settingsKey = "shinno-settings-v1"
     private var bag = Set<AnyCancellable>()
 
@@ -175,8 +183,19 @@ final class GarageStore: ObservableObject {
     func persist() {
         guard settings.rememberDevices else {
             UserDefaults.standard.removeObject(forKey: Self.storageKey)
+            UserDefaults.standard.removeObject(forKey: Self.garageByCarKey)
             return
         }
+        garageByCar[settings.car] = controllers
+        let encoded = Dictionary(
+            uniqueKeysWithValues: garageByCar.map { car, rows in
+                (car.rawValue, rows.map(PersistedController.init))
+            }
+        )
+        if let data = try? JSONEncoder().encode(encoded) {
+            UserDefaults.standard.set(data, forKey: Self.garageByCarKey)
+        }
+        // Keep legacy key in sync for the active car (older builds / migrations).
         let rows = controllers.map(PersistedController.init)
         if let data = try? JSONEncoder().encode(rows) {
             UserDefaults.standard.set(data, forKey: Self.storageKey)
@@ -310,10 +329,21 @@ final class GarageStore: ObservableObject {
 
     func setCar(_ car: CarKind) {
         guard car.enabled else { return }
-        settings.car = car
+        guard car != settings.car else { return }
+        // Park the outgoing car's kits, then load the other car's saved garage.
+        garageByCar[settings.car] = controllers
+        for controller in controllers {
+            hub.disconnect(controller.id)
+        }
         stopPath()
+        settings.car = car
+        controllers = garageByCar[car] ?? []
         if case .zone(let zone) = target, !car.kitZones.contains(zone), zone != .custom {
             target = .all
+        }
+        persist()
+        if settings.autoConnect {
+            restoreConnections()
         }
     }
 
@@ -490,10 +520,28 @@ final class GarageStore: ObservableObject {
 
     private func load() {
         guard settings.rememberDevices else { return }
+
+        if let data = UserDefaults.standard.data(forKey: Self.garageByCarKey),
+           let encoded = try? JSONDecoder().decode([String: [PersistedController]].self, from: data)
+        {
+            var loaded: [CarKind: [PairedController]] = [:]
+            for (raw, rows) in encoded {
+                guard let car = CarKind(rawValue: raw), car.enabled else { continue }
+                loaded[car] = rows.map(\.controller)
+            }
+            garageByCar = loaded
+            controllers = garageByCar[settings.car] ?? []
+            return
+        }
+
+        // Legacy single-list garage → park under the active car.
         guard let data = UserDefaults.standard.data(forKey: Self.storageKey),
               let rows = try? JSONDecoder().decode([PersistedController].self, from: data)
         else { return }
-        controllers = rows.map(\.controller)
+        let list = rows.map(\.controller)
+        garageByCar[settings.car] = list
+        controllers = list
+        persist()
     }
 
     private func loadSettings() {

@@ -32,7 +32,8 @@ export function buildDemoControllers(car: CarId): Controller[] {
   const zones: ZoneKind[] = kitZonesForCar(car);
   return zones.map((zone) => {
     const base = createController({
-      id: `demo-${zone}`,
+      // Per-car ids so Q50 and G37 demos can both stay saved.
+      id: `demo-${car}-${zone}`,
       advertisedName: "DEMO ELK-BLEDOM",
       zone,
       modelId: "elk-bledom",

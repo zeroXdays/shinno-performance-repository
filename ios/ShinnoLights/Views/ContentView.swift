@@ -82,8 +82,21 @@ struct ShinnoHeader: View {
             Spacer()
             Menu {
                 ForEach(CarKind.allCases) { car in
-                    Button(car.pickerLabel) {
+                    let count = garage.deviceCount(for: car)
+                    let detail: String = {
+                        if !car.enabled { return car.pickerLabel }
+                        if count == 0 { return "\(car.title) · empty" }
+                        return "\(car.title) · \(count)"
+                    }()
+                    Button {
                         garage.setCar(car)
+                    } label: {
+                        HStack {
+                            Text(detail)
+                            if car == garage.settings.car {
+                                Image(systemName: "checkmark")
+                            }
+                        }
                     }
                     .disabled(!car.enabled)
                 }
@@ -94,6 +107,8 @@ struct ShinnoHeader: View {
                     .padding(.vertical, 6)
                     .background(.white.opacity(0.08), in: Capsule())
             }
+            .accessibilityLabel("Garage · \(garage.settings.car.title)")
+            .accessibilityHint("Switch vehicles. Each car keeps its own paired kits.")
             Button {
                 showSettings = true
             } label: {
@@ -441,7 +456,9 @@ struct ModesScreen: View {
                             }
                         }
                     }
+                    .padding(.bottom, 2)
                 }
+                .padding(.bottom, 6)
                 if browser == .paths && query.isEmpty {
                     ScrollView {
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {

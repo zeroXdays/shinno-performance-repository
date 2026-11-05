@@ -2,7 +2,7 @@
 
 Apple-first controller from **Shin No Performance LLC** for [Shinno Performance](https://shinnoperformance.com) RGB kits on Infiniti **Q50** and **G37**. Q60 and Q70 are in the picker as “soon” and cannot be selected yet.
 
-The app treats the kits as one car: **emblem, mirrors, bumper**. Grille badge support is in the code, commented out, until we have a kit to test. G37 reuses the same zone layout as Q50.
+The garage holds **multiple vehicles** — Q50 and G37 can both be saved, switched in the header picker, and each keeps its own paired kits. Q50 uses **emblem, mirrors, bumper**. G37 is **emblem-only** until mirrors/bumper kits land. Grille badge support is in the code, commented out, until we have a kit to test. Paths and BLE writes always target the **active** car.
 
 Devices advertise as ELK-BLEDOM, ELK-BLEDOB, MELK, or LEDBLE (Magic Lantern / Lotus Lamp X family). Pair the device, then assign the zone. Feedback: support@shinnoperformance.com.
 
@@ -74,4 +74,4 @@ Model-specific variants live in `src/lib/protocol/models.ts` and `ios/ShinnoLigh
 - [RGB Bumper Lights](https://shinnoperformance.com/products/infiniti-q50-rgb-bumper-lights)
 - RGB Grille Badge — parked in the UI until we have a kit to test (`src/lib/catalog.ts`)
 
-If a kit shipped with a Magic Lantern / Lotus Lantern QR card, it belongs in this garage. Q60 / Q70 are not wired yet. G37 uses the same zone layout as Q50.
+If a kit shipped with a Magic Lantern / Lotus Lantern QR card, it belongs in this garage. Q60 / Q70 are not wired yet. Switch cars in the header to manage Q50 and G37 side by side.
