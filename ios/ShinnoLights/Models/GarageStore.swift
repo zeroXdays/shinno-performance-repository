@@ -413,11 +413,15 @@ final class GarageStore: ObservableObject {
 
     private func scheduleNextPathStep() {
         pathTimer?.invalidate()
-        pathTimer = Timer.scheduledTimer(withTimeInterval: ZonePaths.stepMs(speed: pathSpeed) / 1000, repeats: false) { [weak self] _ in
-            guard let self, let live = ZonePaths.named(self.activePathId ?? "", for: self.settings.car) else { return }
-            self.pathStepIndex = (self.pathStepIndex + 1) % live.steps.count
-            self.applyPathStep(live)
-            self.scheduleNextPathStep()
+        let interval = ZonePaths.stepMs(speed: pathSpeed) / 1000
+        pathTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                guard let live = ZonePaths.named(self.activePathId ?? "", for: self.settings.car) else { return }
+                self.pathStepIndex = (self.pathStepIndex + 1) % live.steps.count
+                self.applyPathStep(live)
+                self.scheduleNextPathStep()
+            }
         }
     }
 

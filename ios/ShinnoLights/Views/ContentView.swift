@@ -631,7 +631,7 @@ struct ScanScreen: View {
     }
 }
 
-private struct CBPeripheralLite: Identifiable {
+struct CBPeripheralLite: Identifiable {
     let id: UUID
     let name: String
 }

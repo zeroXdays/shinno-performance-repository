@@ -1,16 +1,16 @@
 import SwiftUI
 
-struct PurchaseGateView<Content: View>: View {
-    /// TEMP: lock screen off — set to `true` to require Shopify unlock again.
-    private static let purchaseGateEnabled = false
+/// TEMP: lock screen off — set to `true` to require Shopify unlock again.
+private let purchaseGateEnabled = false
 
+struct PurchaseGateView<Content: View>: View {
     @AppStorage("shinno.license.unlocked") private var unlocked = false
     @ViewBuilder var content: () -> Content
 
     var body: some View {
         Group {
             // TEMP: skip unlock UI while purchaseGateEnabled is false.
-            if !Self.purchaseGateEnabled || unlocked {
+            if !purchaseGateEnabled || unlocked {
                 content()
             } else {
                 UnlockForm()
