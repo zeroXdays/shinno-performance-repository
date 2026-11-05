@@ -2,15 +2,16 @@ import SwiftUI
 
 /// Per-mode LED preview — same contract as web `ModeGlyph`:
 /// path shape from motion, LED colours from `sampleLed`, colour strip from palette.
-/// Designed so neighbouring tiles are obviously different (R-G-B ≠ 7-Color ≠ Y-B).
 struct ModeGlyphView: View {
     var effect: LedEffect
     var speed: Int
     var animate: Bool = true
     var active: Bool = false
     var showsLegend: Bool = true
+    /// Denser tile for the Modes grid (3-up) without losing colour identity.
+    var compact: Bool = false
 
-    private let ledCount = 18
+    private var ledCount: Int { compact ? 14 : 18 }
 
     var body: some View {
         let motion = EffectPreview.motion(for: effect)
@@ -20,10 +21,9 @@ struct ModeGlyphView: View {
             || effect.name.contains("Close")
             || effect.group == .runback
 
-        VStack(spacing: showsLegend ? 6 : 0) {
+        VStack(spacing: showsLegend ? (compact ? 3 : 6) : 0) {
             ZStack {
-                // Soft wash from this mode's first colour — tiles tint differently at a glance.
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: compact ? 8 : 10, style: .continuous)
                     .fill(palette.first?.color.opacity(0.14) ?? Color.white.opacity(0.04))
 
                 TimelineView(.animation(minimumInterval: animate ? 1.0 / 16.0 : 120)) { timeline in
@@ -35,7 +35,7 @@ struct ModeGlyphView: View {
                         let elapsedMs = animate
                             ? timeline.date.timeIntervalSinceReferenceDate * 1000 + phase
                             : period * 0.22 + phase
-                        let ledR = max(3.5, min(size.width, size.height) * 0.048)
+                        let ledR = max(compact ? 2.8 : 3.5, min(size.width, size.height) * (compact ? 0.055 : 0.048))
 
                         ZStack {
                             if points.count >= 2 {
@@ -45,7 +45,7 @@ struct ModeGlyphView: View {
                                 }
                                 .stroke(
                                     Color.white.opacity(0.16),
-                                    style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
+                                    style: StrokeStyle(lineWidth: compact ? 1.6 : 2, lineCap: .round, lineJoin: .round)
                                 )
                             }
 
@@ -65,50 +65,50 @@ struct ModeGlyphView: View {
                         }
                     }
                 }
-                .padding(6)
+                .padding(compact ? 4 : 6)
             }
-            .aspectRatio(1.05, contentMode: .fit)
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .aspectRatio(compact ? 1.25 : 1.05, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: compact ? 8 : 10, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: compact ? 8 : 10, style: .continuous)
                     .stroke(Color.white.opacity(0.08), lineWidth: 1)
             )
 
             if showsLegend {
-                // Thick colour legend — primary way to tell R-G-B from 7-Color from Y-B.
-                HStack(spacing: 3) {
+                HStack(spacing: compact ? 2 : 3) {
                     ForEach(Array(palette.enumerated()), id: \.offset) { _, rgb in
-                        RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        RoundedRectangle(cornerRadius: 1.5, style: .continuous)
                             .fill(rgb.color)
                     }
                 }
-                .frame(height: 12)
-                .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+                .frame(height: compact ? 7 : 12)
+                .clipShape(RoundedRectangle(cornerRadius: 2.5, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    RoundedRectangle(cornerRadius: 2.5, style: .continuous)
                         .stroke(Color.white.opacity(0.18), lineWidth: 0.5)
                 )
-                .padding(.horizontal, 2)
+                .padding(.horizontal, 1)
 
-                HStack(spacing: 4) {
-                    Image(systemName: reversed ? "arrow.left" : "arrow.right")
-                        .font(.system(size: 9, weight: .bold))
-                    Text(reversed ? "Back" : "Fwd")
-                        .font(.system(size: 9, weight: .semibold))
-                    Spacer(minLength: 0)
-                    Text(shortPaletteLabel(palette))
-                        .font(.system(size: 9, weight: .medium, design: .monospaced))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                if !compact {
+                    HStack(spacing: 4) {
+                        Image(systemName: reversed ? "arrow.left" : "arrow.right")
+                            .font(.system(size: 9, weight: .bold))
+                        Text(reversed ? "Back" : "Fwd")
+                            .font(.system(size: 9, weight: .semibold))
+                        Spacer(minLength: 0)
+                        Text(shortPaletteLabel(palette))
+                            .font(.system(size: 9, weight: .medium, design: .monospaced))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
+                    .foregroundStyle(Color.white.opacity(0.45))
+                    .padding(.horizontal, 2)
                 }
-                .foregroundStyle(Color.white.opacity(0.45))
-                .padding(.horizontal, 2)
             }
         }
-        .id("mode-glyph-\(effect.id)-\(effect.name)")
+        .id("mode-glyph-\(effect.id)-\(effect.name)-\(compact)")
     }
 
-    /// Compact legend text so R-G-B / Y-B / 7-Color read without opening the tile.
     private func shortPaletteLabel(_ palette: [RGB]) -> String {
         if palette.count >= 7 { return "7-col" }
         if palette.count == 1 {

@@ -366,77 +366,46 @@ struct ModesScreen: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Unmistakable ship marker — if TestFlight is current, this red bar is visible.
-            Text("BUILD 22 — new mode colours")
-                .font(.caption.weight(.bold))
-                .tracking(0.6)
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .background(shinnoRed)
+            // Compact stage + now-playing so the mode grid stays above the fold.
+            VStack(spacing: 8) {
+                VehicleStageView(compact: true)
+                    .environmentObject(garage)
 
-            VehicleStageView()
-                .environmentObject(garage)
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 10)
-
-            VStack(spacing: 12) {
                 if !hasDevices {
-                    HStack(spacing: 10) {
-                        Text("Add kits on Scan to run modes on the car.")
-                            .font(.caption)
+                    HStack(spacing: 8) {
+                        Text("Add kits on Scan to run modes.")
+                            .font(.caption2)
                             .foregroundStyle(Color.white.opacity(0.55))
                             .frame(maxWidth: .infinity, alignment: .leading)
                         Button("Scan") { tab = .scan }
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
+                            .font(.caption2.weight(.semibold))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
                             .background(shinnoRed, in: Capsule())
                             .foregroundStyle(.white)
                     }
-                    .padding(12)
-                    .background(Color(white: 0.06), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(Color(white: 0.06), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
 
                 if let path = activePath {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Zone path")
-                                    .font(.caption2)
-                                    .foregroundStyle(shinnoRed)
-                                Text(path.name)
-                                    .font(.headline)
-                                Text(path.blurb)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Button("Stop") { garage.stopPath() }
-                                .buttonStyle(.bordered)
+                    HStack(spacing: 10) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Zone path · \(path.name)")
+                                .font(.caption.weight(.semibold))
+                            Text(path.blurb)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
                         }
-                        HStack(spacing: 8) {
-                            ForEach(garage.settings.car.kitZones, id: \.self) { zone in
-                                Text(zone.title)
-                                    .font(.caption2)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(
-                                        garage.activePathZones.contains(zone) ? shinnoRed.opacity(0.25) : Color.white.opacity(0.06),
-                                        in: Capsule()
-                                    )
-                                    .overlay(
-                                        Capsule().stroke(
-                                            garage.activePathZones.contains(zone) ? shinnoRed.opacity(0.7) : Color.white.opacity(0.08),
-                                            lineWidth: 1
-                                        )
-                                    )
-                            }
-                        }
+                        Spacer(minLength: 0)
+                        Button("Stop") { garage.stopPath() }
+                            .font(.caption2.weight(.semibold))
+                            .buttonStyle(.bordered)
                     }
-                    .padding(12)
-                    .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .padding(10)
+                    .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 } else {
                     ModePlayingBar(
                         effect: EffectsCatalog.effects(for: effectCar).first { $0.id == live?.effectId },
@@ -445,53 +414,45 @@ struct ModesScreen: View {
                     )
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(garage.activePathId == nil ? "Speed" : "Path speed")
-                        Spacer()
-                        Text("\(speed)")
-                            .monospacedDigit()
-                            .foregroundStyle(.secondary)
-                    }
-                    HStack {
-                        Text("Slow")
-                        Spacer()
-                        Text("Fast")
-                    }
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .textCase(.uppercase)
-                    Slider(
-                        value: Binding(
-                            get: { Double(speed) },
-                            set: {
-                                if garage.activePathId != nil || browser == .paths {
-                                    garage.pathSpeed = Int($0)
-                                } else if hasDevices {
-                                    garage.setEffectSpeed(Int($0))
-                                } else {
-                                    garage.pathSpeed = Int($0)
+                // Speed + search share one compact row-stack.
+                VStack(spacing: 6) {
+                    HStack(spacing: 10) {
+                        Text(garage.activePathId == nil ? "Speed" : "Path")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(Color.white.opacity(0.55))
+                        Slider(
+                            value: Binding(
+                                get: { Double(speed) },
+                                set: {
+                                    if garage.activePathId != nil || browser == .paths {
+                                        garage.pathSpeed = Int($0)
+                                    } else if hasDevices {
+                                        garage.setEffectSpeed(Int($0))
+                                    } else {
+                                        garage.pathSpeed = Int($0)
+                                    }
                                 }
-                            }
-                        ),
-                        in: 0...100
-                    )
-                    .tint(shinnoRed)
-                    .disabled(!hasDevices && garage.activePathId == nil)
-                }
+                            ),
+                            in: 0...100
+                        )
+                        .tint(shinnoRed)
+                        .disabled(!hasDevices && garage.activePathId == nil)
+                        Text("\(speed)")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .frame(width: 28, alignment: .trailing)
+                    }
 
-                if browser != .paths {
-                    TextField("Search Auto Play, curtain, water…", text: $query)
-                        .textFieldStyle(.roundedBorder)
-                        .textInputAutocapitalization(.never)
-                } else {
-                    Text("Phone-timed zone chases across Emblem, Mirrors, and Bumper. Built-in modes stay on one device.")
-                        .font(.caption)
-                        .foregroundStyle(Color.white.opacity(0.65))
+                    if browser != .paths {
+                        TextField("Search modes…", text: $query)
+                            .textFieldStyle(.roundedBorder)
+                            .textInputAutocapitalization(.never)
+                            .font(.caption)
+                    }
                 }
 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         modeChip("Paths", selected: query.isEmpty && browser == .paths) {
                             browser = .paths
                             query = ""
@@ -504,12 +465,18 @@ struct ModesScreen: View {
                         }
                     }
                 }
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, 10)
+            .padding(.bottom, 6)
 
+            // Mode / path grid fills the remaining viewport.
+            Group {
                 if browser == .paths && query.isEmpty {
                     ScrollView(showsIndicators: false) {
                         LazyVGrid(
-                            columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)],
-                            spacing: 10
+                            columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)],
+                            spacing: 8
                         ) {
                             ForEach(ZonePaths.forCar(garage.settings.car)) { path in
                                 Button {
@@ -523,28 +490,26 @@ struct ModesScreen: View {
                                         garage.startPath(path.id)
                                     }
                                 } label: {
-                                    VStack(alignment: .leading, spacing: 8) {
+                                    VStack(alignment: .leading, spacing: 6) {
                                         HexCell()
                                             .fill(path.swatch.color)
-                                            .frame(width: 22, height: 22)
+                                            .frame(width: 18, height: 18)
                                             .overlay(HexCell().stroke(.white.opacity(0.4), lineWidth: 1))
                                         Text(path.name)
-                                            .font(.subheadline.weight(.semibold))
+                                            .font(.caption.weight(.semibold))
                                             .foregroundStyle(.white)
                                             .lineLimit(1)
                                         Text(path.blurb)
                                             .font(.caption2)
                                             .foregroundStyle(Color.white.opacity(0.68))
                                             .multilineTextAlignment(.leading)
-                                            .lineLimit(3)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                        Spacer(minLength: 0)
+                                            .lineLimit(2)
                                     }
-                                    .frame(maxWidth: .infinity, minHeight: 116, alignment: .topLeading)
-                                    .padding(12)
-                                    .background(Color(white: 0.09), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    .frame(maxWidth: .infinity, minHeight: 88, alignment: .topLeading)
+                                    .padding(10)
+                                    .background(Color(white: 0.09), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
                                             .stroke(
                                                 garage.activePathId == path.id ? shinnoRed : Color.white.opacity(0.2),
                                                 lineWidth: 1
@@ -555,87 +520,73 @@ struct ModesScreen: View {
                                 .buttonStyle(.plain)
                             }
                         }
-                        .padding(10)
-                        .background(Color(white: 0.05), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .stroke(shinnoRed.opacity(0.35), lineWidth: 1)
-                        )
-                        .padding(.bottom, 8)
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 10)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if items.isEmpty {
                     Text("No modes match.")
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    // Two columns so each ModeGlyph is large enough to tell apart (matches web sampler).
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("BUILD 22 · each tile shows that mode’s colours")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(shinnoRed)
-
-                        ScrollView(showsIndicators: false) {
-                            LazyVGrid(
-                                columns: [
-                                    GridItem(.flexible(), spacing: 10),
-                                    GridItem(.flexible(), spacing: 10),
-                                ],
-                                spacing: 10
-                            ) {
-                                ForEach(items) { effect in
-                                    Button {
-                                        guard hasDevices else {
-                                            tab = .scan
-                                            return
-                                        }
-                                        garage.setEffect(effect.id)
-                                    } label: {
-                                        VStack(spacing: 8) {
-                                            ModeGlyphView(
-                                                effect: effect,
-                                                speed: speed,
-                                                animate: true,
-                                                active: hasDevices && live?.power == true && live?.effectId == effect.id,
-                                                showsLegend: true
-                                            )
-                                            .frame(maxWidth: .infinity)
-                                            .opacity(hasDevices && live?.effectId != nil && live?.effectId != effect.id ? 0.72 : 1)
-                                            Text(effect.name)
-                                                .font(.caption.weight(.medium))
-                                                .foregroundStyle(Color.white.opacity(0.82))
-                                                .multilineTextAlignment(.center)
-                                                .lineLimit(2)
-                                                .minimumScaleFactor(0.8)
-                                                .frame(minHeight: 32, alignment: .top)
-                                        }
-                                        .padding(8)
-                                        .frame(maxWidth: .infinity)
-                                        .background(Color(white: 0.05), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                                .stroke(
-                                                    live?.effectId == effect.id && garage.activePathId == nil
-                                                        ? shinnoRed.opacity(0.7)
-                                                        : Color.white.opacity(0.08),
-                                                    lineWidth: live?.effectId == effect.id && garage.activePathId == nil ? 2 : 1
-                                                )
-                                        )
-                                        .opacity(hasDevices ? 1 : 0.72)
+                    ScrollView(showsIndicators: false) {
+                        LazyVGrid(
+                            columns: [
+                                GridItem(.flexible(), spacing: 7),
+                                GridItem(.flexible(), spacing: 7),
+                                GridItem(.flexible(), spacing: 7),
+                            ],
+                            spacing: 7
+                        ) {
+                            ForEach(items) { effect in
+                                Button {
+                                    guard hasDevices else {
+                                        tab = .scan
+                                        return
                                     }
-                                    .buttonStyle(.plain)
-                                    .id("mode-tile-\(effect.id)")
+                                    garage.setEffect(effect.id)
+                                } label: {
+                                    VStack(spacing: 4) {
+                                        ModeGlyphView(
+                                            effect: effect,
+                                            speed: speed,
+                                            animate: true,
+                                            active: hasDevices && live?.power == true && live?.effectId == effect.id,
+                                            showsLegend: true,
+                                            compact: true
+                                        )
+                                        .frame(maxWidth: .infinity)
+                                        .opacity(hasDevices && live?.effectId != nil && live?.effectId != effect.id ? 0.72 : 1)
+                                        Text(effect.name)
+                                            .font(.system(size: 10, weight: .medium))
+                                            .foregroundStyle(Color.white.opacity(0.82))
+                                            .multilineTextAlignment(.center)
+                                            .lineLimit(2)
+                                            .minimumScaleFactor(0.75)
+                                            .frame(minHeight: 24, alignment: .top)
+                                    }
+                                    .padding(5)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color(white: 0.05), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 11, style: .continuous)
+                                            .stroke(
+                                                live?.effectId == effect.id && garage.activePathId == nil
+                                                    ? shinnoRed.opacity(0.7)
+                                                    : Color.white.opacity(0.08),
+                                                lineWidth: live?.effectId == effect.id && garage.activePathId == nil ? 2 : 1
+                                            )
+                                    )
+                                    .opacity(hasDevices ? 1 : 0.72)
                                 }
+                                .buttonStyle(.plain)
+                                .id("mode-tile-\(effect.id)")
                             }
-                            .padding(.bottom, 12)
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 10)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 8)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .background(Color.black.ignoresSafeArea())
@@ -657,33 +608,50 @@ struct ModesScreen: View {
     }
 }
 
-/// Compact live preview above the modes browser — matches web PlayingBar.
+/// Slim now-playing strip — keeps the glyph readable without eating the mode grid.
 private struct ModePlayingBar: View {
     var effect: LedEffect?
     var speed: Int
     var powered: Bool
 
     var body: some View {
-        VStack(spacing: 6) {
+        HStack(spacing: 10) {
             if let effect, powered {
-                ModeGlyphView(effect: effect, speed: speed, showsLegend: true)
-                    .frame(width: 110, height: 130)
+                ModeGlyphView(effect: effect, speed: speed, showsLegend: true, compact: true)
+                    .frame(width: 72, height: 64)
             } else {
-                Text(effect == nil ? "Pick a mode" : "Power off")
-                    .font(.caption)
-                    .foregroundStyle(Color.white.opacity(0.35))
-                    .frame(width: 96, height: 96)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.white.opacity(0.04))
+                    .frame(width: 72, height: 64)
+                    .overlay(
+                        Text(effect == nil ? "Pick a mode" : "Power off")
+                            .font(.caption2)
+                            .foregroundStyle(Color.white.opacity(0.35))
+                            .multilineTextAlignment(.center)
+                            .padding(4)
+                    )
             }
-            Text(effect?.name ?? "Paths run across zones")
-                .font(.caption)
-                .foregroundStyle(Color.white.opacity(0.5))
-                .lineLimit(1)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Now playing")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(shinnoRed)
+                Text(effect?.name ?? "Paths run across zones")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(Color.white.opacity(0.85))
+                    .lineLimit(2)
+                if powered, effect != nil {
+                    Text("Speed \(speed)")
+                        .font(.caption2)
+                        .foregroundStyle(Color.white.opacity(0.4))
+                }
+            }
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 10)
         .padding(.vertical, 8)
-        .background(Color(white: 0.04), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(Color(white: 0.04), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
     }

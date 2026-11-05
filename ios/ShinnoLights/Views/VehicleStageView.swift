@@ -3,6 +3,8 @@ import SwiftUI
 /// Zone tiles matching the web VehicleStage — Emblem full-width, Mirrors|Bumper equal halves.
 struct VehicleStageView: View {
     @EnvironmentObject var garage: GarageStore
+    /// Modes tab uses a shorter stage so the mode grid stays on-screen.
+    var compact: Bool = false
 
     private var zones: [ZoneKind] { garage.settings.car.kitZones }
     private var singleZone: Bool { zones.count == 1 }
@@ -13,8 +15,8 @@ struct VehicleStageView: View {
     ]
 
     var body: some View {
-        VStack(spacing: 10) {
-            LazyVGrid(columns: columns, spacing: 8) {
+        VStack(spacing: compact ? 6 : 10) {
+            LazyVGrid(columns: columns, spacing: compact ? 6 : 8) {
                 ForEach(zones) { zone in
                     let wide = zone == .emblem || singleZone
                     zoneTile(zone, wide: wide)
@@ -22,11 +24,13 @@ struct VehicleStageView: View {
                 }
             }
 
-            Text(stageCaption)
-                .font(.caption2)
-                .tracking(0.6)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity)
+            if !compact {
+                Text(stageCaption)
+                    .font(.caption2)
+                    .tracking(0.6)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+            }
         }
     }
 
@@ -72,8 +76,8 @@ struct VehicleStageView: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: wide ? 92 : 72)
-                .frame(minHeight: wide ? 92 : 72)
+                .frame(height: compact ? (wide ? 56 : 44) : (wide ? 92 : 72))
+                .frame(minHeight: compact ? (wide ? 56 : 44) : (wide ? 92 : 72))
 
                 HStack(spacing: 6) {
                     Circle()
