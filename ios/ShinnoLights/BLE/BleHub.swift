@@ -24,13 +24,13 @@ enum BluetoothState: Equatable {
     var detail: String {
         switch self {
         case .waiting:
-            return "Shinno Sync is waiting for Bluetooth so it can find your lighting devices."
+            return "Shinno Sync needs Bluetooth permission to find your lighting devices. Tap Allow when iOS asks."
         case .poweredOn:
-            return "Shinno Sync scans continuously for the lighting devices that ship with Shinno RGB kits."
+            return "Shinno Sync scans for Shinno RGB kits, including G37 emblem controllers that advertise as ELK-BLEDDM."
         case .poweredOff:
             return "Turn Bluetooth on in iOS Settings to find and control your Shinno lighting devices."
         case .unauthorized:
-            return "Allow Bluetooth for Shinno Sync in iOS Settings. The app uses it only to talk to your lighting devices."
+            return "Allow Bluetooth for Shinno Sync in iOS Settings → Shinno Sync. The app uses it only to talk to your lighting devices."
         case .unsupported:
             return "This iPhone cannot use Bluetooth Low Energy, which Shinno Sync needs to control the kits."
         case .resetting:
@@ -45,6 +45,8 @@ final class BleHub: NSObject, ObservableObject {
     @Published var bluetoothReady = false
     @Published var bluetoothState: BluetoothState = .waiting
     @Published var status = "Waiting for Bluetooth"
+    /// Local names from advertisements — `peripheral.name` is often nil until connect.
+    @Published var advertisedNames: [UUID: String] = [:]
 
     private var central: CBCentralManager!
     private var writeChars: [UUID: CBCharacteristic] = [:]
@@ -54,6 +56,7 @@ final class BleHub: NSObject, ObservableObject {
     private var shouldReconnect: Set<UUID> = []
     private var retryWork = Set<UUID>()
     private var lastConnectAttempt: [UUID: Date] = [:]
+    private let restoreId = "com.shinnoperformance.lights.central"
 
     var onReady: (() -> Void)?
     var onConnected: ((UUID) -> Void)?
@@ -61,24 +64,94 @@ final class BleHub: NSObject, ObservableObject {
 
     override init() {
         super.init()
-        central = CBCentralManager(
-            delegate: self,
-            queue: .main,
-            options: [CBCentralManagerOptionRestoreIdentifierKey: "com.shinnoperformance.lights.central"]
-        )
+        // Creating CBCentralManager is what triggers the iOS Bluetooth permission sheet.
+        // Avoid restore-identifier on first launch — it can skip the prompt on some iOS builds.
+        createCentral(withRestore: CBCentralManager.authorization == .allowedAlways)
+    }
+
+    private func createCentral(withRestore: Bool) {
+        var options: [String: Any] = [
+            CBCentralManagerOptionShowPowerAlertKey: true,
+        ]
+        if withRestore {
+            options[CBCentralManagerOptionRestoreIdentifierKey] = restoreId
+        }
+        central = CBCentralManager(delegate: self, queue: .main, options: options)
+        applyAuthorization()
+    }
+
+    /// Re-create the central manager so iOS shows the permission dialog if still notDetermined.
+    func requestBluetoothAccess() {
+        applyAuthorization()
+        switch CBCentralManager.authorization {
+        case .notDetermined:
+            // Tear down and rebuild — first CBCentralManager init is what presents the system sheet.
+            central = nil
+            createCentral(withRestore: false)
+            status = "Allow Bluetooth when iOS asks"
+        case .denied, .restricted:
+            bluetoothState = .unauthorized
+            status = BluetoothState.unauthorized.detail
+        case .allowedAlways:
+            if central.state == .poweredOn {
+                startScan()
+            } else {
+                createCentral(withRestore: true)
+            }
+        @unknown default:
+            createCentral(withRestore: false)
+        }
+    }
+
+    private func applyAuthorization() {
+        switch CBCentralManager.authorization {
+        case .denied, .restricted:
+            bluetoothState = .unauthorized
+            scanning = false
+            bluetoothReady = false
+            status = BluetoothState.unauthorized.detail
+        case .notDetermined:
+            bluetoothState = .waiting
+            bluetoothReady = false
+            status = "Allow Bluetooth when iOS asks"
+        case .allowedAlways:
+            break
+        @unknown default:
+            break
+        }
+    }
+
+    func displayName(for id: UUID) -> String {
+        if let ad = advertisedNames[id], !ad.isEmpty { return ad }
+        if let live = peripherals[id]?.name, !live.isEmpty { return live }
+        if let found = discovered.first(where: { $0.identifier == id })?.name, !found.isEmpty {
+            return found
+        }
+        return "Shinno lighting device"
     }
 
     func startScan() {
+        applyAuthorization()
+        guard CBCentralManager.authorization != .denied,
+              CBCentralManager.authorization != .restricted
+        else {
+            bluetoothState = .unauthorized
+            status = BluetoothState.unauthorized.detail
+            return
+        }
+        if CBCentralManager.authorization == .notDetermined {
+            requestBluetoothAccess()
+            return
+        }
         guard central.state == .poweredOn else {
             status = bluetoothState.detail
             return
         }
-        // Always (re)start so a stuck isScanning=false after restore still works.
         scanning = true
         if central.isScanning {
             central.stopScan()
         }
-        // Broad scan — many ELK clones omit service UUIDs from advertisements.
+        // Broad scan — ELK-BLEDDM / BLEDOM kits often omit service UUIDs from ads.
         central.scanForPeripherals(
             withServices: nil,
             options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
@@ -93,7 +166,7 @@ final class BleHub: NSObject, ObservableObject {
         }
         let n = discovered.count
         if n == 0 {
-            status = "Scanning for Shinno lighting devices…"
+            status = "Scanning for ELK-BLEDDM / ELK-BLEDOM kits…"
         } else {
             status = "Found \(n) nearby · keep kits powered"
         }
@@ -160,6 +233,7 @@ final class BleHub: NSObject, ObservableObject {
             central.cancelPeripheralConnection(peripheral)
         }
         writeChars[id] = nil
+        advertisedNames[id] = nil
         discovered.removeAll { $0.identifier == id }
     }
 
@@ -218,6 +292,7 @@ enum BleError: LocalizedError {
 
 extension BleHub: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
+        applyAuthorization()
         bluetoothReady = central.state == .poweredOn
         switch central.state {
         case .poweredOn:
@@ -241,9 +316,14 @@ extension BleHub: CBCentralManagerDelegate {
             bluetoothState = .resetting
             status = BluetoothState.resetting.detail
         default:
-            scanning = false
-            bluetoothState = .waiting
-            status = BluetoothState.waiting.detail
+            if CBCentralManager.authorization == .notDetermined {
+                bluetoothState = .waiting
+                status = "Allow Bluetooth when iOS asks"
+            } else {
+                scanning = false
+                bluetoothState = .waiting
+                status = BluetoothState.waiting.detail
+            }
         }
     }
 
@@ -259,8 +339,12 @@ extension BleHub: CBCentralManagerDelegate {
 
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
         let localName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
-        let name = peripheral.name ?? localName
-        let matchesName = ElkProtocol.looksLikeController(name)
+        let name = localName ?? peripheral.name
+        if let name, !name.isEmpty {
+            advertisedNames[peripheral.identifier] = name
+        }
+        let resolved = advertisedNames[peripheral.identifier] ?? name
+        let matchesName = ElkProtocol.looksLikeController(resolved)
         let matchesService = ElkProtocol.advertisesLedService(advertisementData)
         guard matchesName || matchesService else { return }
         let already = discovered.contains(where: { $0.identifier == peripheral.identifier })
@@ -276,7 +360,7 @@ extension BleHub: CBCentralManagerDelegate {
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        let name = peripheral.name ?? "device"
+        let name = displayName(for: peripheral.identifier)
         status = "Connected \(name)"
         peripheral.discoverServices(nil)
     }
@@ -290,7 +374,7 @@ extension BleHub: CBCentralManagerDelegate {
         writeChars[peripheral.identifier] = nil
         onDisconnected?(peripheral.identifier)
         if shouldReconnect.contains(peripheral.identifier) {
-            let name = peripheral.name ?? "device"
+            let name = displayName(for: peripheral.identifier)
             status = "Reconnecting \(name)"
             central.connect(peripheral, options: nil)
         }

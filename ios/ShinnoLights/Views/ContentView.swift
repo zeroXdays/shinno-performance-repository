@@ -34,7 +34,9 @@ struct ContentView: View {
                     || garage.hub.bluetoothState == .unsupported
                     || garage.hub.bluetoothState == .waiting
                 {
-                    BluetoothBanner(state: garage.hub.bluetoothState)
+                    BluetoothBanner(state: garage.hub.bluetoothState) {
+                        garage.hub.requestBluetoothAccess()
+                    }
                 }
                 if let error = garage.lastError {
                     Button {
@@ -133,6 +135,7 @@ struct ShinnoHeader: View {
 
 struct BluetoothBanner: View {
     var state: BluetoothState
+    var onAllow: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -141,7 +144,13 @@ struct BluetoothBanner: View {
             Text(state.detail)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-            if state == .poweredOff || state == .unauthorized {
+            if state == .waiting {
+                Button("Allow Bluetooth") {
+                    onAllow?()
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(shinnoRed)
+            } else if state == .poweredOff || state == .unauthorized {
                 Button("Open Settings") {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
                         UIApplication.shared.open(url)
@@ -743,7 +752,7 @@ struct ScanScreen: View {
             .map {
                 CBPeripheralLite(
                     id: $0.identifier,
-                    name: $0.name ?? "Shinno lighting device"
+                    name: garage.hub.displayName(for: $0.identifier)
                 )
             }
     }
@@ -781,7 +790,13 @@ struct ScanScreen: View {
                             Text(garage.hub.bluetoothState.detail)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
-                            if garage.hub.bluetoothState == .poweredOff || garage.hub.bluetoothState == .unauthorized {
+                            if garage.hub.bluetoothState == .waiting {
+                                Button("Allow Bluetooth") {
+                                    garage.hub.requestBluetoothAccess()
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(shinnoRed)
+                            } else if garage.hub.bluetoothState == .poweredOff || garage.hub.bluetoothState == .unauthorized {
                                 Button("Open Settings") {
                                     if let url = URL(string: UIApplication.openSettingsURLString) {
                                         UIApplication.shared.open(url)
@@ -795,14 +810,14 @@ struct ScanScreen: View {
 
                 Section("Nearby") {
                     if unpaired.isEmpty, garage.hub.bluetoothState == .poweredOn {
-                        Text("No kits yet. Power the emblem / mirrors / bumper boxes, stand near the car, then tap Rescan.")
+                        Text("No kits yet. G37 emblems advertise as ELK-BLEDDM. Power the box, stand near the car, then tap Rescan.")
                             .foregroundStyle(.secondary)
                     }
                     ForEach(unpaired) { item in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(item.name)
-                                Text("Bluetooth · tap Add to pair")
+                                Text(modelHint(item.name))
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
                             }
@@ -833,8 +848,17 @@ struct ScanScreen: View {
                 }
             }
             .navigationTitle("Scan")
-            .onAppear { garage.hub.startScan() }
+            .onAppear {
+                garage.hub.requestBluetoothAccess()
+                garage.hub.startScan()
+            }
         }
+    }
+
+    private func modelHint(_ name: String) -> String {
+        let model = ElkProtocol.detect(name: name)
+        if model.id == "ELK-BLEDDM" { return "G37 emblem · \(model.id)" }
+        return "Bluetooth · \(model.id)"
     }
 }
 

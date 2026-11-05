@@ -29,9 +29,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Shinno Sync uses Bluetooth to find and control the lighting devices that ship with Shinno RGB emblem, mirror, and bumper kits.</string>
+	<string>Shinno Sync needs Bluetooth to find and control your Shinno RGB kits (including G37 emblem controllers that appear as ELK-BLEDDM).</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>Shinno Sync uses Bluetooth to find and control the lighting devices on your Shinno RGB kits.</string>
+	<string>Shinno Sync needs Bluetooth to find and control your Shinno RGB kits (including G37 emblem controllers that appear as ELK-BLEDDM).</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>bluetooth-central</string>

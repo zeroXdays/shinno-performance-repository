@@ -59,7 +59,8 @@ export const MODELS: ModelProfile[] = [
   },
   {
     id: "ELK-BLEDDM",
-    prefixes: ["ELK-BLEDDM"],
+    /** G37 emblem kits. Phone BLE lists often show this as ELK-BLEDDM / LED-DMX. */
+    prefixes: ["ELK-BLEDDM", "LED-DMX", "LEDDMX", "LED DMX"],
     writeUuid: FFF3,
     readUuid: FFF4,
     brightnessScale: "percent",
@@ -144,6 +145,24 @@ export function detectModel(advertisedName: string | null | undefined): ModelPro
 }
 
 export function looksLikeController(advertisedName: string | null | undefined): boolean {
-  const name = (advertisedName ?? "").toUpperCase();
-  return MODELS.some((model) => model.prefixes.some((prefix) => name.startsWith(prefix)));
+  const name = (advertisedName ?? "").trim().toUpperCase();
+  if (!name) return false;
+  if (MODELS.some((model) => model.prefixes.some((prefix) => name.startsWith(prefix)))) {
+    return true;
+  }
+  const loose = [
+    "ELK-",
+    "ELK~",
+    "BLEDOM",
+    "BLEDOB",
+    "BLEDDM",
+    "MELK",
+    "LEDBLE",
+    "LED-",
+    "LED DMX",
+    "LEDDMX",
+    "JACKY",
+    "XSL-",
+  ];
+  return loose.some((token) => name.includes(token));
 }

@@ -37,6 +37,7 @@ enum ElkProtocol {
     static let ffe0 = CBUUID(string: "FFE0")
     static let ffe1 = CBUUID(string: "FFE1")
 
+    /// Q50 / common strip kits.
     static let elkBledom = ModelProfile(
         id: "ELK-BLEDOM",
         prefixes: ["ELK-BLEDOM"],
@@ -61,9 +62,34 @@ enum ElkProtocol {
         effectSpeed: [.byte(0x7E), .byte(0x07), .byte(0x02), .value, .byte(0x00), .byte(0x00), .byte(0x00), .byte(0x00), .byte(0xEF)]
     )
 
+    /// G37 emblem kits advertise as ELK-BLEDDM (often read as “LED DMX”).
+    static let elkBleddm = ModelProfile(
+        id: "ELK-BLEDDM",
+        prefixes: ["ELK-BLEDDM", "LED-DMX", "LEDDMX", "LED DMX"],
+        writeUUID: fff3,
+        turnOn: [0x7E, 0x04, 0x04, 0xF0, 0x00, 0x01, 0xFF, 0x00, 0xEF],
+        turnOff: [0x7E, 0x04, 0x04, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xEF],
+        color: [.byte(0x7E), .byte(0x00), .byte(0x05), .byte(0x03), .red, .green, .blue, .byte(0x00), .byte(0xEF)],
+        brightness: [.byte(0x7E), .byte(0x04), .byte(0x01), .value, .byte(0xFF), .byte(0x00), .byte(0xFF), .byte(0x00), .byte(0xEF)],
+        effect: [.byte(0x7E), .byte(0x00), .byte(0x03), .value, .byte(0x03), .byte(0x00), .byte(0x00), .byte(0x00), .byte(0xEF)],
+        effectSpeed: [.byte(0x7E), .byte(0x00), .byte(0x02), .value, .byte(0x00), .byte(0x00), .byte(0x00), .byte(0x00), .byte(0xEF)]
+    )
+
+    static let elkBle = ModelProfile(
+        id: "ELK-BLE",
+        prefixes: ["ELK-BLE", "ELK-BTC"],
+        writeUUID: fff3,
+        turnOn: [0x7E, 0x00, 0x04, 0xF0, 0x00, 0x01, 0xFF, 0x00, 0xEF],
+        turnOff: [0x7E, 0x00, 0x04, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xEF],
+        color: [.byte(0x7E), .byte(0x00), .byte(0x05), .byte(0x03), .red, .green, .blue, .byte(0x00), .byte(0xEF)],
+        brightness: [.byte(0x7E), .byte(0x04), .byte(0x01), .value, .byte(0xFF), .byte(0x00), .byte(0xFF), .byte(0x00), .byte(0xEF)],
+        effect: [.byte(0x7E), .byte(0x00), .byte(0x03), .value, .byte(0x03), .byte(0x00), .byte(0x00), .byte(0x00), .byte(0xEF)],
+        effectSpeed: [.byte(0x7E), .byte(0x00), .byte(0x02), .value, .byte(0x00), .byte(0x00), .byte(0x00), .byte(0x00), .byte(0xEF)]
+    )
+
     static let melk = ModelProfile(
         id: "MELK",
-        prefixes: ["MELK"],
+        prefixes: ["MELK-OA21", "MELK-OA10", "MELK-OC10", "MELK-OF10", "MELK-OG10", "MELK"],
         writeUUID: fff3,
         turnOn: [0x7E, 0x04, 0x04, 0xF0, 0x00, 0x01, 0xFF, 0x00, 0xEF],
         turnOff: [0x7E, 0x04, 0x04, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xEF],
@@ -85,10 +111,11 @@ enum ElkProtocol {
         effectSpeed: [.byte(0x7E), .byte(0x00), .byte(0x02), .value, .byte(0x00), .byte(0x00), .byte(0x00), .byte(0x00), .byte(0xEF)]
     )
 
-    static let all = [elkBledom, elkBledob, melk, ledble]
+    /// Longest-prefix first so ELK-BLEDDM / ELK-BLEDOM beat the shorter ELK-BLE catch-all.
+    static let all = [elkBledom, elkBledob, elkBleddm, elkBle, melk, ledble]
 
     static func detect(name: String?) -> ModelProfile {
-        let upper = (name ?? "").uppercased()
+        let upper = normalizeName(name)
         var best = elkBledom
         var bestLen = -1
         for model in all {
@@ -97,19 +124,31 @@ enum ElkProtocol {
                 bestLen = prefix.count
             }
         }
+        // Containment fallback for names that embed the chip id mid-string.
+        if bestLen < 0 {
+            if upper.contains("BLEDDM") || upper.contains("LED-DMX") || upper.contains("LEDDMX") || upper.contains("LED DMX") {
+                return elkBleddm
+            }
+            if upper.contains("BLEDOB") { return elkBledob }
+            if upper.contains("BLEDOM") { return elkBledom }
+            if upper.contains("MELK") { return melk }
+            if upper.contains("LEDBLE") || upper.hasPrefix("LED-") { return ledble }
+        }
         return best
     }
 
     static func looksLikeController(_ name: String?) -> Bool {
-        let upper = (name ?? "").trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        let upper = normalizeName(name)
         guard !upper.isEmpty else { return false }
         if all.contains(where: { model in
             model.prefixes.contains { upper.hasPrefix($0) }
         }) {
             return true
         }
-        // Common ELK / SP110E / LEDBLE clones that omit the full brand prefix.
-        let loose = ["ELK-", "BLEDOM", "BLEDOB", "MELK", "LEDBLE", "LED-", "JACKY", "SP110", "LEDNET"]
+        let loose = [
+            "ELK-", "ELK~", "BLEDOM", "BLEDOB", "BLEDDM", "MELK",
+            "LEDBLE", "LED-", "LED DMX", "LEDDMX", "JACKY", "SP110", "LEDNET", "XSL-",
+        ]
         return loose.contains { upper.contains($0) }
     }
 
@@ -120,6 +159,10 @@ enum ElkProtocol {
         if services.contains(where: { known.contains($0) }) { return true }
         let overflow = advertisementData[CBAdvertisementDataOverflowServiceUUIDsKey] as? [CBUUID] ?? []
         return overflow.contains(where: { known.contains($0) })
+    }
+
+    static func normalizeName(_ name: String?) -> String {
+        (name ?? "").trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
     }
 
     static func power(_ model: ModelProfile, on: Bool) -> Data {

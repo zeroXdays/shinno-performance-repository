@@ -219,7 +219,7 @@ final class GarageStore: ObservableObject {
     }
 
     func pair(_ peripheral: CBPeripheral) async {
-        let name = peripheral.name ?? "Shinno device"
+        let name = hub.displayName(for: peripheral.identifier)
         if controllers.contains(where: { $0.id == peripheral.identifier }) {
             do {
                 try await hub.connect(peripheral)
@@ -528,6 +528,12 @@ final class GarageStore: ObservableObject {
         // Grille badge kits often advertise MELK / GB — park until we have a kit to test:
         // if upper.contains("GB") || upper.contains("MELK") { return used.contains(.grille) ? .custom : .grille }
         if upper.contains("EM"), allowed.contains(.emblem) { return .emblem }
+        // G37 emblem kits advertise ELK-BLEDDM / LED-DMX — park on Emblem when that zone is offered.
+        if (upper.contains("BLEDDM") || upper.contains("LED-DMX") || upper.contains("LEDDMX") || upper.contains("LED DMX")),
+           allowed.contains(.emblem), !used.contains(.emblem)
+        {
+            return .emblem
+        }
         return (preferred + [/* .grille, */ .custom]).first { allowed.contains($0) && !used.contains($0) } ?? .custom
     }
 

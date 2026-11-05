@@ -16,6 +16,7 @@ struct ShinnoLightsApp: App {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
+                garage.hub.requestBluetoothAccess()
                 garage.hub.startScan()
                 if garage.settings.autoConnect {
                     garage.restoreConnections()
