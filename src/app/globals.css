@@ -169,6 +169,15 @@
     linear-gradient(180deg, #14100e 0%, #090706 48%, #070504 100%);
 }
 
+/* Keep swipe/drag scroll without a visible native scrollbar. */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   [class*="shinno-fx"], span[style*="shinno-fx"] {
     animation: none !important;

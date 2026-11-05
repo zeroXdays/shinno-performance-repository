@@ -414,7 +414,7 @@ function EffectsPanel({ onGoScan }: { onGoScan: () => void }) {
       ) : (
         <p className="text-xs text-white/65">{t("paths.hint")}</p>
       )}
-      <div className="mb-1.5 flex gap-1.5 overflow-x-auto pb-1.5">
+      <div className="no-scrollbar mb-1.5 flex gap-1.5 overflow-x-auto overscroll-x-contain pb-0.5 [-webkit-overflow-scrolling:touch]">
         <button
           type="button"
           onClick={() => {
@@ -450,7 +450,7 @@ function EffectsPanel({ onGoScan }: { onGoScan: () => void }) {
         ))}
       </div>
       {group === "paths" && !query ? (
-        <div className="grid min-h-0 flex-1 grid-cols-2 content-start gap-2.5 overflow-y-auto rounded-xl border border-[#c41220]/35 bg-[#141414] p-2.5">
+        <div className="no-scrollbar grid min-h-0 flex-1 grid-cols-2 content-start gap-2.5 overflow-y-auto overscroll-y-contain rounded-xl border border-[#c41220]/35 bg-[#141414] p-2.5">
           {carPaths.map((path) => {
             const activePathTile = garage.activePathId === path.id;
             const disabled = !garage.controllers.length;
@@ -499,7 +499,7 @@ function EffectsPanel({ onGoScan }: { onGoScan: () => void }) {
       ) : items.length === 0 ? (
         <p className="py-8 text-center text-sm text-white/40">{t("effects.none")}</p>
       ) : (
-        <div className="grid min-h-0 flex-1 grid-cols-3 gap-2 overflow-y-auto pr-0.5">
+        <div className="no-scrollbar grid min-h-0 flex-1 grid-cols-3 gap-2 overflow-y-auto overscroll-y-contain">
           {items.map((effect) => (
             <button
               key={effect.id}

@@ -460,7 +460,7 @@ struct ModesScreen: View {
                 }
                 .padding(.bottom, 6)
                 if browser == .paths && query.isEmpty {
-                    ScrollView {
+                    ScrollView(showsIndicators: false) {
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                             ForEach(ZonePaths.forCar(garage.settings.car)) { path in
                                 Button {
@@ -509,7 +509,7 @@ struct ModesScreen: View {
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    ScrollView {
+                    ScrollView(showsIndicators: false) {
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                             ForEach(items) { effect in
                                 Button {
