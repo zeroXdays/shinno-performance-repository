@@ -106,143 +106,142 @@ export function ShinnoApp() {
           }}
         />
 
-        {garage.controllers.length === 0 ? (
-          <div className="mt-4 rounded-2xl border border-white/[0.08] bg-[#121212] px-4 py-5 text-center shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
-            <p className="text-sm text-white/50">{t("devices.empty")}</p>
-            <Button
-              className="mt-3 min-h-12 w-full rounded-xl bg-[#c41220] text-white shadow-[0_8px_24px_rgba(196,18,32,0.35)] hover:bg-[#d01a28]"
-              onClick={() => void garage.scan()}
-            >
-              {t("home.scanCta")}
-            </Button>
-          </div>
-        ) : null}
-
         <div className="mt-4 flex min-h-0 flex-1 flex-col rounded-[1.35rem] border border-white/[0.08] bg-[#121212] p-4 shadow-[0_12px_40px_rgba(0,0,0,0.4)]">
           {garage.tab === "color" ? (
-            <div className="space-y-5">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-white/70">{zoneLabel}</p>
-              <button
-                type="button"
-                disabled={!garage.selected.length}
-                onClick={() => void garage.setPower(!power)}
-                className={cn(
-                  "flex size-11 items-center justify-center rounded-full border transition",
-                  power
-                    ? "border-[#c41220]/50 bg-[#c41220] text-white shadow-[0_0_20px_rgba(196,18,32,0.45)]"
-                    : "border-white/12 bg-white/[0.04] text-white/55",
-                )}
-                aria-label={power ? t("power.off") : t("power.on")}
-              >
-                <Power className="size-4" />
-              </button>
-            </div>
-            <ColorWheel
-              color={color}
-              onChange={(next) => void garage.setColor(next)}
-              disabled={!garage.selected.length}
-            />
-            <div>
-              <div className="mb-1.5 flex justify-between text-sm text-white/55">
-                <span>{t("color.brightness")}</span>
-                <span className="tabular-nums text-white/75">{brightness}%</span>
-              </div>
-              <Slider
-                min={1}
-                max={100}
-                value={[brightness]}
-                disabled={!garage.selected.length}
-                onValueChange={(value) => {
-                  const next = Array.isArray(value) ? value[0] : value;
-                  if (typeof next === "number") void garage.setBrightness(next);
-                }}
+            garage.controllers.length === 0 ? (
+              <EmptyGarage
+                title={t("devices.empty")}
+                hint={t("home.emptyHint")}
+                actionLabel={t("devices.goScan")}
+                onAction={() => openTab("scan")}
               />
-            </div>
-            <div className="grid grid-cols-8 gap-1.5 px-0.5">
-              {SWATCHES.map((swatch) => {
-                const active = sameRgb(swatch, color);
-                return (
+            ) : (
+              <div className="space-y-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-white/70">{zoneLabel}</p>
                   <button
-                    key={rgbToHex(swatch)}
                     type="button"
-                    disabled={!garage.selected.length}
-                    onClick={() => void garage.setColor(swatch)}
-                    className="relative aspect-square w-full disabled:opacity-40"
-                    aria-label={rgbToHex(swatch)}
-                    aria-pressed={active}
-                  >
-                    <span className="block w-full pt-[100%]" aria-hidden />
-                    {active ? (
-                      <span
-                        className="absolute inset-0 bg-white"
-                        style={{ clipPath: HEX_CLIP }}
-                        aria-hidden
-                      />
-                    ) : null}
-                    <span
-                      className={cn("absolute", active ? "inset-[2px]" : "inset-0")}
-                      style={{
-                        clipPath: HEX_CLIP,
-                        background: rgbToCss(swatch),
-                        boxShadow: active ? `0 0 12px ${rgbToCss(swatch, 0.9)}` : undefined,
-                      }}
-                    />
-                  </button>
-                );
-              })}
-            </div>
-            <div className="grid grid-cols-3 gap-1.5">
-              {SCENES.map((scene) => {
-                const active =
-                  sameRgb(scene.color, color) &&
-                  brightness === scene.brightness &&
-                  power === scene.power;
-                return (
-                  <button
-                    key={scene.id}
-                    type="button"
-                    disabled={!garage.controllers.length}
-                    onClick={() => void garage.applyScene(scene)}
+                    onClick={() => void garage.setPower(!power)}
                     className={cn(
-                      "flex flex-col items-center gap-1.5 rounded-xl border bg-[#0a0a0a] px-1.5 py-2.5 disabled:opacity-40",
-                      active
-                        ? "border-[#c41220]/70 shadow-[0_0_16px_rgba(196,18,32,0.28)]"
-                        : "border-white/[0.08]",
+                      "flex size-11 items-center justify-center rounded-full border transition",
+                      power
+                        ? "border-[#c41220]/50 bg-[#c41220] text-white shadow-[0_0_20px_rgba(196,18,32,0.45)]"
+                        : "border-white/12 bg-white/[0.04] text-white/55",
                     )}
+                    aria-label={power ? t("power.off") : t("power.on")}
                   >
-                    <span className="relative size-7">
-                      <span
-                        className="absolute inset-0 bg-white/30"
-                        style={{ clipPath: HEX_CLIP }}
-                        aria-hidden
-                      />
-                      <span
-                        className="absolute inset-[2px]"
-                        style={{
-                          clipPath: HEX_CLIP,
-                          background:
-                            scene.color.r + scene.color.g + scene.color.b === 0
-                              ? "rgb(28, 28, 32)"
-                              : rgbToCss(scene.color),
-                        }}
-                      />
-                    </span>
-                    <span className="text-[11px] leading-none text-white/80">{scene.name}</span>
+                    <Power className="size-4" />
                   </button>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
+                </div>
+                <ColorWheel color={color} onChange={(next) => void garage.setColor(next)} />
+                <div>
+                  <div className="mb-1.5 flex justify-between text-sm text-white/55">
+                    <span>{t("color.brightness")}</span>
+                    <span className="tabular-nums text-white/75">{brightness}%</span>
+                  </div>
+                  <Slider
+                    min={1}
+                    max={100}
+                    value={[brightness]}
+                    onValueChange={(value) => {
+                      const next = Array.isArray(value) ? value[0] : value;
+                      if (typeof next === "number") void garage.setBrightness(next);
+                    }}
+                  />
+                </div>
+                <div className="grid grid-cols-8 gap-1.5 px-0.5">
+                  {SWATCHES.map((swatch) => {
+                    const active = sameRgb(swatch, color);
+                    return (
+                      <button
+                        key={rgbToHex(swatch)}
+                        type="button"
+                        onClick={() => void garage.setColor(swatch)}
+                        className="relative aspect-square w-full"
+                        aria-label={rgbToHex(swatch)}
+                        aria-pressed={active}
+                      >
+                        <span className="block w-full pt-[100%]" aria-hidden />
+                        {active ? (
+                          <span
+                            className="absolute inset-0 bg-white"
+                            style={{ clipPath: HEX_CLIP }}
+                            aria-hidden
+                          />
+                        ) : null}
+                        <span
+                          className={cn("absolute", active ? "inset-[2px]" : "inset-0")}
+                          style={{
+                            clipPath: HEX_CLIP,
+                            background: rgbToCss(swatch),
+                            boxShadow: active ? `0 0 12px ${rgbToCss(swatch, 0.9)}` : undefined,
+                          }}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {SCENES.map((scene) => {
+                    const active =
+                      sameRgb(scene.color, color) &&
+                      brightness === scene.brightness &&
+                      power === scene.power;
+                    return (
+                      <button
+                        key={scene.id}
+                        type="button"
+                        onClick={() => void garage.applyScene(scene)}
+                        className={cn(
+                          "flex flex-col items-center gap-1.5 rounded-xl border bg-[#0a0a0a] px-1.5 py-2.5",
+                          active
+                            ? "border-[#c41220]/70 shadow-[0_0_16px_rgba(196,18,32,0.28)]"
+                            : "border-white/[0.08]",
+                        )}
+                      >
+                        <span className="relative size-7">
+                          <span
+                            className="absolute inset-0 bg-white/30"
+                            style={{ clipPath: HEX_CLIP }}
+                            aria-hidden
+                          />
+                          <span
+                            className="absolute inset-[2px]"
+                            style={{
+                              clipPath: HEX_CLIP,
+                              background: rgbToCss(scene.color),
+                            }}
+                          />
+                        </span>
+                        <span className="text-[11px] leading-none text-white/80">{scene.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )
+          ) : null}
 
-        {garage.tab === "effects" ? <EffectsPanel /> : null}
-        {garage.tab === "scan" ? <ScanPanel /> : null}
-        {garage.tab === "devices" ? <DeviceList /> : null}
+          {garage.tab === "effects" ? (
+            garage.controllers.length === 0 ? (
+              <EmptyGarage
+                title={t("devices.empty")}
+                hint={t("home.emptyHint")}
+                actionLabel={t("devices.goScan")}
+                onAction={() => openTab("scan")}
+              />
+            ) : (
+              <EffectsPanel />
+            )
+          ) : null}
+          {garage.tab === "scan" ? <ScanPanel /> : null}
+          {garage.tab === "devices" ? (
+            <DeviceList onGoScan={() => openTab("scan")} />
+          ) : null}
 
-        {garage.lastError ? (
-          <p className="mt-3 text-center text-sm text-red-300">{garage.lastError}</p>
-        ) : null}
+          {garage.lastError ? (
+            <p className="mt-3 text-center text-sm text-red-300">{garage.lastError}</p>
+          ) : null}
         </div>
       </main>
 
@@ -268,6 +267,34 @@ export function ShinnoApp() {
           })}
         </div>
       </nav>
+    </div>
+  );
+}
+
+function EmptyGarage({
+  title,
+  hint,
+  actionLabel,
+  onAction,
+}: {
+  title: string;
+  hint: string;
+  actionLabel: string;
+  onAction: () => void;
+}) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-2 py-10 text-center">
+      <Bluetooth className="size-8 text-[#c41220]" aria-hidden />
+      <div className="space-y-1.5">
+        <p className="text-base font-medium text-white/90">{title}</p>
+        <p className="mx-auto max-w-xs text-sm text-white/45">{hint}</p>
+      </div>
+      <Button
+        className="mt-1 min-h-12 w-full max-w-xs rounded-xl bg-[#c41220] text-white shadow-[0_8px_24px_rgba(196,18,32,0.35)] hover:bg-[#d01a28]"
+        onClick={onAction}
+      >
+        {actionLabel}
+      </Button>
     </div>
   );
 }
@@ -383,9 +410,9 @@ function ScanPanel() {
         {t("scan.pair")}
       </Button>
       {!garage.webBluetooth ? (
-        <p className="text-sm text-white/45">{t("scan.ble.none")}</p>
+        <p className="text-center text-sm text-white/45">{t("scan.ble.none")}</p>
       ) : (
-        <p className="text-sm text-white/45">{t("scan.ble.web")}</p>
+        <p className="text-center text-sm text-white/45">{t("scan.ble.web")}</p>
       )}
       {garage.scanError ? <p className="text-center text-sm text-red-300">{garage.scanError}</p> : null}
       {garage.discoveries.length === 0 && !garage.scanning ? (
@@ -397,10 +424,10 @@ function ScanPanel() {
             return (
               <li
                 key={device.id}
-                className="rounded-xl border border-white/[0.08] bg-[#0a0a0a] px-3 py-3"
+                className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-[#0a0a0a] px-3 py-3"
               >
-                <div>
-                  <p className="text-sm">{device.name}</p>
+                <div className="min-w-0">
+                  <p className="truncate text-sm">{device.name}</p>
                   <p className="text-xs text-white/40">{t("scan.btTag")}</p>
                 </div>
                 <Button size="sm" disabled={paired} onClick={() => void garage.pair(device)}>
@@ -415,15 +442,26 @@ function ScanPanel() {
   );
 }
 
-function DeviceList() {
+function DeviceList({ onGoScan }: { onGoScan: () => void }) {
   const garage = useGarage();
   const { t } = useI18n();
   if (!garage.controllers.length) {
-    return <p className="py-10 text-center text-sm text-white/40">{t("devices.empty")}</p>;
+    return (
+      <EmptyGarage
+        title={t("devices.empty")}
+        hint={t("devices.emptyHint")}
+        actionLabel={t("devices.goScan")}
+        onAction={onGoScan}
+      />
+    );
   }
   return (
     <div className="space-y-2">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-2">
+        <Button size="sm" variant="outline" onClick={onGoScan}>
+          <Bluetooth className="size-3.5" />
+          {t("devices.goScan")}
+        </Button>
         <Button size="sm" variant="ghost" onClick={garage.resetGarage}>
           <Trash2 className="size-3.5" />
           {t("devices.clear")}

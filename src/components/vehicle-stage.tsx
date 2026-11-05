@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useClock } from "@/hooks/use-clock";
 import type { CarId, ZoneKind } from "@/lib/catalog";
 import type { Controller } from "@/lib/controller";
@@ -48,7 +49,7 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
                     : "border-white/[0.05] bg-[#0a0a0a] opacity-45",
               )}
             >
-              <span className={cn("flex w-full items-center justify-center", wide ? "h-[6rem]" : "h-[5rem]")}>
+              <span className={cn("flex w-full items-center justify-center", wide ? "h-[7.25rem]" : "h-[5rem]")}>
                 <ZoneGlyph zone={zone.id} car={car} controller={controller} elapsed={elapsed} />
               </span>
               <span className="flex items-baseline justify-between gap-2">
@@ -96,11 +97,11 @@ function ZoneGlyph({
 
 function EmblemGlyph({ controller, elapsed }: { controller?: Controller; elapsed: number }) {
   const on = Boolean(controller?.power);
-  const n = 32;
+  const n = 28;
   const cx = 80;
-  const cy = 44;
-  const rx = 58;
-  const ry = 30;
+  const cy = 46;
+  const rx = 66;
+  const ry = 34;
   const leds = Array.from({ length: n }, (_, i) => {
     const a = -Math.PI / 2 + (i / n) * Math.PI * 2;
     return {
@@ -109,31 +110,53 @@ function EmblemGlyph({ controller, elapsed }: { controller?: Controller; elapsed
       rgb: ledColor(controller, elapsed, i, n),
     };
   });
+  const glow = on
+    ? controller?.effectId != null
+      ? sampleEffect(controller.effectId, elapsed, controller.effectSpeed)
+      : (controller?.color ?? { r: 196, g: 18, b: 32 })
+    : null;
+
   return (
-    <svg viewBox="0 0 160 88" className="h-full w-auto overflow-visible" aria-hidden>
-      <ellipse
-        cx={cx}
-        cy={cy}
-        rx={rx + 6}
-        ry={ry + 6}
-        fill="none"
-        stroke="rgba(255,255,255,0.08)"
-        strokeWidth="10"
-      />
-      <ellipse cx={cx} cy={cy} rx={34} ry={16} fill="#0c0c0e" stroke="rgba(255,255,255,0.16)" strokeWidth="1.4" />
-      {leds.map((led, i) => (
-        <ellipse
-          key={i}
-          cx={led.x}
-          cy={led.y}
-          rx="4.2"
-          ry="2.8"
-          transform={`rotate(${((i / n) * 360).toFixed(1)} ${led.x} ${led.y})`}
-          fill={on ? rgbToCss(led.rgb, 0.98) : "rgba(255,255,255,0.18)"}
-          style={on ? { filter: `drop-shadow(0 0 3px ${rgbToCss(led.rgb, 0.85)})` } : undefined}
+    <div className="relative flex h-full w-full max-w-[15rem] items-center justify-center">
+      {glow ? (
+        <span
+          className="pointer-events-none absolute inset-[18%] rounded-[50%] opacity-55 blur-xl"
+          style={{ background: rgbToCss(glow, 0.55) }}
+          aria-hidden
         />
-      ))}
-    </svg>
+      ) : null}
+      <svg viewBox="0 0 160 92" className="absolute inset-0 h-full w-full overflow-visible" aria-hidden>
+        <ellipse
+          cx={cx}
+          cy={cy}
+          rx={rx + 4}
+          ry={ry + 4}
+          fill="none"
+          stroke="rgba(255,255,255,0.06)"
+          strokeWidth="7"
+        />
+        {leds.map((led, i) => (
+          <ellipse
+            key={i}
+            cx={led.x}
+            cy={led.y}
+            rx="3.6"
+            ry="2.4"
+            transform={`rotate(${((i / n) * 360).toFixed(1)} ${led.x} ${led.y})`}
+            fill={on ? rgbToCss(led.rgb, 0.98) : "rgba(255,255,255,0.16)"}
+            style={on ? { filter: `drop-shadow(0 0 3.5px ${rgbToCss(led.rgb, 0.9)})` } : undefined}
+          />
+        ))}
+      </svg>
+      <Image
+        src="/products/emblem.png"
+        alt=""
+        width={320}
+        height={180}
+        className="relative z-[1] h-[72%] w-auto max-w-[72%] object-contain drop-shadow-[0_6px_18px_rgba(0,0,0,0.55)]"
+        priority
+      />
+    </div>
   );
 }
 
