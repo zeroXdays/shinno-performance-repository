@@ -14,7 +14,8 @@ This repo includes [`codemagic.yaml`](../codemagic.yaml) at the root.
    App Store Connect → Users and Access → Integrations → App Store Connect API → Generate.  
    Download the `.p8` once; note Key ID + Issuer ID.  
    Also copy your **Team ID** from [developer.apple.com](https://developer.apple.com/account) → Membership.
-4. Push this git repo to GitHub (or GitLab/Bitbucket).
+4. Push this git repo to GitHub (or GitLab/Bitbucket).  
+   Codemagic is wired to `zeroXdays/shinno-performance-repository` — keep that GitHub `main` in sync with Origin (see [`SYNC_TO_TESTFLIGHT.md`](SYNC_TO_TESTFLIGHT.md)). If GitHub is stale, TestFlight keeps shipping the old identical rainbow mode tiles.
 5. Sign up at [codemagic.io](https://codemagic.io) → add the repo → enable the **Shinno Sync → App Store Connect** workflow.
 6. In Codemagic, add environment group `appstore` with:
    - `APP_STORE_CONNECT_ISSUER_ID`

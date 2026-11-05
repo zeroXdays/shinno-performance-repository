@@ -1,5 +1,10 @@
 # Cloud Mac build → App Store Connect (no personal Mac required).
-# Repo: https://github.com/zeroXdays/shinno-performance-repository
+#
+# IMPORTANT: Codemagic must clone THIS GitHub repo:
+#   https://github.com/zeroXdays/shinno-performance-repository
+# Cursor agents push to Origin (shinno-performance-control) which is NOT mirrored.
+# After glyph/mode fixes on Origin, sync main → GitHub or TestFlight stays on old builds.
+# See appstore/SYNC_TO_TESTFLIGHT.md
 #
 # One-time Codemagic setup:
 # 1. Connect this GitHub repo
