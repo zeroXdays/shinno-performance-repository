@@ -224,18 +224,7 @@ export function ShinnoApp() {
             )
           ) : null}
 
-          {garage.tab === "effects" ? (
-            garage.controllers.length === 0 ? (
-              <EmptyGarage
-                title={t("devices.empty")}
-                hint={t("home.emptyHint")}
-                actionLabel={t("devices.goScan")}
-                onAction={() => openTab("scan")}
-              />
-            ) : (
-              <EffectsPanel />
-            )
-          ) : null}
+          {garage.tab === "effects" ? <EffectsPanel onGoScan={() => openTab("scan")} /> : null}
           {garage.tab === "scan" ? <ScanPanel /> : null}
           {garage.tab === "devices" ? (
             <DeviceList onGoScan={() => openTab("scan")} />
@@ -301,7 +290,7 @@ function EmptyGarage({
   );
 }
 
-function EffectsPanel() {
+function EffectsPanel({ onGoScan }: { onGoScan: () => void }) {
   const garage = useGarage();
   const { t } = useI18n();
   const active = garage.selected[0]?.effectId;
@@ -315,9 +304,22 @@ function EffectsPanel() {
     return EFFECTS.filter((effect) => effect.group === group);
   }, [group, query]);
   const activePath = ZONE_PATHS.find((path) => path.id === garage.activePathId);
+  const empty = garage.controllers.length === 0;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col space-y-3">
+      {empty ? (
+        <div className="rounded-xl border border-white/[0.08] bg-[#0a0a0a] px-3 py-3 text-center">
+          <p className="text-sm text-white/55">{t("home.emptyHint")}</p>
+          <Button
+            size="sm"
+            className="mt-2 rounded-full bg-[#c41220] text-white hover:bg-[#d01a28]"
+            onClick={onGoScan}
+          >
+            {t("devices.goScan")}
+          </Button>
+        </div>
+      ) : null}
       {garage.activePathId ? (
         <div className="overflow-hidden rounded-xl border border-[#c41220]/40 bg-[#0a0a0a] px-3 py-3">
           <div className="flex items-start justify-between gap-3">
