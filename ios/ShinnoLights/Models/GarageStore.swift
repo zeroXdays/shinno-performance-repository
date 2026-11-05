@@ -108,6 +108,7 @@ final class GarageStore: ObservableObject {
     let hub = BleHub()
     private var pathTimer: Timer?
     private var pathStepIndex = 0
+    private var colorWriteWork: DispatchWorkItem?
     /// Kits saved per car so Q50 and G37 can both stay in the garage.
     private var garageByCar: [CarKind: [PairedController]] = [:]
 
@@ -395,14 +396,32 @@ final class GarageStore: ObservableObject {
 
     func setColor(_ rgb: RGB) {
         stopPath()
-        mutate { controller, peripheral, _ in
-            controller.color = rgb
-            controller.power = true
-            controller.effectId = nil
-            let brightness = controller.brightness
-            writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
-                solidColorFrames(model: model, rgb: rgb, brightness: brightness)
+        // Update UI / state immediately; debounce the BLE burst so the colour
+        // wheel does not flood LEDDMX (withResponse only accepts one write at a time).
+        for index in controllers.indices where matchesTarget(controllers[index]) {
+            controllers[index].color = rgb
+            controllers[index].power = true
+            controllers[index].effectId = nil
+        }
+        colorWriteWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.mutate { controller, peripheral, _ in
+                let brightness = controller.brightness
+                let color = controller.color
+                self.writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
+                    self.solidColorFrames(model: model, rgb: color, brightness: brightness)
+                }
             }
+        }
+        colorWriteWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.07, execute: work)
+    }
+
+    private func matchesTarget(_ controller: PairedController) -> Bool {
+        switch target {
+        case .all: return true
+        case .zone(let zone): return controller.zone == zone
         }
     }
 
@@ -422,10 +441,11 @@ final class GarageStore: ObservableObject {
         }
     }
 
-    /// Solid colour for LEDDMX must clear the built-in pattern first (id 0 = Off).
+    /// Solid colour for LEDDMX must leave music + built-in pattern modes first.
     private func solidColorFrames(model: ModelProfile, rgb: RGB, brightness: Int) -> [Data] {
         var frames: [Data] = [ElkProtocol.power(model, on: true)]
         if ElkProtocol.isLedDmx(model) {
+            frames.append(ElkProtocol.ledDmxMicOff)
             frames.append(ElkProtocol.effect(model, id: ElkProtocol.ledDmxPatternOff))
         }
         frames.append(ElkProtocol.color(model, rgb: rgb))
@@ -435,16 +455,19 @@ final class GarageStore: ObservableObject {
 
     func setEffect(_ id: Int) {
         stopPath()
+        colorWriteWork?.cancel()
         mutate { controller, peripheral, _ in
             controller.effectId = id
             controller.power = true
             let speed = controller.effectSpeed
             writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
-                [
-                    ElkProtocol.power(model, on: true),
-                    ElkProtocol.effect(model, id: id),
-                    ElkProtocol.speed(model, percent: speed),
-                ]
+                var frames: [Data] = [ElkProtocol.power(model, on: true)]
+                if ElkProtocol.isLedDmx(model) {
+                    frames.append(ElkProtocol.ledDmxMicOff)
+                }
+                frames.append(ElkProtocol.effect(model, id: id))
+                frames.append(ElkProtocol.speed(model, percent: speed))
+                return frames
             }
         }
     }

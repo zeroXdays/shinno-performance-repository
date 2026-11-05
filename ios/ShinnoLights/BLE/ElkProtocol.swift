@@ -97,6 +97,9 @@ enum ElkProtocol {
     /// LEDDMX built-in pattern 0 = Off (exit Dreaming / Auto before solid colour).
     static let ledDmxPatternOff = 0
 
+    /// Mic / EQ off — exits music-reactive mode that can look like pattern cycling.
+    static let ledDmxMicOff = Data([0x7B, 0xFF, 0x0B, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xBF])
+
     static func isLedDmx(_ model: ModelProfile) -> Bool {
         model.id.hasPrefix("LEDDMX")
     }

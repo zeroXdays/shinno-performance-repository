@@ -60,7 +60,20 @@ final class BleHub: NSObject, ObservableObject {
     private var shouldReconnect: Set<UUID> = []
     private var retryWork = Set<UUID>()
     private var lastConnectAttempt: [UUID: Date] = [:]
+    /// Serial GATT writes — LEDDMX withResponse drops anything until didWrite returns.
+    private var writeQueues: [UUID: [QueuedWrite]] = [:]
+    private var writeInFlight: Set<UUID> = []
+    private var writeWatchdogs: [UUID: DispatchWorkItem] = [:]
     private let restoreId = "com.shinnoperformance.lights.central"
+
+    private struct QueuedWrite {
+        let data: Data
+        let characteristic: CBCharacteristic
+        let type: CBCharacteristicWriteType
+        let gap: TimeInterval
+        /// Set on the LEDDMX status probe so we only coalesce after auth has gone out.
+        var marksHandshakeComplete: Bool = false
+    }
 
     var onReady: (() -> Void)?
     var onConnected: ((UUID) -> Void)?
@@ -242,6 +255,10 @@ final class BleHub: NSObject, ObservableObject {
         notifyChars[id] = nil
         handshook.remove(id)
         handshakePending.remove(id)
+        writeQueues[id] = nil
+        writeInFlight.remove(id)
+        writeWatchdogs[id]?.cancel()
+        writeWatchdogs[id] = nil
         advertisedNames[id] = nil
         discovered.removeAll { $0.identifier == id }
     }
@@ -306,27 +323,26 @@ final class BleHub: NSObject, ObservableObject {
 
         ensureLeddmxReady(peripheral)
 
-        // LEDDMX / FFE0 kits need ~50–80ms between writes or they drop frames.
-        // Hold command frames until the 2A handshake has been sent (~0.45s).
-        let gap = isLeddmx ? 0.08 : 0.04
-        let lead: Double = {
-            guard isLeddmx else { return 0 }
-            return handshook.contains(peripheral.identifier) ? 0 : 0.5
-        }()
-        for (index, frame) in frames.enumerated() {
-            let delay = lead + gap * Double(index)
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak peripheral] in
-                guard let peripheral else { return }
-                if writeType == .withoutResponse, !peripheral.canSendWriteWithoutResponse {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        peripheral.writeValue(frame, for: characteristic, type: writeType)
-                    }
-                } else {
-                    peripheral.writeValue(frame, for: characteristic, type: writeType)
-                }
+        let id = peripheral.identifier
+        let gap = isLeddmx ? 0.07 : 0.035
+        // Latest user command wins — colour-wheel spam must not pile up behind stale frames.
+        // Keep an in-flight handshake prefix if auth has not finished yet.
+        if isLeddmx, handshook.contains(id) {
+            writeQueues[id] = []
+        } else if !isLeddmx {
+            // Non-DMX: still coalesce pending so rapid UI updates stay current.
+            if !writeInFlight.contains(id) {
+                writeQueues[id] = []
             }
         }
-        lastWrite[peripheral.identifier] = Date()
+
+        var queue = writeQueues[id] ?? []
+        for frame in frames {
+            queue.append(QueuedWrite(data: frame, characteristic: characteristic, type: writeType, gap: gap))
+        }
+        writeQueues[id] = queue
+        lastWrite[id] = Date()
+        drainWriteQueue(id)
     }
 
     /// LEDDMX ignores commands until the 2A handshake (+ notify) lands after connect.
@@ -345,15 +361,97 @@ final class BleHub: NSObject, ObservableObject {
         let writeType: CBCharacteristicWriteType =
             characteristic.properties.contains(.write) ? .withResponse : .withoutResponse
 
-        // Match LED+LAMP: wait ~300ms after GATT is up, then auth + status probe.
+        // Match LED+LAMP: wait ~300ms after GATT is up, then auth + status via the serial queue.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self, weak peripheral] in
             guard let self, let peripheral else { return }
-            peripheral.writeValue(ElkProtocol.leddmxHandshake(), for: characteristic, type: writeType)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                peripheral.writeValue(ElkProtocol.leddmxStatusQuery, for: characteristic, type: writeType)
-                self?.handshook.insert(id)
-                self?.handshakePending.remove(id)
+            var queue = self.writeQueues[id] ?? []
+            let gap = 0.1
+            queue.insert(
+                contentsOf: [
+                    QueuedWrite(
+                        data: ElkProtocol.leddmxHandshake(),
+                        characteristic: characteristic,
+                        type: writeType,
+                        gap: gap
+                    ),
+                    QueuedWrite(
+                        data: ElkProtocol.leddmxStatusQuery,
+                        characteristic: characteristic,
+                        type: writeType,
+                        gap: gap,
+                        marksHandshakeComplete: true
+                    ),
+                ],
+                at: 0
+            )
+            self.writeQueues[id] = queue
+            self.handshakePending.remove(id)
+            self.drainWriteQueue(id)
+        }
+    }
+
+    private func drainWriteQueue(_ id: UUID) {
+        guard !writeInFlight.contains(id) else { return }
+        guard var queue = writeQueues[id], !queue.isEmpty else { return }
+        guard let peripheral = peripherals[id] ?? discovered.first(where: { $0.identifier == id }) else {
+            writeQueues[id] = nil
+            return
+        }
+        let next = queue.removeFirst()
+        writeQueues[id] = queue
+        writeInFlight.insert(id)
+
+        if next.type == .withoutResponse, !peripheral.canSendWriteWithoutResponse {
+            writeQueues[id] = [next] + (writeQueues[id] ?? [])
+            writeInFlight.remove(id)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+                self?.drainWriteQueue(id)
             }
+            return
+        }
+
+        peripheral.writeValue(next.data, for: next.characteristic, type: next.type)
+        if next.marksHandshakeComplete {
+            handshook.insert(id)
+        }
+
+        if next.type == .withoutResponse {
+            // No callback — pace ourselves, then continue.
+            writeWatchdogs[id]?.cancel()
+            let work = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                self.writeInFlight.remove(id)
+                self.writeWatchdogs[id] = nil
+                self.drainWriteQueue(id)
+            }
+            writeWatchdogs[id] = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + next.gap, execute: work)
+        } else {
+            // withResponse: wait for didWriteValueFor (or timeout so one stall cannot freeze the kit).
+            writeWatchdogs[id]?.cancel()
+            let work = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                guard self.writeInFlight.contains(id) else { return }
+                self.writeInFlight.remove(id)
+                self.writeWatchdogs[id] = nil
+                self.drainWriteQueue(id)
+            }
+            writeWatchdogs[id] = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: work)
+        }
+    }
+
+    private func completeWrite(_ id: UUID) {
+        writeWatchdogs[id]?.cancel()
+        writeWatchdogs[id] = nil
+        guard writeInFlight.contains(id) else {
+            drainWriteQueue(id)
+            return
+        }
+        writeInFlight.remove(id)
+        let gap = writeQueues[id]?.first?.gap ?? 0.05
+        DispatchQueue.main.asyncAfter(deadline: .now() + gap) { [weak self] in
+            self?.drainWriteQueue(id)
         }
     }
 }
@@ -464,6 +562,10 @@ extension BleHub: CBCentralManagerDelegate {
         notifyChars[peripheral.identifier] = nil
         handshook.remove(peripheral.identifier)
         handshakePending.remove(peripheral.identifier)
+        writeQueues[peripheral.identifier] = nil
+        writeInFlight.remove(peripheral.identifier)
+        writeWatchdogs[peripheral.identifier]?.cancel()
+        writeWatchdogs[peripheral.identifier] = nil
         onDisconnected?(peripheral.identifier)
         if shouldReconnect.contains(peripheral.identifier) {
             let name = displayName(for: peripheral.identifier)
@@ -519,7 +621,15 @@ extension BleHub: CBPeripheralDelegate {
         }
     }
 
+    func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
+        _ = characteristic
+        _ = error
+        completeWrite(peripheral.identifier)
+    }
+
     func peripheralIsReady(toSendWriteWithoutResponse peripheral: CBPeripheral) {
-        _ = peripheral
+        if !writeInFlight.contains(peripheral.identifier) {
+            drainWriteQueue(peripheral.identifier)
+        }
     }
 }
