@@ -47,6 +47,23 @@ workflows:
             sed -i.bak "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = $APPLE_TEAM_ID;/g" \
               ios/ShinnoLights.xcodeproj/project.pbxproj
           fi
+      - name: Increment iOS build number
+        script: |
+          # App Store Connect rejects reuse of the same CFBundleVersion.
+          # Pull the highest known build from TestFlight / App Store, then +1.
+          set -euo pipefail
+          LATEST_TF=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" --platform IOS 2>/dev/null || true)
+          LATEST_AS=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID" --platform IOS 2>/dev/null || true)
+          LATEST=0
+          for n in "$LATEST_TF" "$LATEST_AS"; do
+            if [[ "${n:-}" =~ ^[0-9]+$ ]] && (( n > LATEST )); then
+              LATEST=$n
+            fi
+          done
+          NEW=$((LATEST + 1))
+          echo "CFBundleVersion -> $NEW (previous max was $LATEST)"
+          sed -i.bak "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = $NEW;/g" \
+            ios/ShinnoLights.xcodeproj/project.pbxproj
       - name: Build IPA
         script: |
           cd ios

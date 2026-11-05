@@ -26,6 +26,8 @@ This repo includes [`codemagic.yaml`](../codemagic.yaml) at the root.
 8. Run the workflow. It builds a signed IPA and uploads to **TestFlight**.
 9. On your **iPhone**, install via TestFlight, capture screenshots with kits powered, upload screenshots in Connect, then flip `submit_to_app_store: true` (or Submit for Review in Connect).
 
+Each Codemagic re-upload must use a new build number. The workflow increments `CFBundleVersion` from App Store Connect automatically — just start a new build after pushing `main`.
+
 Codemagic’s free minutes are usually enough for a first submission. Paid minutes if you iterate a lot.
 
 ## Other options
