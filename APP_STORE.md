@@ -24,7 +24,7 @@ Power the lighting devices that shipped with your kits, allow Bluetooth, and the
 
 Q60 and Q70 are listed as soon and cannot be selected yet. Grille badge control is not in this version.
 
-There is no account, no in-app shop, and no demo mode. Names, colors, and paired devices stay on this iPhone.
+Unlock with your Shopify order number and checkout email after buying a Shinno kit. There is no in-app shop and no demo mode. Names, colors, and paired devices stay on this iPhone.
 
 Questions: support@shinnoperformance.com
 
@@ -67,7 +67,7 @@ Shinno Sync is a native Bluetooth Low Energy controller for physical Shinno RGB 
 1. An iPhone with Bluetooth on.
 2. Powered lighting devices from a Shinno Q50 or G37 kit. They advertise as ELK-BLEDOM, ELK-BLEDOB, MELK, or LEDBLE (Magic Lantern / Lotus Lamp X family). One device per kit: emblem, mirrors, bumper.
 3. Allow the Bluetooth permission prompt. The app scans continuously while Bluetooth is on (including `bluetooth-central` so saved devices can reconnect when they power on). Add each device once on Scan, then assign the zone on Devices. After that, turning a kit off and on should reconnect and restore the last color/mode without scanning again.
-4. Color, brightness, power, and Modes write 9-byte frames to the devices. There is no login, no IAP, and no demo/simulator mode — the binary does nothing useful without the hardware.
+4. Unlock with order REVIEW / email review@shinnoperformance.com (API APP_REVIEW_*). Then Color, brightness, power, and Modes write BLE frames. No IAP; physical kits still required for lights. See appstore/SHOPIFY_UNLOCK.md.
 
 Please review this iOS binary (`com.shinnoperformance.lights`). Shinno Sync is a native iPhone app.
 

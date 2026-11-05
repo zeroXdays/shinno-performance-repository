@@ -28,7 +28,7 @@ Open [http://127.0.0.1:43147](http://127.0.0.1:43147) in Chrome — localhost is
 3. Pick a device. On **Devices**, name it and set the zone (Emblem / Mirrors / Bumper).
 4. Repeat for the other kits. Color, brightness, and modes then write to the hardware.
 
-For UI preview without hardware, Scan / Devices include an **Add demo devices** control (marked Demo). It seeds fake paired zones so Color, Modes, and Paths work locally. Strip it later via `src/lib/demo-devices.ts` (`DEMO_DEVICES_ENABLED = false` or delete the module).
+The app unlocks with a **paid Shopify order number + checkout email** (`POST /api/verify-purchase`). See [`appstore/SHOPIFY_UNLOCK.md`](appstore/SHOPIFY_UNLOCK.md) and `.env.example`.
 
 Names, colors, and last link stay in local storage. The gear in the header opens **Settings**: add and connect automatically, remember devices, Night / Graphite / Studio themes, English or Spanish (system language by default), how-to-use, privacy policy, user agreement, updates, and feedback. Rename devices on **Devices**, and use **Remove** to drop a paired device.
 

@@ -21,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { LicenseSettingsRow } from "@/components/purchase-gate";
 import { useI18n } from "@/lib/i18n";
 import { PRODUCT_NAME } from "@/lib/legal";
 import {
@@ -123,6 +124,13 @@ export function SettingsMenu() {
                   </button>
                 ))}
               </div>
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="text-xs font-medium tracking-[0.16em] text-white/40 uppercase">
+                {t("license.section")}
+              </h3>
+              <LicenseSettingsRow />
             </section>
 
             <section className="space-y-2">

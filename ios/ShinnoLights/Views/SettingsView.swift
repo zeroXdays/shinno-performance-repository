@@ -34,6 +34,19 @@ struct SettingsView: View {
                     }
                 }
 
+                if PurchaseLicense.isUnlocked {
+                    Section("Purchase") {
+                        LabeledContent("Order", value: PurchaseLicense.orderName)
+                        Text(PurchaseLicense.email)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Button("Unlink this purchase", role: .destructive) {
+                            PurchaseLicense.clear()
+                            dismiss()
+                        }
+                    }
+                }
+
                 Section("Help") {
                     NavigationLink(LegalCopy.howToTitle) {
                         LegalDocumentView(title: LegalCopy.howToTitle, bodyText: LegalCopy.howToBody)

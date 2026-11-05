@@ -18,7 +18,6 @@ import { pathsForCar } from "@/lib/paths";
 import { rgbToCss, rgbToHex, SCENES } from "@/lib/scenes";
 import { cn } from "@/lib/utils";
 import type { TabId } from "@/lib/controller";
-import { DEMO_DEVICES_ENABLED } from "@/lib/demo-devices";
 
 const SWATCHES = [
   { r: 196, g: 18, b: 32 },
@@ -527,28 +526,6 @@ function EffectsPanel({ onGoScan }: { onGoScan: () => void }) {
   );
 }
 
-function DemoSeedButton({ className }: { className?: string }) {
-  const garage = useGarage();
-  const { t } = useI18n();
-  if (!DEMO_DEVICES_ENABLED) return null;
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      className={cn(
-        "relative min-h-11 w-full rounded-xl border-dashed border-white/25 bg-[#121212] text-white/85 hover:bg-[#1a1a1a] hover:text-white",
-        className,
-      )}
-      onClick={() => garage.seedDemoDevices()}
-    >
-      <span className="absolute top-1.5 right-2 rounded px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.14em] text-[#c41220] uppercase">
-        Demo
-      </span>
-      {t("demo.add")}
-    </Button>
-  );
-}
-
 function ScanPanel() {
   const garage = useGarage();
   const { t } = useI18n();
@@ -562,8 +539,6 @@ function ScanPanel() {
         {garage.scanning ? <Loader2 className="animate-spin" /> : <Bluetooth />}
         {t("scan.pair")}
       </Button>
-      {/* DEMO: easy-remove preview seed — see src/lib/demo-devices.ts */}
-      <DemoSeedButton />
       {!garage.webBluetooth ? (
         <p className="text-center text-sm text-white/45">{t("scan.ble.none")}</p>
       ) : (
@@ -613,8 +588,6 @@ function DeviceList({ onGoScan }: { onGoScan: () => void }) {
           actionLabel={t("devices.goScan")}
           onAction={onGoScan}
         />
-        {/* DEMO: easy-remove preview seed — see src/lib/demo-devices.ts */}
-        <DemoSeedButton className="mx-auto max-w-xs" />
       </div>
     );
   }
@@ -633,8 +606,6 @@ function DeviceList({ onGoScan }: { onGoScan: () => void }) {
           {t("devices.clear")}
         </Button>
       </div>
-      {/* DEMO: re-seed if cleared — see src/lib/demo-devices.ts */}
-      <DemoSeedButton />
       {garage.controllers.map((controller) => (
         <div key={controller.id} className="rounded-xl border border-white/[0.08] bg-[#0a0a0a] p-3">
           <div className="flex items-center justify-between gap-2">

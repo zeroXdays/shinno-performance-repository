@@ -6,6 +6,8 @@
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>Shinno Sync</string>
+	<key>ShinnoLicenseAPIURL</key>
+	<string>https://shinnoperformance.com/api/verify-purchase</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

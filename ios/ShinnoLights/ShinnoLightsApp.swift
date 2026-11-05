@@ -7,10 +7,12 @@ struct ShinnoLightsApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(garage)
-                .preferredColorScheme(.dark)
-                .tint(Color(red: 0.88, green: 0.02, blue: 0))
+            PurchaseGateView {
+                ContentView()
+                    .environmentObject(garage)
+            }
+            .preferredColorScheme(.dark)
+            .tint(Color(red: 0.88, green: 0.02, blue: 0))
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {

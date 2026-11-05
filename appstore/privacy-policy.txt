@@ -1,10 +1,13 @@
 Shinno Sync is provided by Shin No Performance LLC. This policy describes how the iPhone app handles information.
 
 What the app does
-Shinno Sync is a Bluetooth controller for Shinno RGB lighting kits on Infiniti Q50 and G37 — emblem, mirrors, and bumper. It finds nearby lighting devices and sends color, brightness, power, and mode commands over Bluetooth Low Energy. There is no account and no in-app shop.
+Shinno Sync is a Bluetooth controller for Shinno RGB lighting kits on Infiniti Q50 and G37 — emblem, mirrors, and bumper. It finds nearby lighting devices and sends color, brightness, power, and mode commands over Bluetooth Low Energy. There is no in-app shop. Features unlock after you confirm a paid Shopify order for a Shinno kit.
+
+Purchase verification
+To unlock the app you enter your Shopify order number and the email used at checkout. That pair is sent to our unlock service, which checks your order in Shopify and returns only a yes/no result. We do not create a customer login. After unlock, the order number and email stay on this device so you do not re-enter them. You can unlink the purchase in Settings.
 
 Information stored on this iPhone
-Pairing names, Bluetooth identifiers of devices you add, zones you assign, last color, brightness, power, mode, and app settings stay in on-device storage (UserDefaults). This information is used only to run the garage on this phone. We do not upload it. We do not create an account. We do not sell information. We do not use analytics, advertising, or tracking SDKs. We do not collect precise location.
+Pairing names, Bluetooth identifiers of devices you add, zones you assign, last color, brightness, power, mode, app settings, and your unlock record stay in on-device storage. Garage data is used only to run the lights on this phone. We do not sell information. We do not use analytics, advertising, or tracking SDKs. We do not collect precise location.
 
 Bluetooth
 Bluetooth is used only to discover, connect to, and control the lighting devices that ship with Shinno kits. We do not use Bluetooth to track you.
