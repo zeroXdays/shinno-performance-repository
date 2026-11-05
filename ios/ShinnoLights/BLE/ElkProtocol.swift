@@ -78,18 +78,76 @@ enum ElkProtocol {
     )
 
     /// G37 emblem kits advertising as LEDDMX-00-* / LEDDMX-03-* ("LED LAMP" app).
-    /// Different dialect from ELK: frames are `7B … BF` on FFE1, color order R-B-G.
+    /// Frames are `7B FF … BF` on FFE1. Q50 ELK/MELK profiles above are unchanged.
     static let ledDmx = ModelProfile(
         id: "LEDDMX-00",
         prefixes: ["LEDDMX-00", "LEDDMX-03", "LEDDMX-", "LEDDMX", "LED-DMX", "LED_DMX", "LED DMX"],
         writeUUID: ffe1,
-        turnOn: [0x7B, 0xFF, 0x04, 0x03, 0xFF, 0xFF, 0xFF, 0xFF, 0xBF],
-        turnOff: [0x7B, 0xFF, 0x04, 0x02, 0xFF, 0xFF, 0xFF, 0xFF, 0xBF],
-        color: [.byte(0x7B), .byte(0xFF), .byte(0x07), .red, .blue, .green, .byte(0x00), .byte(0xFF), .byte(0xBF)],
+        // LED+LAMP decompile: power uses 01/00 (not 03/02).
+        turnOn: [0x7B, 0xFF, 0x04, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xBF],
+        turnOff: [0x7B, 0xFF, 0x04, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xBF],
+        color: [.byte(0x7B), .byte(0xFF), .byte(0x07), .red, .green, .blue, .byte(0x00), .byte(0xFF), .byte(0xBF)],
         brightness: [.byte(0x7B), .byte(0xFF), .byte(0x01), .value32, .value, .byte(0x00), .byte(0xFF), .byte(0xFF), .byte(0xBF)],
         effect: [.byte(0x7B), .byte(0xFF), .byte(0x03), .value, .byte(0xFF), .byte(0xFF), .byte(0xFF), .byte(0xFF), .byte(0xBF)],
-        effectSpeed: [.byte(0x7B), .byte(0xFF), .byte(0x02), .value, .byte(0xFF), .byte(0xFF), .byte(0xFF), .byte(0xFF), .byte(0xBF)]
+        effectSpeed: [.byte(0x7B), .byte(0xFF), .byte(0x02), .value, .byte(0xFF), .byte(0x00), .byte(0xFF), .byte(0xFF), .byte(0xBF)]
     )
+
+    /// Default LED+LAMP password used in the 2A handshake after connect.
+    static let leddmxPassword: [UInt8] = [0xA1, 0x23, 0x45, 0x67]
+
+    /// `2A 02 … AF` auth frame — required or LEDDMX ignores every later command.
+    static func leddmxHandshake(date: Date = Date()) -> Data {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let comps = calendar.dateComponents([.weekday, .hour, .minute], from: date)
+        // Java Calendar: SUN=1…SAT=7 → weekIndex {7,1,2,3,4,5,6}
+        let weekday = comps.weekday ?? 1
+        let weekIndex = [7, 1, 2, 3, 4, 5, 6][weekday - 1]
+        let hour = comps.hour ?? 0
+        let minute = comps.minute ?? 0
+        let tb = UInt8(((weekIndex & 0x07) << 5) | (hour & 0x1F))
+        var bytes: [UInt8] = [0x2A, 0x02]
+        bytes.append(contentsOf: leddmxPassword)
+        bytes.append(tb)
+        bytes.append(UInt8(clamping: minute))
+        bytes.append(0xAF)
+        return Data(bytes)
+    }
+
+    /// Password-status / notify-enable probe used by LED+LAMP after the handshake.
+    static let leddmxStatusQuery = Data([0x2A, 0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xAF])
+
+    static func isLeddmxName(_ name: String?) -> Bool {
+        let upper = normalizeName(name)
+        return upper.contains("LEDDMX")
+            || upper.contains("LED-DMX")
+            || upper.contains("LED_DMX")
+            || upper.contains("LED DMX")
+    }
+
+    static func isElkFamilyName(_ name: String?) -> Bool {
+        let upper = normalizeName(name)
+        if isLeddmxName(upper) { return false }
+        return upper.hasPrefix("ELK-")
+            || upper.hasPrefix("MELK")
+            || upper.hasPrefix("LEDBLE")
+            || upper.hasPrefix("JACKY")
+            || upper.hasPrefix("XSL-")
+            || (upper.hasPrefix("LED-") && !upper.contains("DMX"))
+            || upper.contains("BLEDOM")
+            || upper.contains("BLEDOB")
+            || upper.contains("BLEDDM")
+    }
+
+    /// Q50 ↔ ELK/MELK kits · G37 ↔ LEDDMX emblem kits only.
+    static func allowed(for car: CarKind, name: String?) -> Bool {
+        switch car {
+        case .g37:
+            return isLeddmxName(name)
+        case .q50, .q60, .q70:
+            return isElkFamilyName(name)
+        }
+    }
 
     static let elkBle = ModelProfile(
         id: "ELK-BLE",
@@ -131,8 +189,7 @@ enum ElkProtocol {
     static let all = [ledDmx, elkBledom, elkBledob, elkBleddm, elkBle, melk, ledble]
 
     static func isDmxFamily(_ name: String?) -> Bool {
-        let upper = normalizeName(name)
-        return upper.contains("DMX") || upper.contains("BLEDDM")
+        isLeddmxName(name) || normalizeName(name).contains("BLEDDM")
     }
 
     static func detect(name: String?) -> ModelProfile {

@@ -220,6 +220,12 @@ final class GarageStore: ObservableObject {
 
     func pair(_ peripheral: CBPeripheral) async {
         let name = hub.displayName(for: peripheral.identifier)
+        guard ElkProtocol.allowed(for: settings.car, name: name) else {
+            lastError = settings.car == .g37
+                ? "That kit is for Q50 (ELK/MELK). Switch the garage to Q50, or use a LEDDMX emblem for G37."
+                : "That kit is for G37 (LEDDMX). Switch the garage to G37 to add it."
+            return
+        }
         if controllers.contains(where: { $0.id == peripheral.identifier }) {
             do {
                 try await hub.connect(peripheral)
@@ -261,6 +267,8 @@ final class GarageStore: ObservableObject {
     func adopt(_ peripherals: [CBPeripheral]) async {
         guard settings.autoAdd else { return }
         for peripheral in peripherals {
+            let name = hub.displayName(for: peripheral.identifier)
+            guard ElkProtocol.allowed(for: settings.car, name: name) else { continue }
             await pair(peripheral)
         }
     }

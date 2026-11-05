@@ -757,7 +757,9 @@ struct ScanScreen: View {
     var unpaired: [CBPeripheralLite] {
         garage.hub.discovered
             .filter { peripheral in
-                !garage.controllers.contains { $0.id == peripheral.identifier }
+                let name = garage.hub.displayName(for: peripheral.identifier)
+                guard ElkProtocol.allowed(for: garage.settings.car, name: name) else { return false }
+                return !garage.controllers.contains { $0.id == peripheral.identifier }
             }
             .map {
                 CBPeripheralLite(
@@ -820,7 +822,11 @@ struct ScanScreen: View {
 
                 Section("Nearby") {
                     if unpaired.isEmpty, garage.hub.bluetoothState == .poweredOn {
-                        Text("No kits yet. G37 emblems advertise as ELK-BLEDDM. Power the box, stand near the car, then tap Rescan.")
+                        Text(
+                            garage.settings.car == .g37
+                                ? "No G37 kits yet. Power the LEDDMX emblem, stand near the car, then tap Rescan."
+                                : "No Q50 kits yet. Power ELK/MELK boxes, stand near the car, then tap Rescan."
+                        )
                             .foregroundStyle(.secondary)
                     }
                     ForEach(unpaired) { item in

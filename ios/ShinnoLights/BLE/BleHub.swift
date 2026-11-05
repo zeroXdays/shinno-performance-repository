@@ -51,6 +51,9 @@ final class BleHub: NSObject, ObservableObject {
     private var central: CBCentralManager!
     private var writeChars: [UUID: CBCharacteristic] = [:]
     private var writableByUUID: [UUID: [CBUUID: CBCharacteristic]] = [:]
+    private var notifyChars: [UUID: CBCharacteristic] = [:]
+    private var handshook: Set<UUID> = []
+    private var handshakePending: Set<UUID> = []
     private var peripherals: [UUID: CBPeripheral] = [:]
     private var connectWaiters: [UUID: CheckedContinuation<Void, Error>] = [:]
     private var lastWrite: [UUID: Date] = [:]
@@ -236,6 +239,9 @@ final class BleHub: NSObject, ObservableObject {
         }
         writeChars[id] = nil
         writableByUUID[id] = nil
+        notifyChars[id] = nil
+        handshook.remove(id)
+        handshakePending.remove(id)
         advertisedNames[id] = nil
         discovered.removeAll { $0.identifier == id }
     }
@@ -285,21 +291,34 @@ final class BleHub: NSObject, ObservableObject {
             ?? map.values.first
         guard let characteristic else { return }
 
+        let name = displayName(for: peripheral.identifier)
+        let isLeddmx = ElkProtocol.isLeddmxName(name) || characteristic.uuid == ElkProtocol.ffe1
+        // LED+LAMP uses write-with-response by default; withoutResponse is often ignored.
         let writeType: CBCharacteristicWriteType = {
+            if isLeddmx, characteristic.properties.contains(.write) {
+                return .withResponse
+            }
             if characteristic.properties.contains(.writeWithoutResponse) {
                 return .withoutResponse
             }
             return .withResponse
         }()
 
-        // LEDDMX / FFE0 kits need ~50ms between writes or they drop frames.
-        let gap = characteristic.uuid == ElkProtocol.ffe1 ? 0.055 : 0.04
+        ensureLeddmxReady(peripheral)
+
+        // LEDDMX / FFE0 kits need ~50–80ms between writes or they drop frames.
+        // Hold command frames until the 2A handshake has been sent (~0.45s).
+        let gap = isLeddmx ? 0.08 : 0.04
+        let lead: Double = {
+            guard isLeddmx else { return 0 }
+            return handshook.contains(peripheral.identifier) ? 0 : 0.5
+        }()
         for (index, frame) in frames.enumerated() {
-            let delay = gap * Double(index)
+            let delay = lead + gap * Double(index)
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak peripheral] in
                 guard let peripheral else { return }
                 if writeType == .withoutResponse, !peripheral.canSendWriteWithoutResponse {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.04) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                         peripheral.writeValue(frame, for: characteristic, type: writeType)
                     }
                 } else {
@@ -308,6 +327,34 @@ final class BleHub: NSObject, ObservableObject {
             }
         }
         lastWrite[peripheral.identifier] = Date()
+    }
+
+    /// LEDDMX ignores commands until the 2A handshake (+ notify) lands after connect.
+    private func ensureLeddmxReady(_ peripheral: CBPeripheral) {
+        let id = peripheral.identifier
+        guard ElkProtocol.isLeddmxName(displayName(for: id)) else { return }
+        guard !handshook.contains(id), !handshakePending.contains(id) else { return }
+        guard let characteristic = writeChars[id] ?? writableByUUID[id]?[ElkProtocol.ffe1] else { return }
+
+        handshakePending.insert(id)
+        let notify = notifyChars[id] ?? characteristic
+        if notify.properties.contains(.notify) || notify.properties.contains(.indicate) {
+            peripheral.setNotifyValue(true, for: notify)
+        }
+
+        let writeType: CBCharacteristicWriteType =
+            characteristic.properties.contains(.write) ? .withResponse : .withoutResponse
+
+        // Match LED+LAMP: wait ~300ms after GATT is up, then auth + status probe.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self, weak peripheral] in
+            guard let self, let peripheral else { return }
+            peripheral.writeValue(ElkProtocol.leddmxHandshake(), for: characteristic, type: writeType)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                peripheral.writeValue(ElkProtocol.leddmxStatusQuery, for: characteristic, type: writeType)
+                self?.handshook.insert(id)
+                self?.handshakePending.remove(id)
+            }
+        }
     }
 }
 
@@ -414,6 +461,9 @@ extension BleHub: CBCentralManagerDelegate {
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         writeChars[peripheral.identifier] = nil
         writableByUUID[peripheral.identifier] = nil
+        notifyChars[peripheral.identifier] = nil
+        handshook.remove(peripheral.identifier)
+        handshakePending.remove(peripheral.identifier)
         onDisconnected?(peripheral.identifier)
         if shouldReconnect.contains(peripheral.identifier) {
             let name = displayName(for: peripheral.identifier)
@@ -444,6 +494,13 @@ extension BleHub: CBPeripheralDelegate {
         }
         writableByUUID[peripheral.identifier] = map
 
+        // Prefer FFE1 for notify when present (LEDDMX / LEDBLE).
+        for service in peripheral.services ?? [] {
+            if let ffe1 = service.characteristics?.first(where: { $0.uuid == ElkProtocol.ffe1 }) {
+                notifyChars[peripheral.identifier] = ffe1
+            }
+        }
+
         let name = displayName(for: peripheral.identifier)
         let model = ElkProtocol.resolve(name: name, writable: Array(map.keys))
         let preferred = [model.writeUUID, ElkProtocol.fff3, ElkProtocol.ffe1]
@@ -452,6 +509,9 @@ extension BleHub: CBPeripheralDelegate {
 
         if let match {
             writeChars[peripheral.identifier] = match
+            if ElkProtocol.isLeddmxName(name) {
+                ensureLeddmxReady(peripheral)
+            }
             onConnected?(peripheral.identifier)
             connectWaiters.removeValue(forKey: peripheral.identifier)?.resume()
         } else if connectWaiters[peripheral.identifier] != nil {
@@ -460,7 +520,6 @@ extension BleHub: CBPeripheralDelegate {
     }
 
     func peripheralIsReady(toSendWriteWithoutResponse peripheral: CBPeripheral) {
-        // Hook for queued without-response writes; no-op — write() already paces frames.
         _ = peripheral
     }
 }

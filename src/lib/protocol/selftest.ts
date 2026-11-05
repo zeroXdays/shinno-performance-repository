@@ -29,11 +29,11 @@ const dmxOn = encodePower(dmx, true);
 assert(
   "LEDDMX power on frame",
   hexFrame(dmxOn),
-  "7b ff 04 03 ff ff ff ff bf",
+  "7b ff 04 01 ff ff ff ff bf",
 );
 const dmxRed = encodeColor(dmx, { r: 255, g: 0, b: 0 });
 assert(
-  "LEDDMX red (RBG order)",
+  "LEDDMX red",
   hexFrame(dmxRed),
   "7b ff 07 ff 00 00 00 ff bf",
 );
