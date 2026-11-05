@@ -247,7 +247,7 @@
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ShinnoLights/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Shinno Lights";
+				INFOPLIST_KEY_CFBundleDisplayName = "Shinno Sync";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -274,7 +274,7 @@
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ShinnoLights/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Shinno Lights";
+				INFOPLIST_KEY_CFBundleDisplayName = "Shinno Sync";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;

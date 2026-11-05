@@ -1,6 +1,6 @@
 export type ZoneKind = "emblem" | "mirrors" | "bumper" | "grille" | "custom";
 
-export type CarId = "q50" | "q60" | "q70";
+export type CarId = "q50" | "g37" | "q60" | "q70";
 
 export interface CarBody {
   id: CarId;
@@ -11,6 +11,7 @@ export interface CarBody {
 
 export const CARS: CarBody[] = [
   { id: "q50", name: "Q50", years: "2014–2024", enabled: true },
+  { id: "g37", name: "G37", years: "2008–2013", enabled: true },
   { id: "q60", name: "Q60", years: "2017–2022", enabled: false },
   { id: "q70", name: "Q70", years: "2015–2019", enabled: false },
 ];

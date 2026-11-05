@@ -1,4 +1,4 @@
-# App Store Connect — Shinno Lights
+# App Store Connect — Shinno Sync
 
 Paste-ready copy for the first iOS submission. Bundle ID: `com.shinnoperformance.lights`. Legal seller: **Shin No Performance LLC**. The in-app Privacy policy (Settings → Privacy policy) is the source of truth for this build.
 
@@ -6,14 +6,14 @@ This file is a helper. It does not submit the app. Zachary still completes App S
 
 ## Listing
 
-**Name:** Shinno Lights  
-**Subtitle (30):** RGB controller for Q50 kits  
+**Name:** Shinno Sync  
+**Subtitle (30):** RGB controller for Q50/G37  
 **Category:** Utilities  
 **Age rating:** 4+ (no user-generated content; vehicle accessory)
 
 **Description:**
 
-Shinno Lights is the iPhone controller for Shinno RGB kits on Infiniti Q50 — emblem, mirrors, and bumper.
+Shinno Sync is the iPhone controller for Shinno RGB kits on Infiniti Q50 and G37 — emblem, mirrors, and bumper.
 
 Power the lighting devices that shipped with your kits, allow Bluetooth, and the app scans for them. Add each device, assign a zone, then set color, brightness, power, and lighting modes. Speed 0 is slow, 100 is fast.
 
@@ -24,7 +24,7 @@ There is no account, no in-app shop, and no demo mode. Names, colors, and paired
 Questions: support@shinnoperformance.com
 
 **Keywords (100 characters max):**  
-`Shinno,lights,RGB,LED,Q50,emblem,bumper,mirror,Bluetooth,car`
+`Shinno,Sync,RGB,LED,Q50,G37,emblem,bumper,mirror,Bluetooth`
 
 **Support URL:** https://shinnoperformance.com  
 **Marketing URL:** https://shinnoperformance.com  
@@ -34,10 +34,10 @@ Do not upload mock or placeholder screenshots. Capture the real iPhone app on a 
 
 ## Privacy policy (paste onto the site)
 
-Shinno Lights is provided by Shin No Performance LLC. This policy describes how the iPhone app handles information.
+Shinno Sync is provided by Shin No Performance LLC. This policy describes how the iPhone app handles information.
 
 What the app does
-Shinno Lights is a Bluetooth controller for Shinno RGB lighting kits on Infiniti Q50 — emblem, mirrors, and bumper. It finds nearby lighting devices and sends color, brightness, power, and mode commands over Bluetooth Low Energy. There is no account and no in-app shop.
+Shinno Sync is a Bluetooth controller for Shinno RGB lighting kits on Infiniti Q50 and G37 — emblem, mirrors, and bumper. It finds nearby lighting devices and sends color, brightness, power, and mode commands over Bluetooth Low Energy. There is no account and no in-app shop.
 
 Information stored on this iPhone
 Pairing names, Bluetooth identifiers of devices you add, zones you assign, last color, brightness, power, mode, and app settings stay in on-device storage (UserDefaults). This information is used only to run the garage on this phone. We do not upload it. We do not create an account. We do not sell information. We do not use analytics, advertising, or tracking SDKs. We do not collect precise location.
@@ -57,16 +57,16 @@ The in-app privacy policy is the source of truth for this build.
 
 ## Review notes (App Review Information)
 
-Shinno Lights is a native Bluetooth Low Energy controller for physical Shinno RGB kits. It is not a website wrapper. Reviewers need:
+Shinno Sync is a native Bluetooth Low Energy controller for physical Shinno RGB kits. It is not a website wrapper. Reviewers need:
 
 1. An iPhone with Bluetooth on.
-2. Powered lighting devices from a Shinno Q50 kit. They advertise as ELK-BLEDOM, ELK-BLEDOB, MELK, or LEDBLE (Magic Lantern / Lotus Lamp X family). One device per kit: emblem, mirrors, bumper.
+2. Powered lighting devices from a Shinno Q50 or G37 kit. They advertise as ELK-BLEDOM, ELK-BLEDOB, MELK, or LEDBLE (Magic Lantern / Lotus Lamp X family). One device per kit: emblem, mirrors, bumper.
 3. Allow the Bluetooth permission prompt. The app scans continuously while Bluetooth is on (including `bluetooth-central` so saved devices can reconnect when they power on). Add each device once on Scan, then assign the zone on Devices. After that, turning a kit off and on should reconnect and restore the last color/mode without scanning again.
 4. Color, brightness, power, and Modes write 9-byte frames to the devices. There is no login, no IAP, and no demo/simulator mode — the binary does nothing useful without the hardware.
 
-Please review this iOS binary (`com.shinnoperformance.lights`). Shinno Lights is a native iPhone app.
+Please review this iOS binary (`com.shinnoperformance.lights`). Shinno Sync is a native iPhone app.
 
-Q60/Q70 rows in the car picker are intentionally disabled (labeled “soon”). Grille is not offered in this build.
+Q60/Q70 rows in the car picker are intentionally disabled (labeled “soon”). Q50 and G37 are selectable. Grille is not offered in this build.
 
 If a device does not appear, confirm it is powered and within a few meters. Contact support@shinnoperformance.com if you need a hardware sample for review.
 
@@ -93,5 +93,5 @@ Required reason API: UserDefaults `CA92.1` (app’s own settings and paired devi
 3. Export compliance + age rating questionnaires.
 4. App Privacy nutrition labels (no collected data).
 5. Real device screenshots (6.7" and 6.1" required for iPhone). No mockups.
-6. Attach review notes and have powered Q50 kits ready (or offer to ship a sample).
+6. Attach review notes and have powered Q50 or G37 kits ready (or offer to ship a sample).
 7. Archive in Xcode → Distribute to App Store Connect. This repo cannot submit for you.

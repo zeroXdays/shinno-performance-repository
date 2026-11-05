@@ -24,15 +24,15 @@ enum BluetoothState: Equatable {
     var detail: String {
         switch self {
         case .waiting:
-            return "Shinno Lights is waiting for Bluetooth so it can find your lighting devices."
+            return "Shinno Sync is waiting for Bluetooth so it can find your lighting devices."
         case .poweredOn:
-            return "Shinno Lights scans continuously for the lighting devices that ship with Shinno RGB kits."
+            return "Shinno Sync scans continuously for the lighting devices that ship with Shinno RGB kits."
         case .poweredOff:
             return "Turn Bluetooth on in iOS Settings to find and control your Shinno lighting devices."
         case .unauthorized:
-            return "Allow Bluetooth for Shinno Lights in iOS Settings. The app uses it only to talk to your lighting devices."
+            return "Allow Bluetooth for Shinno Sync in iOS Settings. The app uses it only to talk to your lighting devices."
         case .unsupported:
-            return "This iPhone cannot use Bluetooth Low Energy, which Shinno Lights needs to control the kits."
+            return "This iPhone cannot use Bluetooth Low Energy, which Shinno Sync needs to control the kits."
         case .resetting:
             return "Bluetooth is restarting. Scanning will resume automatically."
         }

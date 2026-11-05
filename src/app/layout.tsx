@@ -10,7 +10,7 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Shinno Lights",
+  title: "Shinno Sync",
   description: "Control Shinno RGB emblem, mirror, and bumper lights from Shin No Performance LLC.",
 };
 

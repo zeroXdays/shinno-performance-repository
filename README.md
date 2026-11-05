@@ -1,8 +1,8 @@
-# Shinno Lights
+# Shinno Sync
 
-Apple-first controller from **Shin No Performance LLC** for [Shinno Performance](https://shinnoperformance.com) RGB kits on Infiniti **Q50**. Q60 and Q70 are in the picker as “soon” and cannot be selected yet.
+Apple-first controller from **Shin No Performance LLC** for [Shinno Performance](https://shinnoperformance.com) RGB kits on Infiniti **Q50** and **G37**. Q60 and Q70 are in the picker as “soon” and cannot be selected yet.
 
-The app treats the kits as one car: **emblem, mirrors, bumper**. Grille badge support is in the code, commented out, until we have a kit to test.
+The app treats the kits as one car: **emblem, mirrors, bumper**. Grille badge support is in the code, commented out, until we have a kit to test. G37 reuses the same zone layout as Q50.
 
 Devices advertise as ELK-BLEDOM, ELK-BLEDOB, MELK, or LEDBLE (Magic Lantern / Lotus Lamp X family). Pair the device, then assign the zone. Feedback: support@shinnoperformance.com.
 
@@ -27,6 +27,8 @@ Open [http://127.0.0.1:43147](http://127.0.0.1:43147) in Chrome — localhost is
 2. Open **Scan** and tap **Add a device**. Chrome’s Bluetooth chooser appears.
 3. Pick a device. On **Devices**, name it and set the zone (Emblem / Mirrors / Bumper).
 4. Repeat for the other kits. Color, brightness, and modes then write to the hardware.
+
+For UI preview without hardware, Scan / Devices include an **Add demo devices** control (marked Demo). It seeds fake paired zones so Color, Modes, and Paths work locally. Strip it later via `src/lib/demo-devices.ts` (`DEMO_DEVICES_ENABLED = false` or delete the module).
 
 Names, colors, and last link stay in local storage. The gear in the header opens **Settings**: add and connect automatically, remember devices, Night / Graphite / Studio themes, English or Spanish (system language by default), how-to-use, privacy policy, user agreement, updates, and feedback. Rename devices on **Devices**, and use **Remove** to drop a paired device.
 
@@ -72,4 +74,4 @@ Model-specific variants live in `src/lib/protocol/models.ts` and `ios/ShinnoLigh
 - [RGB Bumper Lights](https://shinnoperformance.com/products/infiniti-q50-rgb-bumper-lights)
 - RGB Grille Badge — parked in the UI until we have a kit to test (`src/lib/catalog.ts`)
 
-If a kit shipped with a Magic Lantern / Lotus Lantern QR card, it belongs in this garage. Q60 / Q70 are not wired yet.
+If a kit shipped with a Magic Lantern / Lotus Lantern QR card, it belongs in this garage. Q60 / Q70 are not wired yet. G37 uses the same zone layout as Q50.

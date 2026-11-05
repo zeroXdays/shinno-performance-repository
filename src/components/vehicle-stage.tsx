@@ -154,13 +154,18 @@ function EmblemGlyph({ controller, elapsed }: { controller?: Controller; elapsed
           />
         ))}
       </svg>
+      {/* Glossy black overlay asset — same size/position as before; chrome remapped to deep black + sheen. */}
       <Image
         src="/products/emblem.png"
         alt=""
         width={320}
         height={180}
-        className="relative z-[1] h-[72%] w-auto max-w-[72%] object-contain drop-shadow-[0_6px_18px_rgba(0,0,0,0.55)]"
+        className="relative z-[1] h-[72%] w-auto max-w-[72%] object-contain drop-shadow-[0_6px_18px_rgba(0,0,0,0.7)]"
         priority
+      />
+      <span
+        className="pointer-events-none absolute inset-[22%] z-[2] rounded-[45%] bg-[radial-gradient(ellipse_at_28%_22%,rgba(255,255,255,0.18),transparent_58%)] mix-blend-soft-light"
+        aria-hidden
       />
     </div>
   );

@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>Shinno Lights</string>
+	<string>Shinno Sync</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Shinno Lights</string>
+	<string>Shinno Sync</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -27,9 +27,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Shinno Lights uses Bluetooth to find and control the lighting devices that ship with Shinno RGB emblem, mirror, and bumper kits.</string>
+	<string>Shinno Sync uses Bluetooth to find and control the lighting devices that ship with Shinno RGB emblem, mirror, and bumper kits.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>Shinno Lights uses Bluetooth to find and control the lighting devices on your Shinno RGB kits.</string>
+	<string>Shinno Sync uses Bluetooth to find and control the lighting devices on your Shinno RGB kits.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>bluetooth-central</string>

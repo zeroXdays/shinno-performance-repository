@@ -38,6 +38,11 @@ import {
   writeCar,
   writeGarage,
 } from "@/lib/garage-storage";
+import {
+  DEMO_DEVICES_ENABLED,
+  buildDemoControllers,
+  isDemoController,
+} from "@/lib/demo-devices";
 
 type Target = "all" | ZoneKind;
 
@@ -64,6 +69,8 @@ interface GarageContextValue {
   startPath: (pathId: string) => Promise<void>;
   stopPath: () => Promise<void>;
   resetGarage: () => void;
+  /** DEMO: seed fake paired zones for preview without BLE. Easy remove via demo-devices.ts */
+  seedDemoDevices: () => void;
   scan: () => Promise<void>;
   stopScan: () => void;
   refreshNearby: () => Promise<void>;
@@ -150,6 +157,8 @@ export function GarageProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const writeTo = useCallback(async (controller: Controller, frames: Uint8Array[]) => {
+    // DEMO: no BLE writes for seeded preview devices
+    if (isDemoController(controller)) return;
     const transport = transports.current.get(controller.id) ?? web.current;
     if (!transport) return;
     transports.current.set(controller.id, transport);
@@ -197,6 +206,11 @@ export function GarageProvider({ children }: { children: ReactNode }) {
   const ensureConnected = useCallback(
     async (controller: Controller) => {
       if (controller.connection === "connected") return controller;
+      // DEMO: treat seeded devices as already linked
+      if (isDemoController(controller)) {
+        patch(controller.id, { connection: "connected", wantConnected: true, error: undefined });
+        return { ...controller, connection: "connected" as const, wantConnected: true };
+      }
       const transport = (web.current ??= new WebBluetoothTransport());
       bindTransport(transport);
       transport.remember(controller.id);
@@ -217,6 +231,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
   const resetGarage = useCallback(() => {
     for (const controller of controllers) {
+      if (isDemoController(controller)) continue;
       void transports.current.get(controller.id)?.disconnect(controller.id);
     }
     transports.current.clear();
@@ -224,6 +239,23 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     setDiscoveries([]);
     setTarget("all");
   }, [controllers, setControllers]);
+
+  /** DEMO: one-click seed for preview without BLE — remove via DEMO_DEVICES_ENABLED / demo-devices.ts */
+  const seedDemoDevices = useCallback(() => {
+    if (!DEMO_DEVICES_ENABLED) return;
+    const demos = buildDemoControllers();
+    setControllers((prev) => {
+      const withoutDemo = prev.filter((row) => !isDemoController(row));
+      const keptReal = withoutDemo;
+      const next = [...keptReal];
+      for (const demo of demos) {
+        if (!next.some((row) => row.zone === demo.zone)) next.push(demo);
+      }
+      return next;
+    });
+    setLastError(null);
+    setTab("devices");
+  }, [setControllers]);
 
   const pair = useCallback(
     async (discovery: DiscoveredDevice) => {
@@ -269,6 +301,12 @@ export function GarageProvider({ children }: { children: ReactNode }) {
       /* getDevices is optional */
     }
     for (const controller of getGarageControllers()) {
+      if (isDemoController(controller)) {
+        if (controller.wantConnected && controller.connection !== "connected") {
+          patch(controller.id, { connection: "connected", error: undefined });
+        }
+        continue;
+      }
       if (!controller.wantConnected) {
         transport.forgetAuto(controller.id);
         continue;
@@ -678,6 +716,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     startPath,
     stopPath,
     resetGarage,
+    seedDemoDevices,
     scan,
     refreshNearby,
     stopScan,

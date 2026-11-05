@@ -24,16 +24,17 @@ enum ZoneKind: String, CaseIterable, Identifiable, Codable {
 }
 
 enum CarKind: String, CaseIterable, Identifiable, Codable {
-    case q50, q60, q70
+    case q50, g37, q60, q70
     var id: String { rawValue }
     var title: String {
         switch self {
         case .q50: return "Q50"
+        case .g37: return "G37"
         case .q60: return "Q60"
         case .q70: return "Q70"
         }
     }
-    var enabled: Bool { self == .q50 }
+    var enabled: Bool { self == .q50 || self == .g37 }
     var pickerLabel: String { enabled ? title : "\(title) — soon" }
 }
 

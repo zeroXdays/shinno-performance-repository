@@ -75,7 +75,7 @@ struct ShinnoHeader: View {
                 Text("SHINNO")
                     .font(.system(size: 18, weight: .semibold))
                     .tracking(4)
-                Text("Lights")
+                Text("Sync")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -400,7 +400,7 @@ struct ModesScreen: View {
                 } else {
                     Text("Phone-timed zone chases across Emblem, Mirrors, and Bumper. Built-in modes stay on one device.")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.white.opacity(0.65))
                 }
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
@@ -409,12 +409,18 @@ struct ModesScreen: View {
                             query = ""
                         } label: {
                             Text("Paths")
-                                .font(.caption)
+                                .font(.caption.weight(.semibold))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
                                 .background(
-                                    query.isEmpty && browser == .paths ? shinnoRed : Color.white.opacity(0.1),
+                                    query.isEmpty && browser == .paths ? shinnoRed : Color.white.opacity(0.12),
                                     in: Capsule()
+                                )
+                                .overlay(
+                                    Capsule().stroke(
+                                        query.isEmpty && browser == .paths ? shinnoRed : Color.white.opacity(0.22),
+                                        lineWidth: 1
+                                    )
                                 )
                                 .foregroundStyle(.white)
                         }
@@ -438,7 +444,7 @@ struct ModesScreen: View {
                 }
                 if browser == .paths && query.isEmpty {
                     ScrollView {
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                             ForEach(ZonePaths.all) { path in
                                 Button {
                                     if garage.activePathId == path.id {
@@ -451,26 +457,35 @@ struct ModesScreen: View {
                                         HexCell()
                                             .fill(path.swatch.color)
                                             .frame(width: 22, height: 22)
-                                            .overlay(HexCell().stroke(.white.opacity(0.28), lineWidth: 1))
+                                            .overlay(HexCell().stroke(.white.opacity(0.4), lineWidth: 1))
                                         Text(path.name)
                                             .font(.subheadline.weight(.semibold))
                                             .foregroundStyle(.white)
                                         Text(path.blurb)
                                             .font(.caption2)
-                                            .foregroundStyle(.secondary)
+                                            .foregroundStyle(Color.white.opacity(0.68))
                                             .multilineTextAlignment(.leading)
                                     }
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(12)
-                                    .background(Color.black.opacity(0.25), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    .background(Color(white: 0.09), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                            .stroke(garage.activePathId == path.id ? shinnoRed.opacity(0.7) : Color.white.opacity(0.08), lineWidth: 1)
+                                            .stroke(
+                                                garage.activePathId == path.id ? shinnoRed : Color.white.opacity(0.2),
+                                                lineWidth: 1
+                                            )
                                     )
                                 }
                                 .buttonStyle(.plain)
                             }
                         }
+                        .padding(10)
+                        .background(Color(white: 0.05), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                        )
                     }
                 } else if items.isEmpty {
                     Text("No modes match.")
@@ -556,7 +571,7 @@ struct ScanScreen: View {
 
                 Section("Nearby") {
                     if unpaired.isEmpty, garage.hub.bluetoothState == .poweredOn {
-                        Text("No new devices yet. Power the kits on the car. Shinno Lights keeps looking.")
+                        Text("No new devices yet. Power the kits on the car. Shinno Sync keeps looking.")
                             .foregroundStyle(.secondary)
                     }
                     ForEach(unpaired) { item in

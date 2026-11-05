@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useI18n } from "@/lib/i18n";
+import { PRODUCT_NAME } from "@/lib/legal";
 import {
   APP_VERSION,
   SUPPORT_EMAIL,
@@ -221,7 +222,7 @@ export function SettingsMenu() {
                   onClick={() => {
                     const body = encodeURIComponent(feedback.trim() || t("feedback.placeholder"));
                     window.open(
-                      `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Shinno Lights feedback")}&body=${body}`,
+                      `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`${PRODUCT_NAME} feedback`)}&body=${body}`,
                     );
                     setDoc(null);
                   }}

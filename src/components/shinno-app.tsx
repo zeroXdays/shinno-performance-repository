@@ -18,6 +18,7 @@ import { ZONE_PATHS } from "@/lib/paths";
 import { rgbToCss, rgbToHex, SCENES } from "@/lib/scenes";
 import { cn } from "@/lib/utils";
 import type { TabId } from "@/lib/controller";
+import { DEMO_DEVICES_ENABLED } from "@/lib/demo-devices";
 
 const SWATCHES = [
   { r: 196, g: 18, b: 32 },
@@ -62,14 +63,19 @@ export function ShinnoApp() {
     <div className="flex min-h-dvh flex-col text-foreground">
       <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-[#050505]/80 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3 px-5 py-3.5">
-          <Image
-            src="/shinno-logo-header.png"
-            alt="Shinno Performance"
-            width={507}
-            height={96}
-            className="h-8 w-auto sm:h-9"
-            priority
-          />
+          <div className="flex items-center gap-2.5">
+            <Image
+              src="/shinno-logo-header.png"
+              alt="Shinno Sync"
+              width={507}
+              height={96}
+              className="h-8 w-auto sm:h-9"
+              priority
+            />
+            <span className="text-[10px] font-medium tracking-[0.2em] text-white/60 uppercase sm:text-[11px] sm:tracking-[0.22em]">
+              Sync
+            </span>
+          </div>
           <div className="flex items-center gap-1.5">
             <label className="flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-[#121212] px-2.5 py-1.5 text-sm text-white/85">
               <Car className="size-3.5 text-white/45" />
@@ -388,7 +394,7 @@ function EffectsPanel({ onGoScan }: { onGoScan: () => void }) {
           aria-label="Search modes"
         />
       ) : (
-        <p className="text-xs text-white/40">{t("paths.hint")}</p>
+        <p className="text-xs text-white/65">{t("paths.hint")}</p>
       )}
       <div className="flex gap-1 overflow-x-auto pb-0.5">
         <button
@@ -398,10 +404,10 @@ function EffectsPanel({ onGoScan }: { onGoScan: () => void }) {
             setQuery("");
           }}
           className={cn(
-            "shrink-0 rounded-full px-2.5 py-1 text-xs transition",
+            "shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium transition",
             !query && group === "paths"
-              ? "bg-[#c41220] text-white shadow-[0_4px_14px_rgba(196,18,32,0.35)]"
-              : "bg-white/[0.08] text-white/65",
+              ? "border-[#c41220] bg-[#c41220] text-white shadow-[0_4px_14px_rgba(196,18,32,0.35)]"
+              : "border-white/15 bg-white/[0.1] text-white/85",
           )}
         >
           {t("paths.title")}
@@ -426,34 +432,48 @@ function EffectsPanel({ onGoScan }: { onGoScan: () => void }) {
         ))}
       </div>
       {group === "paths" && !query ? (
-        <div className="grid min-h-0 flex-1 grid-cols-2 gap-2 overflow-y-auto pr-0.5">
+        <div className="grid min-h-0 flex-1 grid-cols-2 content-start gap-2.5 overflow-y-auto rounded-xl border border-[#c41220]/35 bg-[#141414] p-2.5">
           {ZONE_PATHS.map((path) => {
             const activePathTile = garage.activePathId === path.id;
+            const disabled = !garage.controllers.length;
             return (
               <button
                 key={path.id}
                 type="button"
-                disabled={!garage.controllers.length}
+                disabled={disabled}
                 onClick={() => {
                   if (activePathTile) void garage.stopPath();
                   else void garage.startPath(path.id);
                 }}
                 className={cn(
-                  "flex flex-col items-start gap-2 rounded-xl border bg-[#0a0a0a] p-3 text-left disabled:opacity-40",
+                  "flex min-h-[7.25rem] flex-col items-start gap-2 rounded-xl border p-3 text-left transition",
                   activePathTile
-                    ? "border-[#c41220]/70 shadow-[0_0_18px_rgba(196,18,32,0.28)]"
-                    : "border-white/[0.08]",
+                    ? "border-[#c41220] bg-[#2a1216] shadow-[0_0_18px_rgba(196,18,32,0.4)]"
+                    : disabled
+                      ? "border-white/30 bg-[#222222]"
+                      : "border-white/28 bg-[#1e1e1e] hover:border-[#c41220]/55 hover:bg-[#241618]",
                 )}
               >
-                <span className="relative size-7">
-                  <span className="absolute inset-0 bg-white/25" style={{ clipPath: HEX_CLIP }} aria-hidden />
+                <span className="relative size-7 shrink-0">
+                  <span
+                    className="absolute inset-0 bg-white/45"
+                    style={{ clipPath: HEX_CLIP }}
+                    aria-hidden
+                  />
                   <span
                     className="absolute inset-[2px]"
-                    style={{ clipPath: HEX_CLIP, background: rgbToCss(path.swatch) }}
+                    style={{
+                      clipPath: HEX_CLIP,
+                      background: rgbToCss(path.swatch),
+                    }}
                   />
                 </span>
-                <span className="text-sm font-medium text-white/90">{path.name}</span>
-                <span className="text-[11px] leading-snug text-white/45">{path.blurb}</span>
+                <span className={cn("text-sm font-semibold tracking-wide", disabled ? "text-white/85" : "text-white")}>
+                  {path.name}
+                </span>
+                <span className={cn("text-[11px] leading-snug", disabled ? "text-white/60" : "text-white/72")}>
+                  {path.blurb}
+                </span>
               </button>
             );
           })}
@@ -489,6 +509,28 @@ function EffectsPanel({ onGoScan }: { onGoScan: () => void }) {
   );
 }
 
+function DemoSeedButton({ className }: { className?: string }) {
+  const garage = useGarage();
+  const { t } = useI18n();
+  if (!DEMO_DEVICES_ENABLED) return null;
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      className={cn(
+        "relative min-h-11 w-full rounded-xl border-dashed border-white/25 bg-[#121212] text-white/85 hover:bg-[#1a1a1a] hover:text-white",
+        className,
+      )}
+      onClick={() => garage.seedDemoDevices()}
+    >
+      <span className="absolute top-1.5 right-2 rounded px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.14em] text-[#c41220] uppercase">
+        Demo
+      </span>
+      {t("demo.add")}
+    </Button>
+  );
+}
+
 function ScanPanel() {
   const garage = useGarage();
   const { t } = useI18n();
@@ -502,6 +544,8 @@ function ScanPanel() {
         {garage.scanning ? <Loader2 className="animate-spin" /> : <Bluetooth />}
         {t("scan.pair")}
       </Button>
+      {/* DEMO: easy-remove preview seed — see src/lib/demo-devices.ts */}
+      <DemoSeedButton />
       {!garage.webBluetooth ? (
         <p className="text-center text-sm text-white/45">{t("scan.ble.none")}</p>
       ) : (
@@ -540,12 +584,16 @@ function DeviceList({ onGoScan }: { onGoScan: () => void }) {
   const { t } = useI18n();
   if (!garage.controllers.length) {
     return (
-      <EmptyGarage
-        title={t("devices.empty")}
-        hint={t("devices.emptyHint")}
-        actionLabel={t("devices.goScan")}
-        onAction={onGoScan}
-      />
+      <div className="flex flex-1 flex-col gap-3">
+        <EmptyGarage
+          title={t("devices.empty")}
+          hint={t("devices.emptyHint")}
+          actionLabel={t("devices.goScan")}
+          onAction={onGoScan}
+        />
+        {/* DEMO: easy-remove preview seed — see src/lib/demo-devices.ts */}
+        <DemoSeedButton className="mx-auto max-w-xs" />
+      </div>
     );
   }
   return (
@@ -560,6 +608,8 @@ function DeviceList({ onGoScan }: { onGoScan: () => void }) {
           {t("devices.clear")}
         </Button>
       </div>
+      {/* DEMO: re-seed if cleared — see src/lib/demo-devices.ts */}
+      <DemoSeedButton />
       {garage.controllers.map((controller) => (
         <div key={controller.id} className="rounded-xl border border-white/[0.08] bg-[#0a0a0a] p-3">
           <div className="flex items-center justify-between gap-2">

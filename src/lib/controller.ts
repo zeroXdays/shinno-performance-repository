@@ -104,6 +104,7 @@ export function hydrateControllers(raw: unknown): Controller[] {
     if (!row || typeof row !== "object") continue;
     const item = row as Partial<Controller> & { wantConnected?: boolean };
     if (typeof item.id !== "string" || typeof item.advertisedName !== "string") continue;
+    // Legacy simulator ids — drop. DEMO devices (demo-*) are intentional preview seeds.
     if (item.id.startsWith("sim-") || (item as { transport?: string }).transport === "simulator") continue;
     next.push({
       ...createController({
