@@ -687,54 +687,71 @@ struct ModeGlyphView: View {
 
     var body: some View {
         let motion = EffectPreview.motion(for: effect)
-        TimelineView(.animation(minimumInterval: animate ? 1.0 / 20.0 : 60)) { timeline in
-            Canvas { context, size in
-                let points = EffectPreview.pathPoints(motion: motion, ledCount: ledCount, in: size)
-                if points.count >= 2 {
-                    var stroke = Path()
-                    stroke.move(to: points[0])
-                    for point in points.dropFirst() { stroke.addLine(to: point) }
-                    context.stroke(stroke, with: .color(Color.white.opacity(0.12)), lineWidth: 2.2)
-                }
-                let elapsedMs = animate
-                    ? timeline.date.timeIntervalSinceReferenceDate * 1000
-                    : EffectPreview.periodMs(speed: speed, motion: motion) * 0.18
-                let dim = active || !animate ? 1.0 : 0.85
-                let ledR = min(size.width, size.height) * 0.033
-                for (index, point) in points.enumerated() {
-                    let rgb = EffectPreview.sampleLed(
-                        effect: effect,
-                        index: index,
-                        count: ledCount,
-                        elapsedMs: elapsedMs,
-                        speed: speed
-                    )
-                    let color = Color(
-                        red: Double(rgb.r) / 255 * dim,
-                        green: Double(rgb.g) / 255 * dim,
-                        blue: Double(rgb.b) / 255 * dim
-                    )
-                    // Soft glow so tails/runs read like the web drop-shadow glyphs.
-                    context.fill(
-                        Path(ellipseIn: CGRect(
-                            x: point.x - ledR * 1.8,
-                            y: point.y - ledR * 1.8,
-                            width: ledR * 3.6,
-                            height: ledR * 3.6
-                        )),
-                        with: .color(color.opacity(0.22))
-                    )
-                    context.fill(
-                        Path(ellipseIn: CGRect(
-                            x: point.x - ledR,
-                            y: point.y - ledR,
-                            width: ledR * 2,
-                            height: ledR * 2
-                        )),
-                        with: .color(color)
-                    )
+        let palette = EffectPreview.palette(for: effect)
+        VStack(spacing: 4) {
+            TimelineView(.animation(minimumInterval: animate ? 1.0 / 20.0 : 60)) { timeline in
+                Canvas { context, size in
+                    let points = EffectPreview.pathPoints(motion: motion, ledCount: ledCount, in: size)
+                    if points.count >= 2 {
+                        var stroke = Path()
+                        stroke.move(to: points[0])
+                        for point in points.dropFirst() { stroke.addLine(to: point) }
+                        context.stroke(stroke, with: .color(Color.white.opacity(0.12)), lineWidth: 2.2)
+                    }
+                    let elapsedMs = animate
+                        ? timeline.date.timeIntervalSinceReferenceDate * 1000
+                        : EffectPreview.periodMs(speed: speed, motion: motion) * 0.18
+                    let dim = active || !animate ? 1.0 : 0.9
+                    let ledR = min(size.width, size.height) * 0.038
+                    for (index, point) in points.enumerated() {
+                        let rgb = EffectPreview.sampleLed(
+                            effect: effect,
+                            index: index,
+                            count: ledCount,
+                            elapsedMs: elapsedMs,
+                            speed: speed
+                        )
+                        let color = Color(
+                            red: Double(rgb.r) / 255 * dim,
+                            green: Double(rgb.g) / 255 * dim,
+                            blue: Double(rgb.b) / 255 * dim
+                        )
+                        // Tight glow — wide soft glows washed every tile into the same rainbow haze.
+                        context.fill(
+                            Path(ellipseIn: CGRect(
+                                x: point.x - ledR * 1.35,
+                                y: point.y - ledR * 1.35,
+                                width: ledR * 2.7,
+                                height: ledR * 2.7
+                            )),
+                            with: .color(color.opacity(0.28))
+                        )
+                        context.fill(
+                            Path(ellipseIn: CGRect(
+                                x: point.x - ledR,
+                                y: point.y - ledR,
+                                width: ledR * 2,
+                                height: ledR * 2
+                            )),
+                            with: .color(color)
+                        )
+                    }
                 }
             }
+            // Exact named stops for this mode (R-G-B → three chips, Y-B → two, etc.).
+            HStack(spacing: 2) {
+                ForEach(Array(palette.enumerated()), id: \.offset) { _, rgb in
+                    RoundedRectangle(cornerRadius: 1, style: .continuous)
+                        .fill(Color(
+                            red: Double(rgb.r) / 255,
+                            green: Double(rgb.g) / 255,
+                            blue: Double(rgb.b) / 255
+                        ))
+                }
+            }
+            .frame(height: 5)
+            .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
+            .padding(.horizontal, 6)
         }
     }
 }

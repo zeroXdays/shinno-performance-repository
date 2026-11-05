@@ -126,22 +126,18 @@ enum EffectPreview {
             }
             return scale(cycle(colors, u, smooth: false), head)
         case .water, .wave:
-            // Discrete named colours (Y-B, G-B, …) — RGB-lerp would invent muddy greens.
-            let ripple = 0.2 + 0.8 * (0.5 + 0.5 * sin((s + u) * .pi * 4))
-            let smooth = colors.count > 3
-            return scale(cycle(colors, s + u, smooth: smooth), ripple)
+            // Named stops only — never RGB-lerp (R→G invents yellow and reads as rainbow).
+            let ripple = 0.35 + 0.65 * (0.5 + 0.5 * sin((s + u) * .pi * 4))
+            return scale(cycle(colors, s + u, smooth: allowSmooth(colors)), ripple)
         case .curtain:
             let open = 1 - abs(u * 2 - 1)
             let fromCenter = abs(s - 0.5) * 2
             let lit = effect.name.contains("Close") ? fromCenter >= 1 - open : fromCenter <= open
-            let smooth = colors.count > 3
-            return scale(cycle(colors, u, smooth: smooth), lit ? 1 : 0.07)
+            return scale(cycle(colors, u, smooth: allowSmooth(colors)), lit ? 1 : 0.07)
         case .trans:
             return sampleTrans(colors, s: s, u: u, name: effect.name)
         case .flow, .fade, .gradual:
-            // Flow names like W-R-W need the named stops, not invented mid hues.
-            let smooth = colors.count > 3 && motion != .flow
-            return cycle(colors, (s + u).truncatingRemainder(dividingBy: 1), smooth: smooth)
+            return cycle(colors, (s + u).truncatingRemainder(dividingBy: 1), smooth: allowSmooth(colors) && motion != .flow)
         case .flush:
             let band = 0.34
             let trail: Double
@@ -154,13 +150,13 @@ enum EffectPreview {
             } else {
                 trail = max(0, 1 - dist / band)
             }
-            return scale(cycle(colors, u, smooth: true), 0.06 + pow(trail, 1.2) * 0.94)
+            return scale(cycle(colors, u, smooth: allowSmooth(colors)), 0.06 + pow(trail, 1.2) * 0.94)
         case .energy:
             let breath = pulse(u)
             let ridge = pow(max(0, 1 - dist / 0.5), 1.55)
-            return scale(cycle(colors, u, smooth: true), min(1, 0.12 + breath * 0.55 + ridge * 0.33))
+            return scale(cycle(colors, u, smooth: allowSmooth(colors)), min(1, 0.12 + breath * 0.55 + ridge * 0.33))
         case .auto:
-            return scale(cycle(colors, s + u, smooth: true), 0.25 + 0.75 * (1 - dist / 0.5))
+            return scale(cycle(colors, s + u, smooth: allowSmooth(colors)), 0.25 + 0.75 * (1 - dist / 0.5))
         }
     }
 
@@ -283,69 +279,128 @@ enum EffectPreview {
         return rainbow
     }
 
-    /// "Y-B", "R-G-B", "W-R-W" — exact named colours, never a muddy RGB blend fallback.
+    /// Smooth RGB-lerp only for true rainbow (7+) — otherwise R→G invents yellow.
+    private static func allowSmooth(_ colors: [RGB]) -> Bool {
+        colors.count >= 7
+    }
+
+    /// "Y-B", "R-G-B", "W-R-W" — character scan (no regex word-boundary pitfalls).
     private static func letterCodes(in name: String) -> [RGB]? {
-        guard let match = name.range(
-            of: #"\b[WRGBYCP](?:-[WRGBYCP])+\b"#,
-            options: .regularExpression
-        ) else { return nil }
-        let parts = String(name[match]).split(separator: "-").map(String.init)
-        let colors = parts.compactMap { letterRGB[$0] }
-        return colors.count == parts.count && !colors.isEmpty ? colors : nil
+        let allowed = Set("WRGBYCP")
+        let chars = Array(name)
+        var best: [RGB]?
+        var i = 0
+        while i < chars.count {
+            let ch = chars[i]
+            guard allowed.contains(ch), let first = letterRGB[String(ch)] else {
+                i += 1
+                continue
+            }
+            if i > 0 {
+                let prev = chars[i - 1]
+                if prev == "-" || allowed.contains(prev) || prev.isLetter || prev.isNumber {
+                    i += 1
+                    continue
+                }
+            }
+            var colors = [first]
+            var j = i + 1
+            while j + 1 < chars.count, chars[j] == "-", allowed.contains(chars[j + 1]),
+                  let next = letterRGB[String(chars[j + 1])] {
+                colors.append(next)
+                j += 2
+            }
+            if colors.count >= 2 {
+                let ended = j >= chars.count || chars[j] == " " || (!allowed.contains(chars[j]) && chars[j] != "-")
+                if ended, best == nil || colors.count > (best?.count ?? 0) {
+                    best = colors
+                }
+            }
+            i += 1
+        }
+        return best
     }
 
     private static func spacedLetterCodes(in name: String) -> [RGB]? {
-        guard let match = name.range(
-            of: #"\b[WRGBYCP](?:\s+[WRGBYCP])+\b"#,
-            options: .regularExpression
-        ) else { return nil }
-        let parts = String(name[match]).split(whereSeparator: \.isWhitespace).map(String.init)
-        let colors = parts.compactMap { letterRGB[$0] }
-        return colors.count == parts.count && colors.count >= 2 ? colors : nil
+        let tokens = name.split(whereSeparator: \.isWhitespace).map(String.init)
+        guard tokens.count >= 2 else { return nil }
+        // Leading run of single-letter colour codes: "R G B Trans"
+        var colors: [RGB] = []
+        for token in tokens {
+            guard token.count == 1, let c = letterRGB[token] else { break }
+            colors.append(c)
+        }
+        return colors.count >= 2 ? colors : nil
     }
 
     private static func dmxSlashCodes(in name: String) -> [RGB]? {
         let upper = name.uppercased()
-        guard let match = upper.range(
-            of: #"\b(?:WH|RD|GN|BU|YE|CN|VT|BK)(?:/(?:WH|RD|GN|BU|YE|CN|VT|BK))+\b"#,
-            options: .regularExpression
-        ) else { return nil }
-        let parts = String(upper[match]).split(separator: "/").map(String.init)
-        let colors = parts.compactMap { dmxRGB[$0] }
-        return colors.count == parts.count && !colors.isEmpty ? colors : nil
+        let keys = ["WH", "RD", "GN", "BU", "YE", "CN", "VT", "BK"]
+        let tokens = upper.split(whereSeparator: { $0 == " " || $0 == "/" }).map(String.init)
+        // Find a slash-run inside the original uppercased string.
+        for key in keys {
+            guard let start = upper.range(of: key + "/") else { continue }
+            var colors: [RGB] = []
+            var idx = start.lowerBound
+            while idx < upper.endIndex {
+                let rest = upper[idx...]
+                guard let hit = keys.first(where: { rest.hasPrefix($0) }), let rgb = dmxRGB[hit] else { break }
+                colors.append(rgb)
+                idx = upper.index(idx, offsetBy: hit.count)
+                if idx < upper.endIndex, upper[idx] == "/" {
+                    idx = upper.index(after: idx)
+                    continue
+                }
+                break
+            }
+            if colors.count >= 2 { return colors }
+        }
+        _ = tokens
+        return nil
     }
 
     private static func dmxSpaceCodes(in name: String) -> [RGB]? {
         let upper = name.uppercased()
-        guard let match = upper.range(
-            of: #"\b(?:WH|RD|GN|BU|YE|CN|VT|BK)(?:\s+(?:WH|RD|GN|BU|YE|CN|VT|BK)){1,2}\b"#,
-            options: .regularExpression
-        ) else { return nil }
-        let parts = String(upper[match]).split(whereSeparator: \.isWhitespace).map(String.init)
-        let colors = parts.compactMap { dmxRGB[$0] }
-        return colors.count == parts.count && colors.count >= 2 ? colors : nil
+        let keys: Set<String> = ["WH", "RD", "GN", "BU", "YE", "CN", "VT", "BK"]
+        let tokens = upper.split(whereSeparator: \.isWhitespace).map(String.init)
+        var best: [RGB]?
+        var i = 0
+        while i < tokens.count {
+            guard keys.contains(tokens[i]), let first = dmxRGB[tokens[i]] else {
+                i += 1
+                continue
+            }
+            var colors = [first]
+            var j = i + 1
+            while j < tokens.count, keys.contains(tokens[j]), let next = dmxRGB[tokens[j]] {
+                colors.append(next)
+                j += 1
+            }
+            if colors.count >= 2, best == nil || colors.count > (best?.count ?? 0) {
+                best = colors
+            }
+            i = max(j, i + 1)
+        }
+        return best
     }
 
     private static func firstDmxColorToken(in name: String) -> RGB? {
-        let upper = name.uppercased()
-        for key in ["WH", "RD", "GN", "BU", "YE", "CN", "VT", "BK"] {
-            if upper.range(of: #"\b\#(key)\b"#, options: .regularExpression) != nil {
-                return dmxRGB[key]
-            }
+        let tokens = name.uppercased().split(whereSeparator: \.isWhitespace).map(String.init)
+        for token in tokens {
+            if let rgb = dmxRGB[token] { return rgb }
+            // "RD/GN/BU" handled elsewhere; lone token may still be "RD,"
+            let cleaned = token.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+            if let rgb = dmxRGB[cleaned] { return rgb }
         }
         return nil
     }
 
     private static func dmxOnPair(_ name: String) -> (fg: RGB, bg: RGB)? {
-        let upper = name.uppercased()
-        guard let match = upper.range(
-            of: #"\b(WH|RD|GN|BU|YE|CN|VT|BK)\s+ON\s+(WH|RD|GN|BU|YE|CN|VT|BK)\b"#,
-            options: .regularExpression
-        ) else { return nil }
-        let parts = String(upper[match]).replacingOccurrences(of: " ON ", with: " ")
-            .split(whereSeparator: \.isWhitespace)
-            .map(String.init)
-        guard parts.count == 2, let fg = dmxRGB[parts[0]], let bg = dmxRGB[parts[1]] else { return nil }
+        let tokens = name.uppercased().split(whereSeparator: \.isWhitespace).map(String.init)
+        guard let on = tokens.firstIndex(of: "ON"),
+              on > 0, on + 1 < tokens.count,
+              let fg = dmxRGB[tokens[on - 1]],
+              let bg = dmxRGB[tokens[on + 1]] else { return nil }
         return (fg, bg)
     }
 
@@ -471,15 +526,17 @@ enum EffectPreview {
         if palette.isEmpty { return target }
         if palette.count == 1 { return palette[0] }
 
+        // Hard colour stops only. Mixing R→G invents yellow and every Trans tile
+        // starts looking like the same rainbow wash.
         let pos = u * Double(palette.count)
-        let i = Int(floor(pos)) % palette.count
+        let i = wrap(Int(floor(pos)), palette.count)
         let t = pos - floor(pos)
         let from = palette[i]
-        let to = palette[(i + 1) % palette.count]
+        let to = palette[wrap(i + 1, palette.count)]
         let edge = 0.18
         let arrive = max(0, min(1, (t - local) / edge + 0.5))
-        let mixed = mix(from, to, arrive)
+        let chosen = arrive < 0.5 ? from : to
         let front = max(0, 1 - abs(local - t) / 0.09)
-        return scale(mixed, 0.38 + arrive * 0.52 + front * 0.28)
+        return scale(chosen, 0.45 + (arrive < 0.5 ? 1 - arrive : arrive) * 0.4 + front * 0.2)
     }
 }

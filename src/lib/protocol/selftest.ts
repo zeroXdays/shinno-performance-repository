@@ -106,6 +106,19 @@ const yb = paletteFor(49);
 if (yb.length !== 2 || yb[0].r < 200 || yb[1].b < 200 || yb[0].b > 80) {
   throw new Error(`Y-B Water palette should be yellow+blue, got ${JSON.stringify(yb)}`);
 }
+const rgbTrans = paletteFor(5);
+if (rgbTrans.length !== 3 || rgbTrans[1].g < 180 || rgbTrans[2].b < 200) {
+  throw new Error(`R-G-B Trans palette should be red+green+blue, got ${JSON.stringify(rgbTrans)}`);
+}
+const rgbTransBand = Array.from({ length: 20 }, (_, i) => sampleLed(5, i, 20, effectPeriodMs(5, 50) * 0.2, 50));
+for (const led of rgbTransBand) {
+  // Must stay on named stops — muddy yellow (high R+G, low B) means Trans is blending again.
+  const muddyYellow = led.r > 160 && led.g > 160 && led.b < 90;
+  const muddyCyan = led.g > 160 && led.b > 160 && led.r < 90;
+  if (muddyYellow || muddyCyan) {
+    throw new Error(`R-G-B Trans invented mid-hue ${JSON.stringify(led)} — should hard-switch R/G/B only`);
+  }
+}
 const wrw = paletteFor(144);
 if (wrw.length !== 3 || wrw[0].r < 250 || wrw[1].r < 200 || wrw[1].g > 80) {
   throw new Error(`W-R-W Flow Back palette should be white-red-white, got ${JSON.stringify(wrw)}`);

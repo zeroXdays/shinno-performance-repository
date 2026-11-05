@@ -6,6 +6,7 @@ import { useI18n } from "@/lib/i18n";
 import {
   effectById,
   motionFor,
+  paletteFor,
   rgbCss,
   sampleLed,
   type LedEffect,
@@ -27,24 +28,32 @@ export function ModeGlyph({
   const motion = motionFor(effect);
   const points = useMemo(() => pathFor(motion), [motion]);
   const d = useMemo(() => polyline(points), [points]);
+  const palette = useMemo(() => paletteFor(effect.id), [effect.id]);
 
   return (
-    <svg viewBox="0 0 100 100" className={cn("h-full w-full", className)} aria-hidden>
-      <path d={d} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round" />
-      {points.map((point, index) => {
-        const rgb = sampleLed(effect.id, index, LEDS, elapsed, speed);
-        return (
-          <circle
-            key={index}
-            cx={svgCoord(point.x)}
-            cy={svgCoord(point.y)}
-            r="3.1"
-            fill={rgbCss(rgb)}
-            style={{ filter: `drop-shadow(0 0 3px ${rgbCss(rgb, 0.9)})` }}
-          />
-        );
-      })}
-    </svg>
+    <div className={cn("flex h-full w-full flex-col gap-1", className)}>
+      <svg viewBox="0 0 100 100" className="min-h-0 w-full flex-1" aria-hidden>
+        <path d={d} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round" />
+        {points.map((point, index) => {
+          const rgb = sampleLed(effect.id, index, LEDS, elapsed, speed);
+          return (
+            <circle
+              key={index}
+              cx={svgCoord(point.x)}
+              cy={svgCoord(point.y)}
+              r="3.4"
+              fill={rgbCss(rgb)}
+              style={{ filter: `drop-shadow(0 0 2px ${rgbCss(rgb, 0.85)})` }}
+            />
+          );
+        })}
+      </svg>
+      <div className="flex h-1.5 gap-0.5 px-1.5">
+        {palette.map((rgb, i) => (
+          <span key={i} className="h-full flex-1 rounded-[1px]" style={{ background: rgbCss(rgb) }} />
+        ))}
+      </div>
+    </div>
   );
 }
 

@@ -94,11 +94,30 @@ function firstDmxToken(name: string): Rgb | undefined {
 }
 
 function letterCodes(name: string): Rgb[] | undefined {
-  const match = name.match(/\b[WRGBYCP](?:-[WRGBYCP])+\b/);
-  if (!match) return undefined;
-  const parts = match[0].split("-");
-  const colors = parts.map((p) => LETTER[p]).filter(Boolean);
-  return colors.length === parts.length && colors.length > 0 ? colors : undefined;
+  // Character scan — same as iOS. Avoid regex `\b` pitfalls around hyphens.
+  const allowed = new Set("WRGBYCP");
+  const chars = [...name];
+  let best: Rgb[] | undefined;
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i];
+    if (!allowed.has(ch) || !LETTER[ch]) continue;
+    if (i > 0) {
+      const prev = chars[i - 1];
+      if (prev === "-" || allowed.has(prev) || /[A-Za-z0-9]/.test(prev)) continue;
+    }
+    const colors: Rgb[] = [LETTER[ch]];
+    let j = i + 1;
+    while (j + 1 < chars.length && chars[j] === "-" && allowed.has(chars[j + 1]) && LETTER[chars[j + 1]]) {
+      colors.push(LETTER[chars[j + 1]]);
+      j += 2;
+    }
+    if (colors.length >= 2) {
+      const ended =
+        j >= chars.length || chars[j] === " " || (!allowed.has(chars[j]) && chars[j] !== "-");
+      if (ended && (!best || colors.length > best.length)) best = colors;
+    }
+  }
+  return best;
 }
 
 function spacedLetterCodes(name: string): Rgb[] | undefined {
@@ -258,8 +277,13 @@ export function effectPeriodMs(speed: number, group: EffectGroup | Motion): numb
   return 900 + t * 2200;
 }
 
+function allowSmooth(colors: Rgb[]): boolean {
+  // Only true rainbow blends — RGB-lerp of R→G invents yellow and looks like rainbow.
+  return colors.length >= 7;
+}
+
 function sampleTrans(colors: Rgb[], s: number, u: number, name: string): Rgb {
-  const toTarget = name.includes("6-Color to");
+  const toTarget = name.includes("6-Color to") || name.includes("6 Colors");
   const target = colors[colors.length - 1] ?? WHITE;
   const goal = 0.72;
   let local = s;
@@ -272,16 +296,17 @@ function sampleTrans(colors: Rgb[], s: number, u: number, name: string): Rgb {
   if (palette.length === 0) return target;
   if (palette.length === 1) return palette[0];
 
+  // Hard stops only so R-G-B Trans stays red/green/blue — never a muddy rainbow wash.
   const pos = u * palette.length;
-  const i = Math.floor(pos) % palette.length;
+  const i = wrap(Math.floor(pos), palette.length);
   const t = pos - Math.floor(pos);
   const from = palette[i];
-  const to = palette[(i + 1) % palette.length];
+  const to = palette[wrap(i + 1, palette.length)];
   const edge = 0.18;
   const arrive = Math.max(0, Math.min(1, (t - local) / edge + 0.5));
-  const mixed = mix(from, to, arrive);
+  const chosen = arrive < 0.5 ? from : to;
   const front = Math.max(0, 1 - Math.abs(local - t) / 0.09);
-  return scale(mixed, 0.38 + arrive * 0.52 + front * 0.28);
+  return scale(chosen, 0.45 + (arrive < 0.5 ? 1 - arrive : arrive) * 0.4 + front * 0.2);
 }
 
 function wrap(i: number, n: number): number {
@@ -495,24 +520,20 @@ export function sampleLed(
     return scale(cycle(colors, u, false), head);
   }
   if (motion === "water" || motion === "wave") {
-    const ripple = 0.2 + 0.8 * (0.5 + 0.5 * Math.sin((s + u) * Math.PI * 4));
-    // Named pairs (Y-B, G-B) must stay on those stops — RGB-lerp invents muddy greens.
-    const smooth = colors.length > 3;
-    return scale(cycle(colors, s + u, smooth), ripple);
+    const ripple = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin((s + u) * Math.PI * 4));
+    return scale(cycle(colors, s + u, allowSmooth(colors)), ripple);
   }
   if (motion === "curtain") {
     const open = 1 - Math.abs(u * 2 - 1);
     const fromCenter = Math.abs(s - 0.5) * 2;
     const lit = effect?.name.includes("Close") ? fromCenter >= 1 - open : fromCenter <= open;
-    const smooth = colors.length > 3;
-    return scale(cycle(colors, u, smooth), lit ? 1 : 0.07);
+    return scale(cycle(colors, u, allowSmooth(colors)), lit ? 1 : 0.07);
   }
   if (motion === "trans") {
     return sampleTrans(colors, s, u, effect?.name ?? "");
   }
   if (motion === "flow" || motion === "fade" || motion === "gradual") {
-    const smooth = colors.length > 3 && motion !== "flow";
-    return cycle(colors, (s + u) % 1, smooth);
+    return cycle(colors, (s + u) % 1, allowSmooth(colors) && motion !== "flow");
   }
   if (motion === "flush") {
     const name = effect?.name ?? "";
@@ -527,15 +548,15 @@ export function sampleLed(
     } else {
       trail = Math.max(0, 1 - dist / band);
     }
-    return scale(cycle(colors, u, true), 0.06 + Math.pow(trail, 1.2) * 0.94);
+    return scale(cycle(colors, u, allowSmooth(colors)), 0.06 + Math.pow(trail, 1.2) * 0.94);
   }
   if (motion === "energy") {
     const breath = pulse(u);
     const ridge = Math.pow(Math.max(0, 1 - dist / 0.5), 1.55);
-    return scale(cycle(colors, u, true), Math.min(1, 0.12 + breath * 0.55 + ridge * 0.33));
+    return scale(cycle(colors, u, allowSmooth(colors)), Math.min(1, 0.12 + breath * 0.55 + ridge * 0.33));
   }
   if (motion === "auto") {
-    return scale(cycle(colors, s + u, true), 0.25 + 0.75 * (1 - dist / 0.5));
+    return scale(cycle(colors, s + u, allowSmooth(colors)), 0.25 + 0.75 * (1 - dist / 0.5));
   }
   return scale(base, 0.35 + 0.65 * (1 - dist / 0.45));
 }
