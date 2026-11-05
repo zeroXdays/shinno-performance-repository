@@ -1,0 +1,32 @@
+Name:
+Shinno Sync
+
+Subtitle (30):
+RGB controller for Q50/G37
+
+Category:
+Utilities
+
+Description:
+Shinno Sync is the iPhone controller for Shinno RGB kits on Infiniti Q50 and G37 — emblem, mirrors, and bumper.
+
+Power the lighting devices that shipped with your kits, allow Bluetooth, and the app scans for them. Add each device, assign a zone, then set color, brightness, power, and lighting modes. Speed 0 is slow, 100 is fast.
+
+Save both a Q50 and a G37 in the garage and switch between them — each car keeps its own kits. G37 is emblem-only in this version. Q60 and Q70 are listed as soon and cannot be selected yet. Grille badge control is not in this version.
+
+There is no account, no in-app shop, and no demo mode. Names, colors, and paired devices stay on this iPhone.
+
+Questions: support@shinnoperformance.com
+
+Keywords (100 characters max):
+Shinno,Sync,RGB,LED,Q50,G37,emblem,bumper,mirror,Bluetooth
+
+Support URL:
+https://shinnoperformance.com
+
+Marketing URL:
+https://shinnoperformance.com
+
+Privacy policy URL:
+https://shinnoperformance.com/privacy
+(Host privacy-policy.txt at that URL before submitting.)

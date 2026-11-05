@@ -1,0 +1,12 @@
+Shinno Sync is a native Bluetooth Low Energy controller for physical Shinno RGB kits. It is not a website wrapper. Reviewers need:
+
+1. An iPhone with Bluetooth on.
+2. Powered lighting devices from a Shinno Q50 or G37 kit. They advertise as ELK-BLEDOM, ELK-BLEDOB, MELK, or LEDBLE (Magic Lantern / Lotus Lamp X family). One device per kit: emblem, mirrors, bumper (G37: emblem only in this build).
+3. Allow the Bluetooth permission prompt. The app scans continuously while Bluetooth is on (including bluetooth-central so saved devices can reconnect when they power on). Add each device once on Scan, then assign the zone on Devices. After that, turning a kit off and on should reconnect and restore the last color/mode without scanning again.
+4. Color, brightness, power, Modes, and Paths write BLE frames to the devices. There is no login, no IAP, and no demo/simulator mode — the binary does nothing useful without the hardware.
+
+Please review this iOS binary (com.shinnoperformance.lights). Shinno Sync is a native iPhone app.
+
+Q60/Q70 rows in the car picker are intentionally disabled (labeled “soon”). Q50 and G37 are selectable. The header car picker can hold both vehicles with separate paired kits. Grille is not offered in this build.
+
+If a device does not appear, confirm it is powered and within a few meters. Contact support@shinnoperformance.com if you need a hardware sample for review.
