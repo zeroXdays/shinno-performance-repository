@@ -28,9 +28,9 @@ export const ZONE_PATHS: ZonePath[] = [
     swatch: { r: 196, g: 18, b: 32 },
   },
   {
-    id: "front-rear",
-    name: "Front–rear",
-    blurb: "Emblem and bumper pulse as a pair",
+    id: "emblem-bumper",
+    name: "Emblem–bumper",
+    blurb: "Emblem ↔ front bumper (fog-light zone)",
     steps: [["emblem"], ["bumper"], ["emblem"], ["bumper"]],
     rest: "dim",
     swatch: { r: 40, g: 210, b: 255 },

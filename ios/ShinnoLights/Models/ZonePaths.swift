@@ -20,9 +20,9 @@ enum ZonePaths {
             swatch: RGB(r: 196, g: 18, b: 32)
         ),
         .init(
-            id: "front-rear",
-            name: "Front–rear",
-            blurb: "Emblem and bumper pulse as a pair",
+            id: "emblem-bumper",
+            name: "Emblem–bumper",
+            blurb: "Emblem ↔ front bumper (fog-light zone)",
             steps: [[.emblem], [.bumper], [.emblem], [.bumper]],
             restOff: false,
             swatch: RGB(r: 40, g: 210, b: 255)
