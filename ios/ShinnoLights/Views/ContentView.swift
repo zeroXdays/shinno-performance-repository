@@ -25,12 +25,14 @@ struct ContentView: View {
                 .tag(AppTab.devices)
         }
         .tint(shinnoRed)
+        .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .top, spacing: 0) {
             VStack(spacing: 0) {
                 ShinnoHeader(showSettings: $showSettings)
                 if garage.hub.bluetoothState == .poweredOff
                     || garage.hub.bluetoothState == .unauthorized
                     || garage.hub.bluetoothState == .unsupported
+                    || garage.hub.bluetoothState == .waiting
                 {
                     BluetoothBanner(state: garage.hub.bluetoothState)
                 }
@@ -52,12 +54,15 @@ struct ContentView: View {
             }
             .background(Color.black)
         }
-        .background(Color.black.ignoresSafeArea())
+        .background(Color.black.ignoresSafeArea(edges: .bottom))
         .sheet(isPresented: $showSettings) {
             SettingsView()
                 .environmentObject(garage)
         }
         .onAppear { garage.hub.startScan() }
+        .onChange(of: tab) { _, _ in
+            garage.hub.startScan()
+        }
     }
 }
 
@@ -191,7 +196,7 @@ struct ColorScreen: View {
             VehicleStageView()
                 .environmentObject(garage)
                 .padding(.horizontal, 16)
-                .padding(.top, 12)
+                .padding(.top, 8)
 
             if garage.controllers.isEmpty {
                 EmptyGarageCard(
@@ -335,7 +340,7 @@ struct ModesScreen: View {
             VehicleStageView()
                 .environmentObject(garage)
                 .padding(.horizontal, 16)
-                .padding(.top, 12)
+                .padding(.top, 8)
                 .padding(.bottom, 10)
 
             VStack(spacing: 12) {
@@ -735,7 +740,12 @@ struct ScanScreen: View {
             .filter { peripheral in
                 !garage.controllers.contains { $0.id == peripheral.identifier }
             }
-            .map { CBPeripheralLite(id: $0.identifier, name: $0.name ?? "Shinno device") }
+            .map {
+                CBPeripheralLite(
+                    id: $0.identifier,
+                    name: $0.name ?? "Shinno lighting device"
+                )
+            }
     }
 
     var body: some View {
@@ -746,9 +756,20 @@ struct ScanScreen: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     if garage.hub.bluetoothState == .poweredOn {
-                        Label("Scanning continuously", systemImage: "antenna.radiowaves.left.and.right")
+                        HStack {
+                            Label(
+                                garage.hub.scanning ? "Looking for kits" : "Scan paused",
+                                systemImage: "antenna.radiowaves.left.and.right"
+                            )
                             .font(.footnote)
                             .foregroundStyle(.secondary)
+                            Spacer()
+                            Button("Rescan") {
+                                garage.hub.startScan()
+                            }
+                            .font(.footnote.weight(.semibold))
+                            .tint(shinnoRed)
+                        }
                     }
                 }
 
@@ -774,14 +795,14 @@ struct ScanScreen: View {
 
                 Section("Nearby") {
                     if unpaired.isEmpty, garage.hub.bluetoothState == .poweredOn {
-                        Text("No new devices yet. Power the kits on the car. Shinno Sync keeps looking.")
+                        Text("No kits yet. Power the emblem / mirrors / bumper boxes, stand near the car, then tap Rescan.")
                             .foregroundStyle(.secondary)
                     }
                     ForEach(unpaired) { item in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(item.name)
-                                Text("Bluetooth")
+                                Text("Bluetooth · tap Add to pair")
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
                             }
@@ -804,7 +825,7 @@ struct ScanScreen: View {
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Text("Added")
+                            Text(controller.connected ? "Connected" : "Added")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }

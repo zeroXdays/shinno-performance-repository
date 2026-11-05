@@ -69,19 +69,33 @@ final class BleHub: NSObject, ObservableObject {
     }
 
     func startScan() {
-        guard central.state == .poweredOn else { return }
-        if !scanning {
-            scanning = true
-            status = "Scanning for devices"
-            central.scanForPeripherals(
-                withServices: nil,
-                options: [CBCentralManagerScanOptionAllowDuplicatesKey: true]
-            )
-        } else if central.isScanning == false {
-            central.scanForPeripherals(
-                withServices: nil,
-                options: [CBCentralManagerScanOptionAllowDuplicatesKey: true]
-            )
+        guard central.state == .poweredOn else {
+            status = bluetoothState.detail
+            return
+        }
+        // Always (re)start so a stuck isScanning=false after restore still works.
+        scanning = true
+        if central.isScanning {
+            central.stopScan()
+        }
+        // Broad scan — many ELK clones omit service UUIDs from advertisements.
+        central.scanForPeripherals(
+            withServices: nil,
+            options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
+        )
+        refreshStatus()
+    }
+
+    func refreshStatus() {
+        guard bluetoothState == .poweredOn else {
+            status = bluetoothState.detail
+            return
+        }
+        let n = discovered.count
+        if n == 0 {
+            status = "Scanning for Shinno lighting devices…"
+        } else {
+            status = "Found \(n) nearby · keep kits powered"
         }
     }
 
@@ -208,7 +222,6 @@ extension BleHub: CBCentralManagerDelegate {
         switch central.state {
         case .poweredOn:
             bluetoothState = .poweredOn
-            status = "Scanning for devices"
             onReady?()
             startScan()
         case .poweredOff:
@@ -245,10 +258,15 @@ extension BleHub: CBCentralManagerDelegate {
     }
 
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
-        let name = peripheral.name ?? (advertisementData[CBAdvertisementDataLocalNameKey] as? String)
-        guard ElkProtocol.looksLikeController(name) else { return }
-        if !discovered.contains(where: { $0.identifier == peripheral.identifier }) {
+        let localName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
+        let name = peripheral.name ?? localName
+        let matchesName = ElkProtocol.looksLikeController(name)
+        let matchesService = ElkProtocol.advertisesLedService(advertisementData)
+        guard matchesName || matchesService else { return }
+        let already = discovered.contains(where: { $0.identifier == peripheral.identifier })
+        if !already {
             discovered.append(peripheral)
+            refreshStatus()
         }
         peripherals[peripheral.identifier] = peripheral
         peripheral.delegate = self

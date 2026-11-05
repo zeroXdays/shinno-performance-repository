@@ -157,7 +157,16 @@ final class GarageStore: ObservableObject {
             guard let self, let index = self.controllers.firstIndex(where: { $0.id == id }) else { return }
             self.controllers[index].connected = false
         }
+        // Forward hub BLE publishes so Scan/Devices refresh even when adopt
+        // does not change the controllers array.
+        hub.objectWillChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &bag)
         hub.$discovered
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] list in
                 guard let self else { return }
                 Task { await self.adopt(list) }

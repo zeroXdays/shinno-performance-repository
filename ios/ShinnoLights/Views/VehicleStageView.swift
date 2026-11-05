@@ -78,7 +78,8 @@ struct VehicleStageView: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: wide ? 116 : 80)
+                .frame(height: wide ? 104 : 76)
+                .clipped()
 
                 HStack(spacing: 6) {
                     Circle()
@@ -204,7 +205,7 @@ private struct EmblemStageGlyph: View {
             Image("Emblem")
                 .resizable()
                 .scaledToFit()
-                .frame(maxWidth: 150, maxHeight: 78)
+                .frame(maxWidth: 132, maxHeight: 68)
                 .shadow(color: .black.opacity(0.7), radius: 8, y: 4)
 
             Ellipse()
@@ -216,11 +217,12 @@ private struct EmblemStageGlyph: View {
                         endRadius: 60
                     )
                 )
-                .frame(width: 120, height: 60)
+                .frame(width: 110, height: 54)
                 .blendMode(.softLight)
                 .allowsHitTesting(false)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
     }
 }
 

@@ -101,10 +101,25 @@ enum ElkProtocol {
     }
 
     static func looksLikeController(_ name: String?) -> Bool {
-        let upper = (name ?? "").uppercased()
-        return all.contains { model in
+        let upper = (name ?? "").trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        guard !upper.isEmpty else { return false }
+        if all.contains(where: { model in
             model.prefixes.contains { upper.hasPrefix($0) }
+        }) {
+            return true
         }
+        // Common ELK / SP110E / LEDBLE clones that omit the full brand prefix.
+        let loose = ["ELK-", "BLEDOM", "BLEDOB", "MELK", "LEDBLE", "LED-", "JACKY", "SP110", "LEDNET"]
+        return loose.contains { upper.contains($0) }
+    }
+
+    /// True when the advertisement includes a known LED service (name can be empty until connect).
+    static func advertisesLedService(_ advertisementData: [String: Any]) -> Bool {
+        let services = advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID] ?? []
+        let known: Set<CBUUID> = [fff0, ffe0, fff3, ffe1]
+        if services.contains(where: { known.contains($0) }) { return true }
+        let overflow = advertisementData[CBAdvertisementDataOverflowServiceUUIDsKey] as? [CBUUID] ?? []
+        return overflow.contains(where: { known.contains($0) })
     }
 
     static func power(_ model: ModelProfile, on: Bool) -> Data {
