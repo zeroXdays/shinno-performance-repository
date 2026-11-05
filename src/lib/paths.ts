@@ -30,7 +30,7 @@ export const ZONE_PATHS: ZonePath[] = [
   {
     id: "emblem-bumper",
     name: "Emblem–bumper",
-    blurb: "Emblem ↔ front bumper (fog-light zone)",
+    blurb: "Emblem ↔ front bumper",
     steps: [["emblem"], ["bumper"], ["emblem"], ["bumper"]],
     rest: "dim",
     swatch: { r: 40, g: 210, b: 255 },
