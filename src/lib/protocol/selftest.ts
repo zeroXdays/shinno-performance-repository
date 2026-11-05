@@ -1,9 +1,12 @@
 import {
   encodeBrightness,
   encodeColor,
+  encodeEffect,
   encodeEffectSpeed,
   encodePower,
+  encodeSolidColor,
   hexFrame,
+  LEDDMX_PATTERN_OFF,
 } from "./frames.ts";
 import { detectModel, FALLBACK_MODEL } from "./models.ts";
 import { effectPeriodMs, sampleEffect, sampleLed } from "./preview.ts";
@@ -33,16 +36,31 @@ assert(
 );
 const dmxRed = encodeColor(dmx, { r: 255, g: 0, b: 0 });
 assert(
-  "LEDDMX red (RBG wire order)",
+  "LEDDMX red (logical RGB)",
   hexFrame(dmxRed),
   "7b ff 07 ff 00 00 00 ff bf",
 );
 const dmxGreen = encodeColor(dmx, { r: 0, g: 255, b: 0 });
 assert(
-  "LEDDMX green (RBG wire order)",
+  "LEDDMX green (logical RGB)",
   hexFrame(dmxGreen),
+  "7b ff 07 00 ff 00 00 ff bf",
+);
+const dmxBlue = encodeColor(dmx, { r: 0, g: 0, b: 255 });
+assert(
+  "LEDDMX blue (logical RGB)",
+  hexFrame(dmxBlue),
   "7b ff 07 00 00 ff 00 ff bf",
 );
+assert(
+  "LEDDMX pattern Off",
+  hexFrame(encodeEffect(dmx, LEDDMX_PATTERN_OFF)),
+  "7b ff 03 00 ff ff ff ff bf",
+);
+const dmxSolid = encodeSolidColor(dmx, { r: 255, g: 0, b: 0 }, 100);
+assert("LEDDMX solid starts with power", hexFrame(dmxSolid[0]), "7b ff 04 01 ff ff ff ff bf");
+assert("LEDDMX solid clears pattern", hexFrame(dmxSolid[1]), "7b ff 03 00 ff ff ff ff bf");
+assert("LEDDMX solid then color", hexFrame(dmxSolid[2]), "7b ff 07 ff 00 00 00 ff bf");
 
 assert("power on", hexFrame(encodePower(elk, true)), "7e 04 04 f0 00 01 ff 00 ef");
 assert("power off", hexFrame(encodePower(elk, false)), "7e 04 04 00 00 00 ff 00 ef");

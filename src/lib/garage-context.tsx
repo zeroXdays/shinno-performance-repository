@@ -19,10 +19,10 @@ import { createController, guessZone, type Controller, type TabId } from "@/lib/
 import {
   detectModel,
   encodeBrightness,
-  encodeColor,
   encodeEffect,
   encodeEffectSpeed,
   encodePower,
+  encodeSolidColor,
   type Rgb,
 } from "@/lib/protocol";
 import { SCENES, type Scene } from "@/lib/scenes";
@@ -192,14 +192,17 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     async (controller: Controller) => {
       const live = getGarageControllers().find((row) => row.id === controller.id) ?? controller;
       const model = detectModel(live.advertisedName);
-      const frames: Uint8Array[] = [encodePower(model, live.power)];
-      if (live.power) {
-        frames.push(encodeColor(model, live.color));
-        frames.push(encodeBrightness(model, live.brightness));
-        if (live.effectId != null) {
-          frames.push(encodeEffect(model, live.effectId));
-          frames.push(encodeEffectSpeed(model, live.effectSpeed));
-        }
+      let frames: Uint8Array[];
+      if (!live.power) {
+        frames = [encodePower(model, false)];
+      } else if (live.effectId != null) {
+        frames = [
+          encodePower(model, true),
+          encodeEffect(model, live.effectId),
+          encodeEffectSpeed(model, live.effectSpeed),
+        ];
+      } else {
+        frames = encodeSolidColor(model, live.color, live.brightness);
       }
       await writeTo(live, frames);
     },
@@ -467,16 +470,14 @@ export function GarageProvider({ children }: { children: ReactNode }) {
           const live = await ensureConnected(controller);
           const model = detectModel(live.advertisedName);
           const lit = hot.includes(live.zone);
-          const frames: Uint8Array[] = [];
+          let frames: Uint8Array[];
           if (!lit && path.rest === "off") {
-            frames.push(encodePower(model, false));
+            frames = [encodePower(model, false)];
           } else {
             const brightness = lit
               ? live.brightness || 80
               : dimBrightness(live.brightness || 80);
-            frames.push(encodePower(model, true));
-            frames.push(encodeColor(model, color));
-            frames.push(encodeBrightness(model, brightness));
+            frames = encodeSolidColor(model, color, brightness);
           }
           await writeTo(live, frames);
           if (index < garage.length - 1) await sleep(18);
@@ -581,10 +582,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
         for (const [index, controller] of list.entries()) {
           const live = await ensureConnected(controller);
           const model = detectModel(live.advertisedName);
-          const frames = [encodeColor(model, color)];
-          if (!live.power) frames.unshift(encodePower(model, true));
-          frames.push(encodeBrightness(model, live.brightness));
-          await writeTo(live, frames);
+          await writeTo(live, encodeSolidColor(model, color, live.brightness));
           if (index < list.length - 1) await sleep(24);
         }
       });
@@ -610,10 +608,11 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     async (percent: number) => {
       await forEachSelected(async (controller) => {
         const model = detectModel(controller.advertisedName);
-        await writeTo(controller, [
-          encodeBrightness(model, percent),
-          encodeColor(model, controller.color),
-        ]);
+        if (controller.effectId == null) {
+          await writeTo(controller, encodeSolidColor(model, controller.color, percent));
+        } else {
+          await writeTo(controller, [encodeBrightness(model, percent)]);
+        }
       }, { brightness: percent });
     },
     [forEachSelected, writeTo],
@@ -671,14 +670,17 @@ export function GarageProvider({ children }: { children: ReactNode }) {
             const row = snapshot.find((s) => s.id === live.id);
             if (!row) continue;
             const model = detectModel(live.advertisedName);
-            const frames: Uint8Array[] = [encodePower(model, row.power)];
-            if (row.power) {
-              frames.push(encodeColor(model, row.color));
-              frames.push(encodeBrightness(model, row.brightness));
-              if (row.effectId) {
-                frames.push(encodeEffect(model, row.effectId));
-                frames.push(encodeEffectSpeed(model, row.effectSpeed ?? 50));
-              }
+            let frames: Uint8Array[];
+            if (!row.power) {
+              frames = [encodePower(model, false)];
+            } else if (row.effectId) {
+              frames = [
+                encodePower(model, true),
+                encodeEffect(model, row.effectId),
+                encodeEffectSpeed(model, row.effectSpeed ?? 50),
+              ];
+            } else {
+              frames = encodeSolidColor(model, row.color, row.brightness);
             }
             await writeTo(live, frames);
             if (index < controllers.length - 1) await sleep(24);

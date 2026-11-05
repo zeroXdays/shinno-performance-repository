@@ -83,15 +83,23 @@ enum ElkProtocol {
         id: "LEDDMX-00",
         prefixes: ["LEDDMX-00", "LEDDMX-03", "LEDDMX-", "LEDDMX", "LED-DMX", "LED_DMX", "LED DMX"],
         writeUUID: ffe1,
-        // LED+LAMP decompile: power uses 01/00 (not 03/02).
+        // LED+LAMP HCI sniff / decompile: power uses 01/00 (some forks send 03/02).
         turnOn: [0x7B, 0xFF, 0x04, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xBF],
         turnOff: [0x7B, 0xFF, 0x04, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xBF],
-        // LEDDMX strips are typically wired R-B-G (green/blue swapped on the wire).
-        color: [.byte(0x7B), .byte(0xFF), .byte(0x07), .red, .blue, .green, .byte(0x00), .byte(0xFF), .byte(0xBF)],
+        // Logical RGB — SPI channel-order lives on the controller, not in this frame.
+        // Pattern id 0 = "Off" (must be sent before solid colour or the kit stays in Dreaming).
+        color: [.byte(0x7B), .byte(0xFF), .byte(0x07), .red, .green, .blue, .byte(0x00), .byte(0xFF), .byte(0xBF)],
         brightness: [.byte(0x7B), .byte(0xFF), .byte(0x01), .value32, .value, .byte(0x00), .byte(0xFF), .byte(0xFF), .byte(0xBF)],
         effect: [.byte(0x7B), .byte(0xFF), .byte(0x03), .value, .byte(0xFF), .byte(0xFF), .byte(0xFF), .byte(0xFF), .byte(0xBF)],
         effectSpeed: [.byte(0x7B), .byte(0xFF), .byte(0x02), .value, .byte(0xFF), .byte(0x00), .byte(0xFF), .byte(0xFF), .byte(0xBF)]
     )
+
+    /// LEDDMX built-in pattern 0 = Off (exit Dreaming / Auto before solid colour).
+    static let ledDmxPatternOff = 0
+
+    static func isLedDmx(_ model: ModelProfile) -> Bool {
+        model.id.hasPrefix("LEDDMX")
+    }
 
     /// Default LED+LAMP password used in the 2A handshake after connect.
     static let leddmxPassword: [UInt8] = [0xA1, 0x23, 0x45, 0x67]

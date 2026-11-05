@@ -35,6 +35,28 @@ export function encodeColor(model: ModelProfile, rgb: Rgb): Uint8Array {
   });
 }
 
+/** LEDDMX pattern 0 = Off — required before a solid colour sticks. */
+export const LEDDMX_PATTERN_OFF = 0;
+
+export function isLedDmxModel(model: ModelProfile): boolean {
+  return model.id.startsWith("LEDDMX");
+}
+
+/** Power on + (pattern Off for LEDDMX) + colour + brightness. */
+export function encodeSolidColor(
+  model: ModelProfile,
+  rgb: Rgb,
+  brightness: number,
+): Uint8Array[] {
+  const frames: Uint8Array[] = [encodePower(model, true)];
+  if (isLedDmxModel(model)) {
+    frames.push(encodeEffect(model, LEDDMX_PATTERN_OFF));
+  }
+  frames.push(encodeColor(model, rgb));
+  frames.push(encodeBrightness(model, brightness));
+  return frames;
+}
+
 /** Native brightness. `percent` is 0–100. */
 export function encodeBrightness(model: ModelProfile, percent: number): Uint8Array {
   const i = clamp(percent, 0, 100);

@@ -283,11 +283,16 @@ final class GarageStore: ObservableObject {
         writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
             var frames = [ElkProtocol.power(model, on: controller.power)]
             if controller.power {
-                frames.append(ElkProtocol.color(model, rgb: controller.color))
-                frames.append(ElkProtocol.brightness(model, percent: controller.brightness))
                 if let effect = controller.effectId {
                     frames.append(ElkProtocol.effect(model, id: effect))
                     frames.append(ElkProtocol.speed(model, percent: controller.effectSpeed))
+                } else {
+                    // LEDDMX stays in Dreaming until pattern 0 (Off) is written.
+                    if ElkProtocol.isLedDmx(model) {
+                        frames.append(ElkProtocol.effect(model, id: ElkProtocol.ledDmxPatternOff))
+                    }
+                    frames.append(ElkProtocol.color(model, rgb: controller.color))
+                    frames.append(ElkProtocol.brightness(model, percent: controller.brightness))
                 }
             }
             return frames
@@ -396,11 +401,7 @@ final class GarageStore: ObservableObject {
             controller.effectId = nil
             let brightness = controller.brightness
             writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
-                [
-                    ElkProtocol.power(model, on: true),
-                    ElkProtocol.color(model, rgb: rgb),
-                    ElkProtocol.brightness(model, percent: brightness),
-                ]
+                solidColorFrames(model: model, rgb: rgb, brightness: brightness)
             }
         }
     }
@@ -409,13 +410,27 @@ final class GarageStore: ObservableObject {
         mutate { controller, peripheral, _ in
             controller.brightness = percent
             let color = controller.color
+            let effectId = controller.effectId
             writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
-                [
+                if effectId == nil {
+                    return solidColorFrames(model: model, rgb: color, brightness: percent)
+                }
+                return [
                     ElkProtocol.brightness(model, percent: percent),
-                    ElkProtocol.color(model, rgb: color),
                 ]
             }
         }
+    }
+
+    /// Solid colour for LEDDMX must clear the built-in pattern first (id 0 = Off).
+    private func solidColorFrames(model: ModelProfile, rgb: RGB, brightness: Int) -> [Data] {
+        var frames: [Data] = [ElkProtocol.power(model, on: true)]
+        if ElkProtocol.isLedDmx(model) {
+            frames.append(ElkProtocol.effect(model, id: ElkProtocol.ledDmxPatternOff))
+        }
+        frames.append(ElkProtocol.color(model, rgb: rgb))
+        frames.append(ElkProtocol.brightness(model, percent: brightness))
+        return frames
     }
 
     func setEffect(_ id: Int) {
@@ -493,11 +508,7 @@ final class GarageStore: ObservableObject {
             if lit {
                 controllers[index].power = true
                 writeFrames(to: peripheral, advertisedName: name) { model in
-                    [
-                        ElkProtocol.power(model, on: true),
-                        ElkProtocol.color(model, rgb: color),
-                        ElkProtocol.brightness(model, percent: brightness),
-                    ]
+                    solidColorFrames(model: model, rgb: color, brightness: brightness)
                 }
             } else if path.restOff {
                 controllers[index].power = false
@@ -507,11 +518,11 @@ final class GarageStore: ObservableObject {
             } else {
                 controllers[index].power = true
                 writeFrames(to: peripheral, advertisedName: name) { model in
-                    [
-                        ElkProtocol.power(model, on: true),
-                        ElkProtocol.color(model, rgb: color),
-                        ElkProtocol.brightness(model, percent: ZonePaths.dimBrightness(brightness)),
-                    ]
+                    solidColorFrames(
+                        model: model,
+                        rgb: color,
+                        brightness: ZonePaths.dimBrightness(brightness)
+                    )
                 }
             }
         }
@@ -538,16 +549,17 @@ final class GarageStore: ObservableObject {
             let brightness = controller.brightness
             let effectSpeed = controller.effectSpeed
             writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
-                var frames = [ElkProtocol.power(model, on: scene.power)]
-                if scene.power {
-                    frames.append(ElkProtocol.color(model, rgb: scene.color))
-                    frames.append(ElkProtocol.brightness(model, percent: brightness))
-                    if let effect = scene.effectId {
-                        frames.append(ElkProtocol.effect(model, id: effect))
-                        frames.append(ElkProtocol.speed(model, percent: scene.effectSpeed ?? effectSpeed))
-                    }
+                if scene.power, let effect = scene.effectId {
+                    return [
+                        ElkProtocol.power(model, on: true),
+                        ElkProtocol.effect(model, id: effect),
+                        ElkProtocol.speed(model, percent: scene.effectSpeed ?? effectSpeed),
+                    ]
                 }
-                return frames
+                if scene.power {
+                    return solidColorFrames(model: model, rgb: scene.color, brightness: brightness)
+                }
+                return [ElkProtocol.power(model, on: false)]
             }
         }
     }
