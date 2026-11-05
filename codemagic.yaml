@@ -50,26 +50,57 @@ workflows:
       - name: Increment iOS build number
         script: |
           # App Store Connect rejects reuse of the same CFBundleVersion.
-          # Pull the highest known build from TestFlight / App Store, then +1.
+          # Take the max of TestFlight, App Store, checked-in version, and Codemagic
+          # PROJECT_BUILD_NUMBER — then +1 so every upload is unique.
           set -euo pipefail
+          PBX="ios/ShinnoLights.xcodeproj/project.pbxproj"
           LATEST_TF=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" --platform IOS 2>/dev/null || true)
           LATEST_AS=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID" --platform IOS 2>/dev/null || true)
+          CHECKED_IN=$(grep -oE 'CURRENT_PROJECT_VERSION = [0-9]+' "$PBX" | head -1 | grep -oE '[0-9]+' || echo 0)
           LATEST=0
-          for n in "$LATEST_TF" "$LATEST_AS"; do
+          for n in "$LATEST_TF" "$LATEST_AS" "$CHECKED_IN" "${PROJECT_BUILD_NUMBER:-0}"; do
             if [[ "${n:-}" =~ ^[0-9]+$ ]] && (( n > LATEST )); then
               LATEST=$n
             fi
           done
           NEW=$((LATEST + 1))
+          if (( NEW <= 1 )); then NEW=2; fi
+          echo "CFBundleVersion sources: TF=${LATEST_TF:-none} AS=${LATEST_AS:-none} checked-in=$CHECKED_IN CM=${PROJECT_BUILD_NUMBER:-none}"
           echo "CFBundleVersion -> $NEW (previous max was $LATEST)"
-          sed -i.bak "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = $NEW;/g" \
-            ios/ShinnoLights.xcodeproj/project.pbxproj
+          sed -i.bak "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = $NEW;/g" "$PBX"
+          AFTER=$(grep -oE 'CURRENT_PROJECT_VERSION = [0-9]+' "$PBX" | sort -u)
+          echo "pbxproj now: $AFTER"
+          if ! grep -q "CURRENT_PROJECT_VERSION = $NEW;" "$PBX"; then
+            echo "ERROR: failed to write CURRENT_PROJECT_VERSION=$NEW" >&2
+            exit 1
+          fi
       - name: Build IPA
         script: |
           cd ios
           xcode-project build-ipa \
             --project "ShinnoLights.xcodeproj" \
             --scheme "$XCODE_SCHEME"
+      - name: Verify IPA build number
+        script: |
+          set -euo pipefail
+          IPA=$(ls ios/build/ios/ipa/*.ipa | head -1)
+          echo "Inspecting $IPA"
+          TMP=$(mktemp -d)
+          unzip -q "$IPA" -d "$TMP"
+          PLIST=$(find "$TMP" -name Info.plist | head -1)
+          # Prefer PlistBuddy on macOS builders
+          if [ -x /usr/libexec/PlistBuddy ]; then
+            VER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST")
+            BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PLIST")
+          else
+            VER=$(plutil -extract CFBundleShortVersionString raw "$PLIST")
+            BUILD=$(plutil -extract CFBundleVersion raw "$PLIST")
+          fi
+          echo "IPA version $VER ($BUILD)"
+          if [[ ! "$BUILD" =~ ^[0-9]+$ ]] || (( BUILD <= 1 )); then
+            echo "ERROR: IPA CFBundleVersion=$BUILD must be > 1 (Apple already has build 1)" >&2
+            exit 1
+          fi
     artifacts:
       - ios/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
