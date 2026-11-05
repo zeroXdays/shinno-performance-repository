@@ -561,7 +561,11 @@ struct ModesScreen: View {
                                     garage.setEffect(effect.id)
                                 } label: {
                                     VStack(spacing: 6) {
-                                        ModeGlyphView(effect: effect, speed: speed)
+                                        ModeGlyphView(
+                                            effect: effect,
+                                            speed: speed,
+                                            animate: hasDevices && (live?.power == true) && live?.effectId == effect.id
+                                        )
                                             .aspectRatio(1, contentMode: .fit)
                                             .frame(maxWidth: .infinity)
                                         Text(effect.name)
@@ -653,11 +657,13 @@ private struct ModePlayingBar: View {
 struct ModeGlyphView: View {
     var effect: LedEffect
     var speed: Int
+    /// When false (device off / not selected live), freeze on a static preview.
+    var animate: Bool = true
 
     private let ledCount = 20
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 24)) { timeline in
+        TimelineView(.animation(minimumInterval: animate ? 1 / 24 : 60)) { timeline in
             Canvas { context, size in
                 let points = pathPoints(in: size)
                 if points.count >= 2 {
@@ -666,16 +672,17 @@ struct ModeGlyphView: View {
                     for point in points.dropFirst() { stroke.addLine(to: point) }
                     context.stroke(stroke, with: .color(Color.white.opacity(0.12)), lineWidth: 2.2)
                 }
-                let t = timeline.date.timeIntervalSinceReferenceDate
+                let t = animate ? timeline.date.timeIntervalSinceReferenceDate : 0
                 let pace = Double(max(8, speed)) / 18
                 for (index, point) in points.enumerated() {
                     let phase = (t * pace + Double(index) * 0.35).truncatingRemainder(dividingBy: Double(ledCount))
                     let lit = Int(phase)
                     let rgb = paletteColor(at: (index + lit) % palette.count)
+                    let dim = animate ? 1.0 : 0.45
                     let r: CGFloat = min(size.width, size.height) * 0.031
                     context.fill(
                         Path(ellipseIn: CGRect(x: point.x - r, y: point.y - r, width: r * 2, height: r * 2)),
-                        with: .color(Color(red: rgb.r, green: rgb.g, blue: rgb.b))
+                        with: .color(Color(red: rgb.r * dim, green: rgb.g * dim, blue: rgb.b * dim))
                     )
                 }
             }
@@ -860,7 +867,9 @@ struct ScanScreen: View {
 
     private func modelHint(_ name: String) -> String {
         let model = ElkProtocol.detect(name: name)
-        if model.id == "ELK-BLEDDM" { return "G37 emblem · \(model.id)" }
+        if model.id == "ELK-BLEDDM" || model.id == "LED-DMX" {
+            return "G37 emblem · \(model.id)"
+        }
         return "Bluetooth · \(model.id)"
     }
 }

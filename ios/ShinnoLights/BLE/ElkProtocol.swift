@@ -62,16 +62,29 @@ enum ElkProtocol {
         effectSpeed: [.byte(0x7E), .byte(0x07), .byte(0x02), .value, .byte(0x00), .byte(0x00), .byte(0x00), .byte(0x00), .byte(0xEF)]
     )
 
-    /// G37 emblem kits advertise as ELK-BLEDDM / LED-DMX.
+    /// ELK-BLEDDM chip (FFF3) — power frames confirmed via ATT sniff.
     static let elkBleddm = ModelProfile(
         id: "ELK-BLEDDM",
-        prefixes: ["ELK-BLEDDM", "LED-DMX", "LED_DMX", "LEDDMX", "LED DMX", "DMX"],
+        prefixes: ["ELK-BLEDDM"],
         writeUUID: fff3,
         turnOn: [0x7E, 0x04, 0x04, 0xF0, 0x00, 0x01, 0xFF, 0x00, 0xEF],
         turnOff: [0x7E, 0x04, 0x04, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xEF],
         color: [.byte(0x7E), .byte(0x00), .byte(0x05), .byte(0x03), .red, .green, .blue, .byte(0x00), .byte(0xEF)],
         brightness: [.byte(0x7E), .byte(0x04), .byte(0x01), .value, .byte(0xFF), .byte(0x00), .byte(0xFF), .byte(0x00), .byte(0xEF)],
         effect: [.byte(0x7E), .byte(0x00), .byte(0x03), .value, .byte(0x03), .byte(0x00), .byte(0x00), .byte(0x00), .byte(0xEF)],
+        effectSpeed: [.byte(0x7E), .byte(0x00), .byte(0x02), .value, .byte(0x00), .byte(0x00), .byte(0x00), .byte(0x00), .byte(0xEF)]
+    )
+
+    /// G37 emblem kits that advertise as LED-DMX — HA "LED-" dialect on FFE1 (color is R-B-G).
+    static let ledDmx = ModelProfile(
+        id: "LED-DMX",
+        prefixes: ["LED-DMX", "LED_DMX", "LEDDMX", "LED DMX"],
+        writeUUID: ffe1,
+        turnOn: [0x7E, 0x04, 0x04, 0x01, 0xFF, 0xFF, 0xFF, 0x00, 0xEF],
+        turnOff: [0x7E, 0x04, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xEF],
+        color: [.byte(0x7E), .byte(0x07), .byte(0x05), .byte(0x03), .red, .blue, .green, .byte(0x00), .byte(0xEF)],
+        brightness: [.byte(0x7E), .byte(0x04), .byte(0x01), .value, .byte(0xFF), .byte(0xFF), .byte(0xFF), .byte(0x00), .byte(0xEF)],
+        effect: [.byte(0x7E), .byte(0x05), .byte(0x03), .value, .byte(0x03), .byte(0xFF), .byte(0xFF), .byte(0x00), .byte(0xEF)],
         effectSpeed: [.byte(0x7E), .byte(0x00), .byte(0x02), .value, .byte(0x00), .byte(0x00), .byte(0x00), .byte(0x00), .byte(0xEF)]
     )
 
@@ -111,8 +124,13 @@ enum ElkProtocol {
         effectSpeed: [.byte(0x7E), .byte(0x00), .byte(0x02), .value, .byte(0x00), .byte(0x00), .byte(0x00), .byte(0x00), .byte(0xEF)]
     )
 
-    /// Longest-prefix first so ELK-BLEDDM / ELK-BLEDOM beat the shorter ELK-BLE catch-all.
-    static let all = [elkBledom, elkBledob, elkBleddm, elkBle, melk, ledble]
+    /// Longest-prefix first so LED-DMX / ELK-BLEDDM beat shorter LED- / ELK-BLE catch-alls.
+    static let all = [ledDmx, elkBledom, elkBledob, elkBleddm, elkBle, melk, ledble]
+
+    static func isDmxFamily(_ name: String?) -> Bool {
+        let upper = normalizeName(name)
+        return upper.contains("DMX") || upper.contains("BLEDDM")
+    }
 
     static func detect(name: String?) -> ModelProfile {
         let upper = normalizeName(name)
@@ -126,13 +144,10 @@ enum ElkProtocol {
         }
         // Containment fallback for names that embed the chip id mid-string.
         if bestLen < 0 {
-            if upper.contains("BLEDDM")
-                || upper.contains("LED-DMX")
-                || upper.contains("LED_DMX")
-                || upper.contains("LEDDMX")
-                || upper.contains("LED DMX")
-                || upper.contains("DMX")
-            {
+            if upper.contains("LED-DMX") || upper.contains("LED_DMX") || upper.contains("LEDDMX") || upper.contains("LED DMX") {
+                return ledDmx
+            }
+            if upper.contains("BLEDDM") || upper.contains("DMX") {
                 return elkBleddm
             }
             if upper.contains("BLEDOB") { return elkBledob }
@@ -141,6 +156,24 @@ enum ElkProtocol {
             if upper.contains("LEDBLE") || upper.hasPrefix("LED-") { return ledble }
         }
         return best
+    }
+
+    /// Pick the dialect that matches both the advertised name and the writable GATT chars we found.
+    static func resolve(name: String?, writable: [CBUUID]) -> ModelProfile {
+        let detected = detect(name: name)
+        if writable.isEmpty || writable.contains(detected.writeUUID) {
+            return detected
+        }
+        if isDmxFamily(name) {
+            if writable.contains(ffe1) { return ledDmx }
+            if writable.contains(fff3) { return elkBleddm }
+        }
+        if writable.contains(fff3) {
+            if detected.id == "LEDBLE" || detected.id == "LED-DMX" { return elkBleddm }
+            return detected
+        }
+        if writable.contains(ffe1) { return detected.id == "ELK-BLEDDM" ? ledDmx : ledble }
+        return detected
     }
 
     static func looksLikeController(_ name: String?) -> Bool {

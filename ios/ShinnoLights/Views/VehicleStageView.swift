@@ -71,7 +71,8 @@ struct VehicleStageView: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: wide ? 96 : 72)
+                .frame(height: wide ? 92 : 72)
+                .frame(minHeight: wide ? 92 : 72)
 
                 HStack(spacing: 6) {
                     Circle()
@@ -150,7 +151,7 @@ private struct EmblemStageGlyph: View {
                     .frame(width: 120, height: 56)
             }
 
-            TimelineView(.animation(minimumInterval: 1 / 20)) { timeline in
+            TimelineView(.animation(minimumInterval: (on && controller?.effectId != nil) ? 1 / 20 : 60)) { timeline in
                 Canvas { context, size in
                     let cx = size.width / 2
                     let cy = size.height / 2
@@ -158,6 +159,7 @@ private struct EmblemStageGlyph: View {
                     let ry = size.height * 0.34
                     let n = 28
                     let t = timeline.date.timeIntervalSinceReferenceDate
+                    let chasing = on && controller?.effectId != nil
                     for i in 0..<n {
                         let a = -Double.pi / 2 + (Double(i) / Double(n)) * Double.pi * 2
                         let x = cx + cos(a) * rx
@@ -166,7 +168,7 @@ private struct EmblemStageGlyph: View {
                             guard on, let controller else {
                                 return RGB(r: 60, g: 60, b: 60)
                             }
-                            if controller.effectId != nil {
+                            if chasing {
                                 let lit = Int((t * Double(max(8, controller.effectSpeed)) / 12)
                                     .truncatingRemainder(dividingBy: Double(n)))
                                 if i == lit { return controller.color }
@@ -220,7 +222,7 @@ private struct EmblemStageGlyph: View {
     }
 }
 
-/// Single horizontal tapered LED strip (not a keypad grid).
+/// Equal-size square cells in one flush horizontal row.
 private struct CellsStageGlyph: View {
     var count: Int
     var controller: PairedController?
@@ -228,23 +230,28 @@ private struct CellsStageGlyph: View {
     var body: some View {
         let on = controller?.power == true
         let color = controller?.color ?? RGB(r: 196, g: 18, b: 32)
-        TimelineView(.animation(minimumInterval: 1 / 20)) { timeline in
+        let animate = on && controller?.effectId != nil
+        TimelineView(.animation(minimumInterval: animate ? 1 / 20 : 60)) { timeline in
             GeometryReader { geo in
                 let n = max(1, count)
+                let spacing = max(3, geo.size.width * 0.02)
+                let totalSpacing = spacing * CGFloat(n - 1)
+                let side = min(
+                    (geo.size.width - totalSpacing) / CGFloat(n),
+                    geo.size.height * 0.55
+                )
                 let tNow = timeline.date.timeIntervalSinceReferenceDate
-                let midY = geo.size.height / 2
-                HStack(spacing: max(3, geo.size.width * 0.012)) {
+                HStack(spacing: spacing) {
                     ForEach(0..<n, id: \.self) { i in
-                        let t = n == 1 ? 0.5 : Double(i) / Double(n - 1)
                         let lit: Bool = {
-                            guard on, controller?.effectId != nil else { return on }
+                            guard animate else { return on }
                             let speed = Double(max(8, controller?.effectSpeed ?? 50))
                             let head = Int((tNow * speed / 14).truncatingRemainder(dividingBy: Double(n)))
                             return i == head
                         }()
                         let fill: Color = {
                             if !on { return Color.white.opacity(0.16) }
-                            if controller?.effectId != nil && !lit {
+                            if animate && !lit {
                                 return Color(
                                     red: Double(color.r) / 255,
                                     green: Double(color.g) / 255,
@@ -259,21 +266,17 @@ private struct CellsStageGlyph: View {
                         }()
                         RoundedRectangle(cornerRadius: 2, style: .continuous)
                             .fill(fill)
-                            .frame(
-                                width: max(6, geo.size.width / CGFloat(n) * 0.72),
-                                height: max(10, geo.size.height * (0.42 - abs(t - 0.5) * 0.18))
-                            )
+                            .frame(width: side, height: side)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                .position(x: geo.size.width / 2, y: midY)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
-/// Horizontal bumper dots in the shared half-width slot.
+/// Equal-size bumper dots in the shared half-width slot.
 private struct DotsStageGlyph: View {
     var count: Int
     var controller: PairedController?
@@ -281,21 +284,25 @@ private struct DotsStageGlyph: View {
     var body: some View {
         let on = controller?.power == true
         let color = controller?.color ?? RGB(r: 196, g: 18, b: 32)
-        TimelineView(.animation(minimumInterval: 1 / 20)) { timeline in
+        let animate = on && controller?.effectId != nil
+        TimelineView(.animation(minimumInterval: animate ? 1 / 20 : 60)) { timeline in
             GeometryReader { geo in
                 let n = max(1, count)
+                let spacing = max(8, geo.size.width * 0.05)
+                let totalSpacing = spacing * CGFloat(n - 1)
+                let side = min(12, (geo.size.width - totalSpacing) / CGFloat(n), geo.size.height * 0.4)
                 let tNow = timeline.date.timeIntervalSinceReferenceDate
-                HStack(spacing: max(8, geo.size.width * 0.06)) {
+                HStack(spacing: spacing) {
                     ForEach(0..<n, id: \.self) { i in
                         let lit: Bool = {
-                            guard on, controller?.effectId != nil else { return on }
+                            guard animate else { return on }
                             let speed = Double(max(8, controller?.effectSpeed ?? 50))
                             let head = Int((tNow * speed / 14).truncatingRemainder(dividingBy: Double(n)))
                             return i == head
                         }()
                         let fill: Color = {
                             if !on { return Color.white.opacity(0.16) }
-                            if controller?.effectId != nil && !lit {
+                            if animate && !lit {
                                 return Color(
                                     red: Double(color.r) / 255,
                                     green: Double(color.g) / 255,
@@ -310,7 +317,7 @@ private struct DotsStageGlyph: View {
                         }()
                         Circle()
                             .fill(fill)
-                            .frame(width: 10, height: 10)
+                            .frame(width: side, height: side)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)

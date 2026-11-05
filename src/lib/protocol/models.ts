@@ -59,8 +59,7 @@ export const MODELS: ModelProfile[] = [
   },
   {
     id: "ELK-BLEDDM",
-    /** G37 emblem kits. Phone BLE lists often show this as ELK-BLEDDM / LED-DMX. */
-    prefixes: ["ELK-BLEDDM", "LED-DMX", "LED_DMX", "LEDDMX", "LED DMX", "DMX"],
+    prefixes: ["ELK-BLEDDM"],
     writeUuid: FFF3,
     readUuid: FFF4,
     brightnessScale: "percent",
@@ -70,6 +69,22 @@ export const MODELS: ModelProfile[] = [
       color: [126, 0, 5, 3, "r", "g", "b", 0, 239],
       brightness: [126, 4, 1, "i", 255, 0, 255, 0, 239],
       effect: [126, 0, 3, "v", 3, 0, 0, 0, 239],
+      effectSpeed: [126, 0, 2, "v", 0, 0, 0, 0, 239],
+    },
+  },
+  {
+    id: "LED-DMX",
+    /** G37 emblems that advertise as LED-DMX — HA "LED-" dialect on FFE1 (color is R-B-G). */
+    prefixes: ["LED-DMX", "LED_DMX", "LEDDMX", "LED DMX"],
+    writeUuid: FFE1,
+    readUuid: FFE2,
+    brightnessScale: "percent",
+    commands: {
+      turnOn: [126, 4, 4, 1, 255, 255, 255, 0, 239],
+      turnOff: [126, 4, 4, 0, 0, 0, 0, 0, 239],
+      color: [126, 7, 5, 3, "r", "b", "g", 0, 239],
+      brightness: [126, 4, 1, "i", 255, 255, 255, 0, 239],
+      effect: [126, 5, 3, "v", 3, 255, 255, 0, 239],
       effectSpeed: [126, 0, 2, "v", 0, 0, 0, 0, 239],
     },
   },

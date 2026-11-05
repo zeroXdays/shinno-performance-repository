@@ -231,9 +231,12 @@ final class GarageStore: ObservableObject {
         }
         let used = Set(controllers.map(\.zone))
         let zone = Self.guessZone(name, used: used, preferred: settings.car.kitZones)
-        let model = ElkProtocol.detect(name: name)
         do {
             try await hub.connect(peripheral)
+            let model = ElkProtocol.resolve(
+                name: name,
+                writable: hub.writableUUIDs(for: peripheral.identifier)
+            )
             lastError = nil
             controllers.append(
                 PairedController(
@@ -271,17 +274,37 @@ final class GarageStore: ObservableObject {
               let peripheral = hub.peripheral(id: id)
         else { return }
         let controller = controllers[index]
-        let model = ElkProtocol.detect(name: controller.advertisedName)
-        var frames = [ElkProtocol.power(model, on: controller.power)]
-        if controller.power {
-            frames.append(ElkProtocol.color(model, rgb: controller.color))
-            frames.append(ElkProtocol.brightness(model, percent: controller.brightness))
-            if let effect = controller.effectId {
-                frames.append(ElkProtocol.effect(model, id: effect))
-                frames.append(ElkProtocol.speed(model, percent: controller.effectSpeed))
+        writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
+            var frames = [ElkProtocol.power(model, on: controller.power)]
+            if controller.power {
+                frames.append(ElkProtocol.color(model, rgb: controller.color))
+                frames.append(ElkProtocol.brightness(model, percent: controller.brightness))
+                if let effect = controller.effectId {
+                    frames.append(ElkProtocol.effect(model, id: effect))
+                    frames.append(ElkProtocol.speed(model, percent: controller.effectSpeed))
+                }
+            }
+            return frames
+        }
+    }
+
+    /// Resolve the kit dialect from the live GATT map and write. DMX emblems get
+    /// both LED-DMX (FFE1) and BLEDDM (FFF3) payloads when both chars exist.
+    private func writeFrames(
+        to peripheral: CBPeripheral,
+        advertisedName: String,
+        build: (ModelProfile) -> [Data]
+    ) {
+        let writable = hub.writableUUIDs(for: peripheral.identifier)
+        let model = ElkProtocol.resolve(name: advertisedName, writable: writable)
+        hub.write(peripheral, frames: build(model), prefer: model.writeUUID)
+
+        if ElkProtocol.isDmxFamily(advertisedName) {
+            let alt: ModelProfile = model.id == "LED-DMX" ? ElkProtocol.elkBleddm : ElkProtocol.ledDmx
+            if writable.contains(alt.writeUUID), alt.writeUUID != model.writeUUID {
+                hub.write(peripheral, frames: build(alt), prefer: alt.writeUUID)
             }
         }
-        hub.write(peripheral, frames: frames)
     }
 
     func connect(_ id: UUID) async {
@@ -357,46 +380,57 @@ final class GarageStore: ObservableObject {
     }
 
     func setPower(_ on: Bool) {
-        mutate { controller, peripheral, model in
+        mutate { controller, peripheral, _ in
             controller.power = on
-            hub.write(peripheral, frames: [ElkProtocol.power(model, on: on)])
+            writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
+                [ElkProtocol.power(model, on: on)]
+            }
         }
     }
 
     func setColor(_ rgb: RGB) {
         stopPath()
-        mutate { controller, peripheral, model in
+        mutate { controller, peripheral, _ in
             controller.color = rgb
             controller.power = true
             controller.effectId = nil
-            hub.write(peripheral, frames: [
-                ElkProtocol.power(model, on: true),
-                ElkProtocol.color(model, rgb: rgb),
-                ElkProtocol.brightness(model, percent: controller.brightness),
-            ])
+            let brightness = controller.brightness
+            writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
+                [
+                    ElkProtocol.power(model, on: true),
+                    ElkProtocol.color(model, rgb: rgb),
+                    ElkProtocol.brightness(model, percent: brightness),
+                ]
+            }
         }
     }
 
     func setBrightness(_ percent: Int) {
-        mutate { controller, peripheral, model in
+        mutate { controller, peripheral, _ in
             controller.brightness = percent
-            hub.write(peripheral, frames: [
-                ElkProtocol.brightness(model, percent: percent),
-                ElkProtocol.color(model, rgb: controller.color),
-            ])
+            let color = controller.color
+            writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
+                [
+                    ElkProtocol.brightness(model, percent: percent),
+                    ElkProtocol.color(model, rgb: color),
+                ]
+            }
         }
     }
 
     func setEffect(_ id: Int) {
         stopPath()
-        mutate { controller, peripheral, model in
+        mutate { controller, peripheral, _ in
             controller.effectId = id
             controller.power = true
-            hub.write(peripheral, frames: [
-                ElkProtocol.power(model, on: true),
-                ElkProtocol.effect(model, id: id),
-                ElkProtocol.speed(model, percent: controller.effectSpeed),
-            ])
+            let speed = controller.effectSpeed
+            writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
+                [
+                    ElkProtocol.power(model, on: true),
+                    ElkProtocol.effect(model, id: id),
+                    ElkProtocol.speed(model, percent: speed),
+                ]
+            }
         }
     }
 
@@ -451,40 +485,49 @@ final class GarageStore: ObservableObject {
         for index in controllers.indices {
             let id = controllers[index].id
             guard let peripheral = hub.peripheral(id: id) else { continue }
-            let model = ElkProtocol.detect(name: controllers[index].advertisedName)
             let lit = hot.contains(controllers[index].zone)
             controllers[index].effectId = nil
             controllers[index].color = color
+            let brightness = controllers[index].brightness
+            let name = controllers[index].advertisedName
             if lit {
                 controllers[index].power = true
-                hub.write(peripheral, frames: [
-                    ElkProtocol.power(model, on: true),
-                    ElkProtocol.color(model, rgb: color),
-                    ElkProtocol.brightness(model, percent: controllers[index].brightness),
-                ])
+                writeFrames(to: peripheral, advertisedName: name) { model in
+                    [
+                        ElkProtocol.power(model, on: true),
+                        ElkProtocol.color(model, rgb: color),
+                        ElkProtocol.brightness(model, percent: brightness),
+                    ]
+                }
             } else if path.restOff {
                 controllers[index].power = false
-                hub.write(peripheral, frames: [ElkProtocol.power(model, on: false)])
+                writeFrames(to: peripheral, advertisedName: name) { model in
+                    [ElkProtocol.power(model, on: false)]
+                }
             } else {
                 controllers[index].power = true
-                hub.write(peripheral, frames: [
-                    ElkProtocol.power(model, on: true),
-                    ElkProtocol.color(model, rgb: color),
-                    ElkProtocol.brightness(model, percent: ZonePaths.dimBrightness(controllers[index].brightness)),
-                ])
+                writeFrames(to: peripheral, advertisedName: name) { model in
+                    [
+                        ElkProtocol.power(model, on: true),
+                        ElkProtocol.color(model, rgb: color),
+                        ElkProtocol.brightness(model, percent: ZonePaths.dimBrightness(brightness)),
+                    ]
+                }
             }
         }
     }
 
     func setEffectSpeed(_ percent: Int) {
-        mutate { controller, peripheral, model in
+        mutate { controller, peripheral, _ in
             controller.effectSpeed = percent
-            hub.write(peripheral, frames: [ElkProtocol.speed(model, percent: percent)])
+            writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
+                [ElkProtocol.speed(model, percent: percent)]
+            }
         }
     }
 
     func apply(_ scene: ScenePreset) {
-        mutate { controller, peripheral, model in
+        mutate { controller, peripheral, _ in
             controller.power = scene.power
             controller.color = scene.color
             controller.brightness = scene.brightness
@@ -492,16 +535,20 @@ final class GarageStore: ObservableObject {
             if let speed = scene.effectSpeed {
                 controller.effectSpeed = speed
             }
-            var frames = [ElkProtocol.power(model, on: scene.power)]
-            if scene.power {
-                frames.append(ElkProtocol.color(model, rgb: scene.color))
-                frames.append(ElkProtocol.brightness(model, percent: scene.brightness))
-                if let effect = scene.effectId {
-                    frames.append(ElkProtocol.effect(model, id: effect))
-                    frames.append(ElkProtocol.speed(model, percent: scene.effectSpeed ?? controller.effectSpeed))
+            let brightness = controller.brightness
+            let effectSpeed = controller.effectSpeed
+            writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
+                var frames = [ElkProtocol.power(model, on: scene.power)]
+                if scene.power {
+                    frames.append(ElkProtocol.color(model, rgb: scene.color))
+                    frames.append(ElkProtocol.brightness(model, percent: brightness))
+                    if let effect = scene.effectId {
+                        frames.append(ElkProtocol.effect(model, id: effect))
+                        frames.append(ElkProtocol.speed(model, percent: scene.effectSpeed ?? effectSpeed))
+                    }
                 }
+                return frames
             }
-            hub.write(peripheral, frames: frames)
         }
     }
 
@@ -511,7 +558,10 @@ final class GarageStore: ObservableObject {
             let id = controllers[index].id
             if case .zone(let zone) = target, controllers[index].zone != zone { continue }
             guard let peripheral = hub.peripheral(id: id) else { continue }
-            let model = ElkProtocol.detect(name: controllers[index].advertisedName)
+            let model = ElkProtocol.resolve(
+                name: controllers[index].advertisedName,
+                writable: hub.writableUUIDs(for: id)
+            )
             body(&controllers[index], peripheral, model)
             wrote = true
         }

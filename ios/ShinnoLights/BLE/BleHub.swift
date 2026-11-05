@@ -50,6 +50,7 @@ final class BleHub: NSObject, ObservableObject {
 
     private var central: CBCentralManager!
     private var writeChars: [UUID: CBCharacteristic] = [:]
+    private var writableByUUID: [UUID: [CBUUID: CBCharacteristic]] = [:]
     private var peripherals: [UUID: CBPeripheral] = [:]
     private var connectWaiters: [UUID: CheckedContinuation<Void, Error>] = [:]
     private var lastWrite: [UUID: Date] = [:]
@@ -234,6 +235,7 @@ final class BleHub: NSObject, ObservableObject {
             central.cancelPeripheralConnection(peripheral)
         }
         writeChars[id] = nil
+        writableByUUID[id] = nil
         advertisedNames[id] = nil
         discovered.removeAll { $0.identifier == id }
     }
@@ -267,12 +269,39 @@ final class BleHub: NSObject, ObservableObject {
         peripherals[id]
     }
 
-    func write(_ peripheral: CBPeripheral, frames: [Data]) {
-        guard let characteristic = writeChars[peripheral.identifier] else { return }
+    func writableUUIDs(for id: UUID) -> [CBUUID] {
+        Array(writableByUUID[id]?.keys ?? [])
+    }
+
+    func write(_ peripheral: CBPeripheral, frames: [Data], prefer preferUUID: CBUUID? = nil) {
+        let map = writableByUUID[peripheral.identifier] ?? [:]
+        let characteristic =
+            (preferUUID.flatMap { map[$0] })
+            ?? writeChars[peripheral.identifier]
+            ?? map[ElkProtocol.fff3]
+            ?? map[ElkProtocol.ffe1]
+            ?? map.values.first
+        guard let characteristic else { return }
+
+        let writeType: CBCharacteristicWriteType = {
+            if characteristic.properties.contains(.writeWithoutResponse) {
+                return .withoutResponse
+            }
+            return .withResponse
+        }()
+
         for (index, frame) in frames.enumerated() {
-            let delay = 0.022 * Double(index)
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                peripheral.writeValue(frame, for: characteristic, type: .withoutResponse)
+            let delay = 0.04 * Double(index)
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak peripheral] in
+                guard let peripheral else { return }
+                if writeType == .withoutResponse, !peripheral.canSendWriteWithoutResponse {
+                    // Queue briefly until the radio can accept another write.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
+                        peripheral.writeValue(frame, for: characteristic, type: writeType)
+                    }
+                } else {
+                    peripheral.writeValue(frame, for: characteristic, type: writeType)
+                }
             }
         }
         lastWrite[peripheral.identifier] = Date()
@@ -381,6 +410,7 @@ extension BleHub: CBCentralManagerDelegate {
 
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         writeChars[peripheral.identifier] = nil
+        writableByUUID[peripheral.identifier] = nil
         onDisconnected?(peripheral.identifier)
         if shouldReconnect.contains(peripheral.identifier) {
             let name = displayName(for: peripheral.identifier)
@@ -396,15 +426,38 @@ extension BleHub: CBPeripheralDelegate {
     }
 
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
-        let preferred = [ElkProtocol.fff3, ElkProtocol.ffe1]
-        if let match = service.characteristics?.first(where: { preferred.contains($0.uuid) })
-            ?? service.characteristics?.first(where: { $0.properties.contains(.writeWithoutResponse) || $0.properties.contains(.write) })
-        {
+        // Wait until every service has reported characteristics, then pick the
+        // write char that matches the kit dialect (LED-DMX → FFE1, BLEDDM → FFF3).
+        guard peripheral.services?.allSatisfy({ $0.characteristics != nil }) == true else { return }
+
+        var map: [CBUUID: CBCharacteristic] = [:]
+        for service in peripheral.services ?? [] {
+            for characteristic in service.characteristics ?? [] {
+                let writable = characteristic.properties.contains(.writeWithoutResponse)
+                    || characteristic.properties.contains(.write)
+                guard writable else { continue }
+                map[characteristic.uuid] = characteristic
+            }
+        }
+        writableByUUID[peripheral.identifier] = map
+
+        let name = displayName(for: peripheral.identifier)
+        let model = ElkProtocol.resolve(name: name, writable: Array(map.keys))
+        let preferred = [model.writeUUID, ElkProtocol.fff3, ElkProtocol.ffe1]
+        let match = preferred.compactMap { map[$0] }.first
+            ?? map.values.first
+
+        if let match {
             writeChars[peripheral.identifier] = match
             onConnected?(peripheral.identifier)
             connectWaiters.removeValue(forKey: peripheral.identifier)?.resume()
-        } else if peripheral.services?.allSatisfy({ $0.characteristics != nil }) == true, writeChars[peripheral.identifier] == nil {
+        } else if connectWaiters[peripheral.identifier] != nil {
             connectWaiters.removeValue(forKey: peripheral.identifier)?.resume(throwing: BleError.noCharacteristic)
         }
+    }
+
+    func peripheralIsReady(toSendWriteWithoutResponse peripheral: CBPeripheral) {
+        // Hook for queued without-response writes; no-op — write() already paces frames.
+        _ = peripheral
     }
 }
