@@ -406,69 +406,65 @@ struct ModesScreen: View {
                     }
                     .padding(10)
                     .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                } else {
-                    ModePlayingBar(
-                        effect: EffectsCatalog.effects(for: effectCar).first { $0.id == live?.effectId },
-                        speed: speed,
-                        powered: live?.power == true
-                    )
+                } else if let effect = EffectsCatalog.effects(for: effectCar).first(where: { $0.id == live?.effectId }),
+                          live?.power == true {
+                    // Only show now-playing when a mode is actually running — empty box wasted the fold.
+                    ModePlayingBar(effect: effect, speed: speed, powered: true)
                 }
 
-                // Speed + search share one compact row-stack.
-                VStack(spacing: 6) {
-                    HStack(spacing: 10) {
-                        Text(garage.activePathId == nil ? "Speed" : "Path")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(Color.white.opacity(0.55))
-                        Slider(
-                            value: Binding(
-                                get: { Double(speed) },
-                                set: {
-                                    if garage.activePathId != nil || browser == .paths {
-                                        garage.pathSpeed = Int($0)
-                                    } else if hasDevices {
-                                        garage.setEffectSpeed(Int($0))
-                                    } else {
-                                        garage.pathSpeed = Int($0)
-                                    }
+                HStack(spacing: 10) {
+                    Text(garage.activePathId == nil ? "Speed" : "Path")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Color.white.opacity(0.55))
+                    Slider(
+                        value: Binding(
+                            get: { Double(speed) },
+                            set: {
+                                if garage.activePathId != nil || browser == .paths {
+                                    garage.pathSpeed = Int($0)
+                                } else if hasDevices {
+                                    garage.setEffectSpeed(Int($0))
+                                } else {
+                                    garage.pathSpeed = Int($0)
                                 }
-                            ),
-                            in: 0...100
-                        )
-                        .tint(shinnoRed)
-                        .disabled(!hasDevices && garage.activePathId == nil)
-                        Text("\(speed)")
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                            .frame(width: 28, alignment: .trailing)
-                    }
+                            }
+                        ),
+                        in: 0...100
+                    )
+                    .tint(shinnoRed)
+                    .disabled(!hasDevices && garage.activePathId == nil)
+                    Text("\(speed)")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .frame(width: 28, alignment: .trailing)
+                }
 
+                HStack(spacing: 8) {
                     if browser != .paths {
-                        TextField("Search modes…", text: $query)
+                        TextField("Search…", text: $query)
                             .textFieldStyle(.roundedBorder)
                             .textInputAutocapitalization(.never)
                             .font(.caption)
                     }
-                }
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                        modeChip("Paths", selected: query.isEmpty && browser == .paths) {
-                            browser = .paths
-                            query = ""
-                        }
-                        ForEach(EffectGroup.allCases) { item in
-                            modeChip(item.title, selected: query.isEmpty && browser == .group(item)) {
-                                browser = .group(item)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            modeChip("Paths", selected: query.isEmpty && browser == .paths) {
+                                browser = .paths
                                 query = ""
+                            }
+                            ForEach(EffectGroup.allCases) { item in
+                                modeChip(item.title, selected: query.isEmpty && browser == .group(item)) {
+                                    browser = .group(item)
+                                    query = ""
+                                }
                             }
                         }
                     }
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.top, 10)
-            .padding(.bottom, 6)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
 
             // Mode / path grid fills the remaining viewport.
             Group {

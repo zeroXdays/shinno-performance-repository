@@ -1,26 +1,32 @@
 import SwiftUI
 
-/// Zone tiles matching the web VehicleStage — Emblem full-width, Mirrors|Bumper equal halves.
+/// Zone tiles — Emblem always full-width on top; Mirrors | Bumper share the row beneath.
 struct VehicleStageView: View {
     @EnvironmentObject var garage: GarageStore
     /// Modes tab uses a shorter stage so the mode grid stays on-screen.
     var compact: Bool = false
 
     private var zones: [ZoneKind] { garage.settings.car.kitZones }
-    private var singleZone: Bool { zones.count == 1 }
-
-    private let columns = [
-        GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8),
-    ]
+    private var hasEmblem: Bool { zones.contains(.emblem) }
+    private var sideZones: [ZoneKind] { zones.filter { $0 != .emblem } }
 
     var body: some View {
-        VStack(spacing: compact ? 6 : 10) {
-            LazyVGrid(columns: columns, spacing: compact ? 6 : 8) {
-                ForEach(zones) { zone in
-                    let wide = zone == .emblem || singleZone
-                    zoneTile(zone, wide: wide)
-                        .gridCellColumns(wide ? 2 : 1)
+        VStack(spacing: compact ? 6 : 8) {
+            if hasEmblem {
+                zoneTile(.emblem, wide: true)
+            }
+
+            if !sideZones.isEmpty {
+                HStack(spacing: compact ? 6 : 8) {
+                    ForEach(sideZones) { zone in
+                        zoneTile(zone, wide: false)
+                    }
+                }
+            } else if !hasEmblem {
+                HStack(spacing: compact ? 6 : 8) {
+                    ForEach(zones) { zone in
+                        zoneTile(zone, wide: false)
+                    }
                 }
             }
 
@@ -56,6 +62,10 @@ struct VehicleStageView: View {
             if case .zone = garage.target { return !selected }
             return false
         }()
+        let glyphH: CGFloat = {
+            if compact { return wide ? 52 : 40 }
+            return wide ? 88 : 68
+        }()
 
         Button {
             if case .zone(let z) = garage.target, z == zone {
@@ -64,7 +74,7 @@ struct VehicleStageView: View {
                 garage.target = .zone(zone)
             }
         } label: {
-            VStack(spacing: 8) {
+            VStack(spacing: compact ? 5 : 8) {
                 Group {
                     let effect = liveEffect(for: controller)
                     if zone == .emblem {
@@ -76,8 +86,7 @@ struct VehicleStageView: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: compact ? (wide ? 56 : 44) : (wide ? 92 : 72))
-                .frame(minHeight: compact ? (wide ? 56 : 44) : (wide ? 92 : 72))
+                .frame(height: glyphH)
 
                 HStack(spacing: 6) {
                     Circle()
@@ -97,19 +106,19 @@ struct VehicleStageView: View {
                         .minimumScaleFactor(0.8)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.top, 12)
-            .padding(.bottom, 10)
+            .padding(.horizontal, compact ? 10 : 12)
+            .padding(.top, compact ? 8 : 12)
+            .padding(.bottom, compact ? 8 : 10)
             .frame(maxWidth: .infinity, alignment: .top)
-            .background(Color(white: 0.07), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .background(Color(white: 0.07), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .stroke(
                         hot ? shinnoRed : (selected ? shinnoRed.opacity(0.8) : Color.white.opacity(0.08)),
                         lineWidth: 1
                     )
             )
-            .shadow(color: hot || selected ? shinnoRed.opacity(0.28) : .clear, radius: 12)
+            .shadow(color: hot || selected ? shinnoRed.opacity(0.28) : .clear, radius: 10)
             .opacity(dimmed ? 0.45 : 1)
         }
         .buttonStyle(.plain)
@@ -118,35 +127,25 @@ struct VehicleStageView: View {
     private func statusColor(_ controller: PairedController?) -> Color {
         guard let controller else { return Color.white.opacity(0.25) }
         if !controller.power { return Color.white.opacity(0.28) }
-        return Color(
-            red: Double(controller.color.r) / 255,
-            green: Double(controller.color.g) / 255,
-            blue: Double(controller.color.b) / 255
-        )
+        return controller.connected ? Color(red: 0.25, green: 0.85, blue: 0.45) : shinnoRed
     }
 
     private func statusLine(_ controller: PairedController?) -> String {
         guard let controller else { return "Empty" }
         if !controller.power { return "Off" }
-        if let effectId = controller.effectId {
-            let car: CarKind =
-                garage.controllers.contains(where: { ElkProtocol.isLeddmxName($0.advertisedName) })
-                ? .g37
-                : garage.settings.car
-            return EffectsCatalog.named(effectId, car: car) ?? "Mode"
+        if let id = controller.effectId,
+           let effect = EffectsCatalog.effects(for: garage.settings.car).first(where: { $0.id == id }) {
+            return effect.name
         }
-        return "On"
+        return controller.connected ? "On" : "Away"
     }
 
     private func liveEffect(for controller: PairedController?) -> LedEffect? {
         guard let id = controller?.effectId else { return nil }
-        let car: CarKind =
-            garage.controllers.contains(where: { ElkProtocol.isLeddmxName($0.advertisedName) })
-            ? .g37
-            : garage.settings.car
-        return EffectsCatalog.effects(for: car).first { $0.id == id }
+        return EffectsCatalog.effects(for: garage.settings.car).first { $0.id == id }
     }
 }
+
 
 private struct EmblemStageGlyph: View {
     var controller: PairedController?
