@@ -2,7 +2,7 @@ import CoreBluetooth
 import SwiftUI
 import UIKit
 
-private let shinnoRed = Color(red: 196 / 255, green: 18 / 255, blue: 32 / 255)
+let shinnoRed = Color(red: 196 / 255, green: 18 / 255, blue: 32 / 255)
 
 struct ContentView: View {
     @EnvironmentObject var garage: GarageStore
@@ -71,13 +71,15 @@ struct ShinnoHeader: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("SHINNO")
-                    .font(.system(size: 18, weight: .semibold))
-                    .tracking(4)
-                Text("Sync")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            HStack(spacing: 8) {
+                Image("ShinnoLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 28)
+                Text("SYNC")
+                    .font(.caption.weight(.semibold))
+                    .tracking(2)
+                    .foregroundStyle(.white.opacity(0.6))
             }
             Spacer()
             Menu {
@@ -187,12 +189,16 @@ struct ColorScreen: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
+                VehicleStageView()
+                    .environmentObject(garage)
+
                 if garage.controllers.isEmpty {
                     EmptyGarageCard(
                         tab: $tab,
                         title: "No devices yet",
                         detail: "Scan to add the lighting devices on your car, then set color here."
                     )
+                    .padding(.top, 8)
                 } else {
                     HStack {
                         Menu {
@@ -317,6 +323,11 @@ struct ModesScreen: View {
 
     var body: some View {
         VStack(spacing: 12) {
+            VehicleStageView()
+                .environmentObject(garage)
+                .padding(.horizontal)
+                .padding(.top, 8)
+
             if garage.controllers.isEmpty {
                 EmptyGarageCard(
                     tab: $tab,

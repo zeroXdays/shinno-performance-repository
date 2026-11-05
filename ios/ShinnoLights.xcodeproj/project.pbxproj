@@ -22,6 +22,7 @@
 		A10000000000000000000064 /* ZonePaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000074 /* ZonePaths.swift */; };
 		A10000000000000000000065 /* PurchaseLicense.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000075 /* PurchaseLicense.swift */; };
 		A10000000000000000000066 /* PurchaseGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000076 /* PurchaseGateView.swift */; };
+		A10000000000000000000067 /* VehicleStageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000077 /* VehicleStageView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -42,6 +43,7 @@
 		A10000000000000000000074 /* ZonePaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZonePaths.swift; sourceTree = "<group>"; };
 		A10000000000000000000075 /* PurchaseLicense.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseLicense.swift; sourceTree = "<group>"; };
 		A10000000000000000000076 /* PurchaseGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseGateView.swift; sourceTree = "<group>"; };
+		A10000000000000000000077 /* VehicleStageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VehicleStageView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -114,6 +116,7 @@
 				A10000000000000000000036 /* ColorWheelView.swift */,
 				A10000000000000000000073 /* SettingsView.swift */,
 				A10000000000000000000076 /* PurchaseGateView.swift */,
+				A10000000000000000000077 /* VehicleStageView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -199,6 +202,7 @@
 				A10000000000000000000064 /* ZonePaths.swift in Sources */,
 				A10000000000000000000065 /* PurchaseLicense.swift in Sources */,
 				A10000000000000000000066 /* PurchaseGateView.swift in Sources */,
+				A10000000000000000000067 /* VehicleStageView.swift in Sources */,
 				A10000000000000000000063 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
