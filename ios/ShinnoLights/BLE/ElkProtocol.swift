@@ -11,7 +11,7 @@ struct RGB: Equatable, Codable, Hashable {
     }
 }
 
-enum FrameSlot {
+enum FrameSlot: Equatable, Hashable {
     case byte(UInt8)
     case red
     case green
@@ -19,7 +19,7 @@ enum FrameSlot {
     case value
 }
 
-struct ModelProfile: Equatable {
+struct ModelProfile: Equatable, Hashable {
     let id: String
     let prefixes: [String]
     let writeUUID: CBUUID

@@ -1,5 +1,5 @@
 import Combine
-import CoreBluetooth
+@preconcurrency import CoreBluetooth
 import Foundation
 
 enum BluetoothState: Equatable {
@@ -163,11 +163,12 @@ final class BleHub: NSObject, ObservableObject {
         if peripheral.state == .connected, writeChars[peripheral.identifier] != nil {
             return
         }
+        let peripheralId = peripheral.identifier
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            connectWaiters[peripheral.identifier] = continuation
+            connectWaiters[peripheralId] = continuation
             central.connect(peripheral, options: nil)
             DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
-                guard let self, let waiter = self.connectWaiters.removeValue(forKey: peripheral.identifier) else { return }
+                guard let self, let waiter = self.connectWaiters.removeValue(forKey: peripheralId) else { return }
                 waiter.resume(throwing: BleError.timeout)
             }
         }
