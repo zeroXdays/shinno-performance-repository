@@ -581,12 +581,9 @@ struct ModesScreen: View {
                                         ModeGlyphView(
                                             effect: effect,
                                             speed: speed,
-                                            // Always preview-animate like the web ModeGlyph —
-                                            // freezing at t=0 makes every tile look like the same RGB bar.
                                             animate: true,
                                             active: hasDevices && live?.power == true && live?.effectId == effect.id
                                         )
-                                            .aspectRatio(1, contentMode: .fit)
                                             .frame(maxWidth: .infinity)
                                             .opacity(hasDevices && live?.effectId != nil && live?.effectId != effect.id ? 0.72 : 1)
                                         Text(effect.name)
@@ -651,7 +648,7 @@ private struct ModePlayingBar: View {
     var body: some View {
         VStack(spacing: 6) {
             if let effect, powered {
-                ModeGlyphView(effect: effect, speed: speed)
+                ModeGlyphView(effect: effect, speed: speed, showsLegend: false)
                     .frame(width: 96, height: 96)
             } else {
                 Text(effect == nil ? "Pick a mode" : "Power off")
@@ -671,88 +668,6 @@ private struct ModePlayingBar: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
-    }
-}
-
-/// Animated LED glyph for each mode tile — same sampler + paths as web ModeGlyph.
-struct ModeGlyphView: View {
-    var effect: LedEffect
-    var speed: Int
-    /// When false, freeze on a static preview frame.
-    var animate: Bool = true
-    /// Currently playing on a linked kit — full brightness; others stay readable.
-    var active: Bool = false
-
-    private let ledCount = 20
-
-    var body: some View {
-        let motion = EffectPreview.motion(for: effect)
-        let palette = EffectPreview.palette(for: effect)
-        VStack(spacing: 4) {
-            TimelineView(.animation(minimumInterval: animate ? 1.0 / 20.0 : 60)) { timeline in
-                Canvas { context, size in
-                    let points = EffectPreview.pathPoints(motion: motion, ledCount: ledCount, in: size)
-                    if points.count >= 2 {
-                        var stroke = Path()
-                        stroke.move(to: points[0])
-                        for point in points.dropFirst() { stroke.addLine(to: point) }
-                        context.stroke(stroke, with: .color(Color.white.opacity(0.12)), lineWidth: 2.2)
-                    }
-                    let elapsedMs = animate
-                        ? timeline.date.timeIntervalSinceReferenceDate * 1000
-                        : EffectPreview.periodMs(speed: speed, motion: motion) * 0.18
-                    let dim = active || !animate ? 1.0 : 0.9
-                    let ledR = min(size.width, size.height) * 0.038
-                    for (index, point) in points.enumerated() {
-                        let rgb = EffectPreview.sampleLed(
-                            effect: effect,
-                            index: index,
-                            count: ledCount,
-                            elapsedMs: elapsedMs,
-                            speed: speed
-                        )
-                        let color = Color(
-                            red: Double(rgb.r) / 255 * dim,
-                            green: Double(rgb.g) / 255 * dim,
-                            blue: Double(rgb.b) / 255 * dim
-                        )
-                        // Tight glow — wide soft glows washed every tile into the same rainbow haze.
-                        context.fill(
-                            Path(ellipseIn: CGRect(
-                                x: point.x - ledR * 1.35,
-                                y: point.y - ledR * 1.35,
-                                width: ledR * 2.7,
-                                height: ledR * 2.7
-                            )),
-                            with: .color(color.opacity(0.28))
-                        )
-                        context.fill(
-                            Path(ellipseIn: CGRect(
-                                x: point.x - ledR,
-                                y: point.y - ledR,
-                                width: ledR * 2,
-                                height: ledR * 2
-                            )),
-                            with: .color(color)
-                        )
-                    }
-                }
-            }
-            // Exact named stops for this mode (R-G-B → three chips, Y-B → two, etc.).
-            HStack(spacing: 2) {
-                ForEach(Array(palette.enumerated()), id: \.offset) { _, rgb in
-                    RoundedRectangle(cornerRadius: 1, style: .continuous)
-                        .fill(Color(
-                            red: Double(rgb.r) / 255,
-                            green: Double(rgb.g) / 255,
-                            blue: Double(rgb.b) / 255
-                        ))
-                }
-            }
-            .frame(height: 5)
-            .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
-            .padding(.horizontal, 6)
-        }
     }
 }
 

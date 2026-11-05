@@ -205,19 +205,15 @@ enum EffectPreview {
     // MARK: - Palette from name (Lotus + LEDDMX)
 
     private static func paletteFromName(_ name: String) -> [RGB] {
-        // Letter codes anywhere: "Y-B Water", "W-R-W Flow Back", "R-G-B Trans"
+        // Exact leading letter-codes first — bulletproof for Lotus names like
+        // "R-G-B Water", "Y-B Water", "W-R-W Flow Back".
+        if let codes = leadingLetterCodePalette(name) { return codes }
+
         if let codes = letterCodes(in: name) { return codes }
-
-        // Spaced letter codes: "R G B", "Y C P"
         if let codes = spacedLetterCodes(in: name) { return codes }
-
-        // DMX slash pairs/triples: "YE/BU", "RD/GN/BU", "YE/CN/VT"
         if let codes = dmxSlashCodes(in: name) { return codes }
-
-        // DMX flow: "WH RD WH"
         if let tokens = dmxSpaceCodes(in: name) { return tokens }
 
-        // Lotus "6-Color to Red" / DMX "6 Colors RD"
         if let m = name.range(of: #"6-Color to (Red|Green|Blue|Yellow|Cyan|Purple|White)"#, options: [.regularExpression, .caseInsensitive]) {
             let word = String(name[m]).components(separatedBy: " ").last ?? ""
             if let target = wordColor[word.capitalized] {
@@ -228,7 +224,6 @@ enum EffectPreview {
             return rainbow.filter { $0 != target } + [target]
         }
 
-        // "7-Color in Red" / "7 COLOR ON RD"
         if let m = name.range(of: #"7-Color in (Red|Green|Blue|Yellow|Cyan|Purple|White)"#, options: [.regularExpression, .caseInsensitive]) {
             let word = String(name[m]).components(separatedBy: " ").last ?? ""
             if let bg = wordColor[word.capitalized] {
@@ -239,7 +234,6 @@ enum EffectPreview {
             return [bg] + rainbow.filter { $0 != bg }
         }
 
-        // "Red-Dot in Blue" / "GN ON RD"
         if let m = name.range(
             of: #"(Red|Green|Blue|Yellow|Cyan|Purple|White)-Dot in (Red|Green|Blue|Yellow|Cyan|Purple|White)"#,
             options: [.regularExpression, .caseInsensitive]
@@ -255,11 +249,8 @@ enum EffectPreview {
             return [pair.bg, pair.fg]
         }
 
-        if name.contains("B-P-C-Y") { return [blue, purple, cyan, yellow] }
-        if name.contains("B-G-C-Y") { return [blue, green, cyan, yellow] }
         if name.contains("BK/WH") { return [black, white] }
 
-        // Full rainbow only for explicit multi-color / auto names
         if name.contains("7-Color") || name.contains("7 Colors") || name.contains("7 COLORS")
             || name.contains("Magic") || name.contains("Dreaming") || name.contains("Auto Play")
             || name.contains("Energy") || name.contains("Flutter") || name.contains("Follow Spot")
@@ -267,7 +258,6 @@ enum EffectPreview {
             return rainbow
         }
 
-        // Single named colour: "Green Run Back", "Red Tail", "Horse Race RD"
         if let m = name.range(
             of: #"\b(Red|Green|Blue|Yellow|Cyan|Purple|White)\b"#,
             options: [.regularExpression, .caseInsensitive]
@@ -277,6 +267,44 @@ enum EffectPreview {
         }
         if let single = firstDmxColorToken(in: name) { return [single] }
         return rainbow
+    }
+
+    /// Longest leading `R-G-B` / `Y-B` / `W-R-W` token → exact stops.
+    private static func leadingLetterCodePalette(_ name: String) -> [RGB]? {
+        let tokens: [(String, [RGB])] = [
+            ("B-P-C-Y", [blue, purple, cyan, yellow]),
+            ("B-G-C-Y", [blue, green, cyan, yellow]),
+            ("R-G-B", [red, green, blue]),
+            ("Y-C-P", [yellow, cyan, purple]),
+            ("W-R-W", [white, red, white]),
+            ("W-G-W", [white, green, white]),
+            ("W-B-W", [white, blue, white]),
+            ("W-Y-W", [white, yellow, white]),
+            ("W-C-W", [white, cyan, white]),
+            ("W-P-W", [white, purple, white]),
+            ("R-W-R", [red, white, red]),
+            ("G-W-G", [green, white, green]),
+            ("B-W-B", [blue, white, blue]),
+            ("Y-W-Y", [yellow, white, yellow]),
+            ("C-W-C", [cyan, white, cyan]),
+            ("P-W-P", [purple, white, purple]),
+            ("R-G", [red, green]),
+            ("G-B", [green, blue]),
+            ("Y-B", [yellow, blue]),
+            ("Y-C", [yellow, cyan]),
+            ("C-P", [cyan, purple]),
+            ("R-Y", [red, yellow]),
+            ("R-P", [red, purple]),
+            ("G-C", [green, cyan]),
+            ("G-Y", [green, yellow]),
+            ("B-P", [blue, purple]),
+        ].sorted { $0.0.count > $1.0.count }
+
+        for (token, colors) in tokens {
+            if name == token { return colors }
+            if name.hasPrefix(token + " ") { return colors }
+        }
+        return nil
     }
 
     /// Smooth RGB-lerp only for true rainbow (7+) — otherwise R→G invents yellow.

@@ -146,7 +146,44 @@ function dmxSpaceCodes(name: string): Rgb[] | undefined {
   return colors.length === parts.length && colors.length >= 2 ? colors : undefined;
 }
 
+function leadingLetterCodePalette(name: string): Rgb[] | undefined {
+  const tokens: [string, Rgb[]][] = [
+    ["B-P-C-Y", [BLUE, PURPLE, CYAN, YELLOW]],
+    ["B-G-C-Y", [BLUE, GREEN, CYAN, YELLOW]],
+    ["R-G-B", [RED, GREEN, BLUE]],
+    ["Y-C-P", [YELLOW, CYAN, PURPLE]],
+    ["W-R-W", [WHITE, RED, WHITE]],
+    ["W-G-W", [WHITE, GREEN, WHITE]],
+    ["W-B-W", [WHITE, BLUE, WHITE]],
+    ["W-Y-W", [WHITE, YELLOW, WHITE]],
+    ["W-C-W", [WHITE, CYAN, WHITE]],
+    ["W-P-W", [WHITE, PURPLE, WHITE]],
+    ["R-W-R", [RED, WHITE, RED]],
+    ["G-W-G", [GREEN, WHITE, GREEN]],
+    ["B-W-B", [BLUE, WHITE, BLUE]],
+    ["Y-W-Y", [YELLOW, WHITE, YELLOW]],
+    ["C-W-C", [CYAN, WHITE, CYAN]],
+    ["P-W-P", [PURPLE, WHITE, PURPLE]],
+    ["R-G", [RED, GREEN]],
+    ["G-B", [GREEN, BLUE]],
+    ["Y-B", [YELLOW, BLUE]],
+    ["Y-C", [YELLOW, CYAN]],
+    ["C-P", [CYAN, PURPLE]],
+    ["R-Y", [RED, YELLOW]],
+    ["R-P", [RED, PURPLE]],
+    ["G-C", [GREEN, CYAN]],
+    ["G-Y", [GREEN, YELLOW]],
+    ["B-P", [BLUE, PURPLE]],
+  ].sort((a, b) => b[0].length - a[0].length);
+  for (const [token, colors] of tokens) {
+    if (name === token || name.startsWith(token + " ")) return colors;
+  }
+  return undefined;
+}
+
 function paletteFromName(name: string): Rgb[] {
+  const leading = leadingLetterCodePalette(name);
+  if (leading) return leading;
   const letters = letterCodes(name);
   if (letters) return letters;
   const spaced = spacedLetterCodes(name);
