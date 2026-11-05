@@ -366,10 +366,19 @@ struct ModesScreen: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Unmistakable ship marker — if TestFlight is current, this red bar is visible.
+            Text("BUILD 22 — new mode colours")
+                .font(.caption.weight(.bold))
+                .tracking(0.6)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(shinnoRed)
+
             VehicleStageView()
                 .environmentObject(garage)
                 .padding(.horizontal, 16)
-                .padding(.top, 16)
+                .padding(.top, 12)
                 .padding(.bottom, 10)
 
             VStack(spacing: 12) {
@@ -562,9 +571,9 @@ struct ModesScreen: View {
                 } else {
                     // Two columns so each ModeGlyph is large enough to tell apart (matches web sampler).
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Preview build 21 · colours match each mode name")
-                            .font(.caption2)
-                            .foregroundStyle(Color.white.opacity(0.35))
+                        Text("BUILD 22 · each tile shows that mode’s colours")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(shinnoRed)
 
                         ScrollView(showsIndicators: false) {
                             LazyVGrid(
@@ -657,8 +666,8 @@ private struct ModePlayingBar: View {
     var body: some View {
         VStack(spacing: 6) {
             if let effect, powered {
-                ModeGlyphView(effect: effect, speed: speed, showsLegend: false)
-                    .frame(width: 96, height: 96)
+                ModeGlyphView(effect: effect, speed: speed, showsLegend: true)
+                    .frame(width: 110, height: 130)
             } else {
                 Text(effect == nil ? "Pick a mode" : "Power off")
                     .font(.caption)
