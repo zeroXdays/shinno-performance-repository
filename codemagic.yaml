@@ -1,0 +1,50 @@
+# Cloud Mac build → App Store Connect (no personal Mac required).
+# Docs: https://docs.codemagic.io/yaml-quick-start/building-a-native-ios-app/
+#
+# Setup once:
+# 1. Push this repo to GitHub/GitLab and connect it in https://codemagic.io
+# 2. Apple Developer Program + App Store Connect app for com.shinnoperformance.lights
+# 3. Create an App Store Connect API key (Users and Access → Integrations → App Store Connect API)
+# 4. In Codemagic → Teams → codemagic.yaml settings / environment variables, add:
+#      APP_STORE_CONNECT_ISSUER_ID
+#      APP_STORE_CONNECT_KEY_IDENTIFIER
+#      APP_STORE_CONNECT_PRIVATE_KEY   (contents of AuthKey_XXXX.p8)
+#      APPLE_TEAM_ID                  (10-char Team ID from developer.apple.com → Membership)
+# 5. Start the "ios-app-store" workflow. Codemagic signs with the API key and uploads the IPA.
+
+workflows:
+  ios-app-store:
+    name: Shinno Sync → App Store Connect
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: shinno
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.shinnoperformance.lights
+      vars:
+        XCODE_WORKSPACE: "ios/ShinnoLights.xcodeproj"
+        XCODE_SCHEME: "ShinnoLights"
+        APP_STORE_APPLE_ID: $APP_STORE_APPLE_ID
+      groups:
+        - appstore
+    scripts:
+      - name: Set up code signing
+        script: |
+          xcode-project use-profiles
+      - name: Build IPA
+        script: |
+          cd ios
+          xcode-project build-ipa \
+            --project "ShinnoLights.xcodeproj" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - ios/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        # Leave false until listing + screenshots + privacy URL are done in Connect.
+        submit_to_app_store: false

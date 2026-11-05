@@ -4,7 +4,7 @@
 
 The native iOS app (`ios/`) is the binary Apple reviews. It has no demo/simulator mode, uses CoreBluetooth only, includes privacy/legal screens, App Privacy manifest, export-compliance flag, 1024×1024 icon, and display name **Shinno Sync**. Version **1.0 (1)**, bundle `com.shinnoperformance.lights`.
 
-This environment is Linux. Apple only accepts a **signed** build from a Mac with Xcode (or Transporter). There is no IPA here you can drag into App Store Connect.
+This environment is Linux. Apple only accepts a **signed** build from macOS. There is no IPA here you can drag into App Store Connect — but you **do not need to own a Mac**. Use cloud Mac CI (Codemagic) or rent/borrow a Mac. See [`NO_MAC.md`](NO_MAC.md).
 
 ## What’s ready in the repo
 
@@ -30,7 +30,8 @@ This environment is Linux. Apple only accepts a **signed** build from a Mac with
 6. Paste listing + review notes; set App Privacy to **Data Not Collected**.
 7. Have powered Shinno kits available for App Review (or offer to ship a sample).
 
-Exact Mac steps: [`UPLOAD.md`](UPLOAD.md).
+- No personal Mac: [`NO_MAC.md`](NO_MAC.md) + root [`codemagic.yaml`](../codemagic.yaml)
+- Own/borrow a Mac: [`UPLOAD.md`](UPLOAD.md)
 
 ## Web app note
 

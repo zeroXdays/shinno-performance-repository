@@ -2,9 +2,12 @@
 
 Paste-ready copy for the first iOS submission. Bundle ID: `com.shinnoperformance.lights`. Legal seller: **Shin No Performance LLC**. The in-app Privacy policy (Settings → Privacy policy) is the source of truth for this build.
 
-**Submission kit:** [`appstore/`](appstore/) — readiness verdict, Mac upload steps, listing/review/privacy paste files, and `ShinnoSync-iOS-1.0.zip` (same as `ios/`). Start with [`appstore/READY.md`](appstore/READY.md) and [`appstore/UPLOAD.md`](appstore/UPLOAD.md).
+**Submission kit:** [`appstore/`](appstore/) — readiness verdict, listing/review/privacy paste files, and `ShinnoSync-iOS-1.0.zip` (same as `ios/`).
 
-This file is a helper. It does not submit the app. You still complete App Store Connect, signing, screenshots, and review hardware on a Mac.
+- **No Mac:** [`appstore/NO_MAC.md`](appstore/NO_MAC.md) + [`codemagic.yaml`](codemagic.yaml) (cloud Mac → TestFlight / App Store Connect)
+- **Have a Mac:** [`appstore/UPLOAD.md`](appstore/UPLOAD.md)
+
+This file is a helper. It does not submit the app. You still complete App Store Connect, screenshots, privacy URL, and review hardware. Signing can be done on Codemagic without owning a Mac.
 
 ## Listing
 
