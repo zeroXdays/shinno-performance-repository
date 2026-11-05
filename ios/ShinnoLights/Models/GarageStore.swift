@@ -86,8 +86,13 @@ final class GarageStore: ObservableObject {
     @Published var target: ControlTarget = .all
     @Published var lastError: String?
     @Published var settings = AppSettings()
+    @Published var activePathId: String?
+    @Published var activePathZones: [ZoneKind] = []
+    @Published var pathSpeed: Int = 55
 
     let hub = BleHub()
+    private var pathTimer: Timer?
+    private var pathStepIndex = 0
 
     var selected: [PairedController] {
         switch target {
@@ -301,6 +306,7 @@ final class GarageStore: ObservableObject {
     }
 
     func setColor(_ rgb: RGB) {
+        stopPath()
         mutate { controller, peripheral, model in
             controller.color = rgb
             controller.power = true
@@ -324,6 +330,7 @@ final class GarageStore: ObservableObject {
     }
 
     func setEffect(_ id: Int) {
+        stopPath()
         mutate { controller, peripheral, model in
             controller.effectId = id
             controller.power = true
@@ -332,6 +339,77 @@ final class GarageStore: ObservableObject {
                 ElkProtocol.effect(model, id: id),
                 ElkProtocol.speed(model, percent: controller.effectSpeed),
             ])
+        }
+    }
+
+    func startPath(_ id: String) {
+        guard let path = ZonePaths.named(id) else { return }
+        guard !controllers.isEmpty else {
+            lastError = "Add devices on Scan before running a zone path."
+            return
+        }
+        let covered = Set(path.steps.flatMap { $0 })
+        guard controllers.contains(where: { covered.contains($0.zone) }) else {
+            lastError = "Assign Emblem, Mirrors, or Bumper on Devices so this path has somewhere to go."
+            return
+        }
+        stopPath()
+        target = .all
+        activePathId = path.id
+        pathStepIndex = 0
+        applyPathStep(path)
+        scheduleNextPathStep()
+    }
+
+    private func scheduleNextPathStep() {
+        pathTimer?.invalidate()
+        pathTimer = Timer.scheduledTimer(withTimeInterval: ZonePaths.stepMs(speed: pathSpeed) / 1000, repeats: false) { [weak self] _ in
+            guard let self, let live = ZonePaths.named(self.activePathId ?? "") else { return }
+            self.pathStepIndex = (self.pathStepIndex + 1) % live.steps.count
+            self.applyPathStep(live)
+            self.scheduleNextPathStep()
+        }
+    }
+
+    func stopPath() {
+        pathTimer?.invalidate()
+        pathTimer = nil
+        activePathId = nil
+        activePathZones = []
+        pathStepIndex = 0
+    }
+
+    private func applyPathStep(_ path: ZonePath) {
+        let hot = path.steps[pathStepIndex]
+        activePathZones = hot
+        let color = controllers.first(where: { hot.contains($0.zone) })?.color
+            ?? controllers.first?.color
+            ?? RGB(r: 196, g: 18, b: 32)
+        for index in controllers.indices {
+            let id = controllers[index].id
+            guard let peripheral = hub.peripheral(id: id) else { continue }
+            let model = ElkProtocol.detect(name: controllers[index].advertisedName)
+            let lit = hot.contains(controllers[index].zone)
+            controllers[index].effectId = nil
+            controllers[index].color = color
+            if lit {
+                controllers[index].power = true
+                hub.write(peripheral, frames: [
+                    ElkProtocol.power(model, on: true),
+                    ElkProtocol.color(model, rgb: color),
+                    ElkProtocol.brightness(model, percent: controllers[index].brightness),
+                ])
+            } else if path.restOff {
+                controllers[index].power = false
+                hub.write(peripheral, frames: [ElkProtocol.power(model, on: false)])
+            } else {
+                controllers[index].power = true
+                hub.write(peripheral, frames: [
+                    ElkProtocol.power(model, on: true),
+                    ElkProtocol.color(model, rgb: color),
+                    ElkProtocol.brightness(model, percent: ZonePaths.dimBrightness(controllers[index].brightness)),
+                ])
+            }
         }
     }
 

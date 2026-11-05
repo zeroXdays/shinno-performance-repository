@@ -26,6 +26,7 @@ import {
   type Rgb,
 } from "@/lib/protocol";
 import { SCENES, type Scene } from "@/lib/scenes";
+import { dimBrightness, pathById, pathStepMs, type ZonePath } from "@/lib/paths";
 import { getSettings } from "@/lib/settings";
 import {
   getCar,
@@ -56,6 +57,12 @@ interface GarageContextValue {
   busy: boolean;
   lastError: string | null;
   webBluetooth: boolean;
+  activePathId: string | null;
+  activePathZones: ZoneKind[];
+  pathSpeed: number;
+  setPathSpeed: (percent: number) => void;
+  startPath: (pathId: string) => Promise<void>;
+  stopPath: () => Promise<void>;
   resetGarage: () => void;
   scan: () => Promise<void>;
   stopScan: () => void;
@@ -81,6 +88,9 @@ export function GarageProvider({ children }: { children: ReactNode }) {
   const transports = useRef(new Map<string, BleTransport>());
   const writeQueue = useRef(Promise.resolve());
   const colorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pathTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pathRunId = useRef(0);
+  const pathSpeedRef = useRef(55);
 
   const controllers = useSyncExternalStore(subscribeGarage, getGarageControllers, getServerGarage);
   const car = useSyncExternalStore(subscribeCar, getCar, getServerCar);
@@ -96,6 +106,9 @@ export function GarageProvider({ children }: { children: ReactNode }) {
   const [target, setTarget] = useState<Target>("all");
   const [busy, setBusy] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
+  const [activePathId, setActivePathId] = useState<string | null>(null);
+  const [activePathZones, setActivePathZones] = useState<ZoneKind[]>([]);
+  const [pathSpeed, setPathSpeedState] = useState(55);
 
   const webBluetooth = webBluetoothAvailable();
 
@@ -392,14 +405,134 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     [applyLocal, enqueue, ensureConnected, selected],
   );
 
+  const haltPathTimer = useCallback(() => {
+    pathRunId.current += 1;
+    if (pathTimer.current) {
+      clearTimeout(pathTimer.current);
+      pathTimer.current = null;
+    }
+    setActivePathId(null);
+    setActivePathZones([]);
+  }, []);
+
+  const writePathStep = useCallback(
+    async (path: ZonePath, stepIndex: number) => {
+      const hot = path.steps[stepIndex] ?? [];
+      setActivePathZones(hot);
+      const garage = getGarageControllers();
+      const color =
+        garage.find((row) => hot.includes(row.zone))?.color ??
+        garage[0]?.color ??
+        ({ r: 196, g: 18, b: 32 } satisfies Rgb);
+
+      await enqueue(async () => {
+        for (const [index, controller] of garage.entries()) {
+          const live = await ensureConnected(controller);
+          const model = detectModel(live.advertisedName);
+          const lit = hot.includes(live.zone);
+          const frames: Uint8Array[] = [];
+          if (!lit && path.rest === "off") {
+            frames.push(encodePower(model, false));
+          } else {
+            const brightness = lit
+              ? live.brightness || 80
+              : dimBrightness(live.brightness || 80);
+            frames.push(encodePower(model, true));
+            frames.push(encodeColor(model, color));
+            frames.push(encodeBrightness(model, brightness));
+          }
+          await writeTo(live, frames);
+          if (index < garage.length - 1) await sleep(18);
+        }
+      });
+
+      setControllers((prev) =>
+        prev.map((controller) => {
+          const lit = hot.includes(controller.zone);
+          if (lit) {
+            return { ...controller, power: true, color, effectId: undefined };
+          }
+          if (path.rest === "off") {
+            return { ...controller, power: false, effectId: undefined };
+          }
+          return { ...controller, power: true, color, effectId: undefined };
+        }),
+      );
+    },
+    [enqueue, ensureConnected, setControllers, writeTo],
+  );
+
+  const stopPath = useCallback(async () => {
+    haltPathTimer();
+  }, [haltPathTimer]);
+
+  const setPathSpeed = useCallback((percent: number) => {
+    const next = Math.min(100, Math.max(0, Math.round(percent)));
+    pathSpeedRef.current = next;
+    setPathSpeedState(next);
+  }, []);
+
+  const startPath = useCallback(
+    async (pathId: string) => {
+      const path = pathById(pathId);
+      if (!path) return;
+      const garage = getGarageControllers();
+      if (!garage.length) {
+        setLastError("Add devices on Scan before running a zone path.");
+        return;
+      }
+      const covered = new Set(path.steps.flat());
+      const hasZone = garage.some((controller) => covered.has(controller.zone));
+      if (!hasZone) {
+        setLastError("Assign Emblem, Mirrors, or Bumper on Devices so this path has somewhere to go.");
+        return;
+      }
+
+      haltPathTimer();
+      const runId = pathRunId.current;
+      setActivePathId(path.id);
+      setLastError(null);
+      setTarget("all");
+
+      const tick = async (stepIndex: number) => {
+        if (pathRunId.current !== runId) return;
+        try {
+          await writePathStep(path, stepIndex);
+        } catch (error) {
+          if (!isChooserCancel(error)) {
+            setLastError(error instanceof Error ? error.message : "Path failed.");
+          }
+          haltPathTimer();
+          return;
+        }
+        if (pathRunId.current !== runId) return;
+        const next = (stepIndex + 1) % path.steps.length;
+        pathTimer.current = setTimeout(() => {
+          void tick(next);
+        }, pathStepMs(pathSpeedRef.current));
+      };
+
+      await tick(0);
+    },
+    [haltPathTimer, writePathStep],
+  );
+
+  useEffect(() => {
+    return () => {
+      pathRunId.current += 1;
+      if (pathTimer.current) clearTimeout(pathTimer.current);
+    };
+  }, []);
+
   const setPower = useCallback(
     async (on: boolean) => {
+      haltPathTimer();
       await forEachSelected(async (controller) => {
         const model = detectModel(controller.advertisedName);
         await writeTo(controller, [encodePower(model, on)]);
       }, { power: on, effectId: undefined });
     },
-    [forEachSelected, writeTo],
+    [forEachSelected, haltPathTimer, writeTo],
   );
 
   const flushColor = useCallback(
@@ -421,6 +554,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
   const setColor = useCallback(
     async (color: Rgb) => {
+      haltPathTimer();
       const list = selected;
       applyLocal({ color, power: true, effectId: undefined }, list.map((c) => c.id));
       setLastError(null);
@@ -429,7 +563,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
         void flushColor(color, list);
       }, 60);
     },
-    [applyLocal, flushColor, selected],
+    [applyLocal, flushColor, haltPathTimer, selected],
   );
 
   const setBrightness = useCallback(
@@ -447,6 +581,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
   const setEffect = useCallback(
     async (effectId: number) => {
+      haltPathTimer();
       await forEachSelected(async (controller) => {
         const model = detectModel(controller.advertisedName);
         const frames = [encodeEffect(model, effectId)];
@@ -454,7 +589,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
         await writeTo(controller, frames);
       }, { effectId, power: true });
     },
-    [forEachSelected, writeTo],
+    [forEachSelected, haltPathTimer, writeTo],
   );
 
   const setEffectSpeed = useCallback(
@@ -469,6 +604,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
   const applyScene = useCallback(
     async (scene: Scene) => {
+      haltPathTimer();
       setBusy(true);
       setLastError(null);
       const snapshot = controllers.map((controller) => {
@@ -516,7 +652,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
         setBusy(false);
       }
     },
-    [controllers, enqueue, ensureConnected, setControllers, writeTo],
+    [controllers, enqueue, ensureConnected, haltPathTimer, setControllers, writeTo],
   );
 
   const value: GarageContextValue = {
@@ -535,6 +671,12 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     busy,
     lastError,
     webBluetooth,
+    activePathId,
+    activePathZones,
+    pathSpeed,
+    setPathSpeed,
+    startPath,
+    stopPath,
     resetGarage,
     scan,
     refreshNearby,

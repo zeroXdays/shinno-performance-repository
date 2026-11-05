@@ -14,6 +14,7 @@ import { ASSIGNABLE_ZONES, CARS, type ZoneKind } from "@/lib/catalog";
 import { useGarage } from "@/lib/garage-context";
 import { useI18n } from "@/lib/i18n";
 import { EFFECTS, EFFECT_GROUPS, type Rgb } from "@/lib/protocol";
+import { ZONE_PATHS } from "@/lib/paths";
 import { rgbToCss, rgbToHex, SCENES } from "@/lib/scenes";
 import { cn } from "@/lib/utils";
 import type { TabId } from "@/lib/controller";
@@ -100,6 +101,7 @@ export function ShinnoApp() {
           car={garage.car}
           controllers={garage.controllers}
           target={garage.target}
+          hotZones={garage.activePathZones}
           onSelect={(zone) => {
             garage.setTarget(zone);
             garage.setTab("color");
@@ -303,25 +305,60 @@ function EffectsPanel() {
   const garage = useGarage();
   const { t } = useI18n();
   const active = garage.selected[0]?.effectId;
-  const speed = garage.selected[0]?.effectSpeed ?? 50;
-  const [group, setGroup] = useState<(typeof EFFECT_GROUPS)[number]["id"]>("basic");
+  const speed = garage.activePathId ? garage.pathSpeed : (garage.selected[0]?.effectSpeed ?? 50);
+  const [group, setGroup] = useState<(typeof EFFECT_GROUPS)[number]["id"] | "paths">("paths");
   const [query, setQuery] = useState("");
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (q) return EFFECTS.filter((effect) => effect.name.toLowerCase().includes(q));
+    if (group === "paths") return [];
     return EFFECTS.filter((effect) => effect.group === group);
   }, [group, query]);
+  const activePath = ZONE_PATHS.find((path) => path.id === garage.activePathId);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col space-y-3">
-      <PlayingBar
-        effectId={active}
-        speed={speed}
-        power={garage.selected.length ? garage.selected.every((c) => c.power) : false}
-      />
+      {garage.activePathId ? (
+        <div className="overflow-hidden rounded-xl border border-[#c41220]/40 bg-[#0a0a0a] px-3 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.16em] text-[#c41220]">{t("paths.live")}</p>
+              <p className="mt-1 text-sm font-medium text-white">{activePath?.name ?? t("paths.title")}</p>
+              <p className="mt-0.5 text-xs text-white/45">{activePath?.blurb}</p>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => void garage.stopPath()}>
+              {t("paths.stop")}
+            </Button>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {(["mirrors", "emblem", "bumper"] as const).map((zone) => {
+              const hot = garage.activePathZones.includes(zone);
+              return (
+                <span
+                  key={zone}
+                  className={cn(
+                    "rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-wide",
+                    hot
+                      ? "border-[#c41220]/70 bg-[#c41220]/20 text-white"
+                      : "border-white/[0.08] text-white/35",
+                  )}
+                >
+                  {t(`zone.${zone}`)}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <PlayingBar
+          effectId={active}
+          speed={speed}
+          power={garage.selected.length ? garage.selected.every((c) => c.power) : false}
+        />
+      )}
       <div>
         <div className="mb-1 flex justify-between text-sm text-white/55">
-          <span>{t("effects.speed")}</span>
+          <span>{garage.activePathId ? t("paths.speed") : t("effects.speed")}</span>
           <span className="tabular-nums">{speed}</span>
         </div>
         <div className="mb-1 flex justify-between text-[10px] uppercase tracking-wide text-white/35">
@@ -332,20 +369,41 @@ function EffectsPanel() {
           min={0}
           max={100}
           value={[speed]}
-          disabled={!garage.selected.length}
+          disabled={!garage.selected.length && !garage.activePathId}
           onValueChange={(value) => {
             const next = Array.isArray(value) ? value[0] : value;
-            if (typeof next === "number") void garage.setEffectSpeed(next);
+            if (typeof next !== "number") return;
+            if (garage.activePathId || group === "paths") garage.setPathSpeed(next);
+            else void garage.setEffectSpeed(next);
           }}
         />
       </div>
-      <Input
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder={t("effects.search")}
-        aria-label="Search modes"
-      />
+      {group !== "paths" ? (
+        <Input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={t("effects.search")}
+          aria-label="Search modes"
+        />
+      ) : (
+        <p className="text-xs text-white/40">{t("paths.hint")}</p>
+      )}
       <div className="flex gap-1 overflow-x-auto pb-0.5">
+        <button
+          type="button"
+          onClick={() => {
+            setGroup("paths");
+            setQuery("");
+          }}
+          className={cn(
+            "shrink-0 rounded-full px-2.5 py-1 text-xs transition",
+            !query && group === "paths"
+              ? "bg-[#c41220] text-white shadow-[0_4px_14px_rgba(196,18,32,0.35)]"
+              : "bg-white/[0.08] text-white/65",
+          )}
+        >
+          {t("paths.title")}
+        </button>
         {EFFECT_GROUPS.map((item) => (
           <button
             key={item.id}
@@ -365,7 +423,40 @@ function EffectsPanel() {
           </button>
         ))}
       </div>
-      {items.length === 0 ? (
+      {group === "paths" && !query ? (
+        <div className="grid min-h-0 flex-1 grid-cols-2 gap-2 overflow-y-auto pr-0.5">
+          {ZONE_PATHS.map((path) => {
+            const activePathTile = garage.activePathId === path.id;
+            return (
+              <button
+                key={path.id}
+                type="button"
+                disabled={!garage.controllers.length}
+                onClick={() => {
+                  if (activePathTile) void garage.stopPath();
+                  else void garage.startPath(path.id);
+                }}
+                className={cn(
+                  "flex flex-col items-start gap-2 rounded-xl border bg-[#0a0a0a] p-3 text-left disabled:opacity-40",
+                  activePathTile
+                    ? "border-[#c41220]/70 shadow-[0_0_18px_rgba(196,18,32,0.28)]"
+                    : "border-white/[0.08]",
+                )}
+              >
+                <span className="relative size-7">
+                  <span className="absolute inset-0 bg-white/25" style={{ clipPath: HEX_CLIP }} aria-hidden />
+                  <span
+                    className="absolute inset-[2px]"
+                    style={{ clipPath: HEX_CLIP, background: rgbToCss(path.swatch) }}
+                  />
+                </span>
+                <span className="text-sm font-medium text-white/90">{path.name}</span>
+                <span className="text-[11px] leading-snug text-white/45">{path.blurb}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : items.length === 0 ? (
         <p className="py-8 text-center text-sm text-white/40">{t("effects.none")}</p>
       ) : (
         <div className="grid min-h-0 flex-1 grid-cols-3 gap-2 overflow-y-auto pr-0.5">
@@ -377,7 +468,7 @@ function EffectsPanel() {
               onClick={() => void garage.setEffect(effect.id)}
               className={cn(
                 "flex flex-col rounded-xl border bg-[#0a0a0a] p-1.5 text-center",
-                active === effect.id
+                active === effect.id && !garage.activePathId
                   ? "border-[#c41220]/70 shadow-[0_0_18px_rgba(196,18,32,0.28)]"
                   : "border-white/[0.08]",
               )}

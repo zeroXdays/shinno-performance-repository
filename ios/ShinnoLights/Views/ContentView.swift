@@ -279,19 +279,26 @@ struct ColorScreen: View {
     ]
 }
 
+private enum ModesBrowser: Hashable {
+    case paths
+    case group(EffectGroup)
+}
+
 struct ModesScreen: View {
     @EnvironmentObject var garage: GarageStore
     @Binding var tab: AppTab
-    @State private var group: EffectGroup = .basic
+    @State private var browser: ModesBrowser = .paths
     @State private var query = ""
 
     var items: [LedEffect] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if q.isEmpty { return EffectsCatalog.inGroup(group) }
-        return EffectsCatalog.all.filter { $0.name.lowercased().contains(q) }
+        if !q.isEmpty { return EffectsCatalog.all.filter { $0.name.lowercased().contains(q) } }
+        if case .group(let group) = browser { return EffectsCatalog.inGroup(group) }
+        return []
     }
 
     var live: PairedController? { garage.selected.first }
+    var activePath: ZonePath? { ZonePaths.named(garage.activePathId ?? "") }
 
     var body: some View {
         VStack(spacing: 12) {
@@ -303,21 +310,61 @@ struct ModesScreen: View {
                 )
                 Spacer()
             } else {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(garage.target.title)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text(EffectsCatalog.named(live?.effectId) ?? "Pick a mode")
-                            .font(.headline)
+                if let path = activePath {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Zone path")
+                                    .font(.caption2)
+                                    .foregroundStyle(shinnoRed)
+                                Text(path.name)
+                                    .font(.headline)
+                                Text(path.blurb)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button("Stop") { garage.stopPath() }
+                                .buttonStyle(.bordered)
+                        }
+                        HStack(spacing: 8) {
+                            ForEach([ZoneKind.mirrors, .emblem, .bumper], id: \.self) { zone in
+                                Text(zone.title)
+                                    .font(.caption2)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        garage.activePathZones.contains(zone) ? shinnoRed.opacity(0.25) : Color.white.opacity(0.06),
+                                        in: Capsule()
+                                    )
+                                    .overlay(
+                                        Capsule().stroke(
+                                            garage.activePathZones.contains(zone) ? shinnoRed.opacity(0.7) : Color.white.opacity(0.08),
+                                            lineWidth: 1
+                                        )
+                                    )
+                            }
+                        }
                     }
-                    Spacer()
+                    .padding(12)
+                    .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                } else {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(garage.target.title)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(EffectsCatalog.named(live?.effectId) ?? "Pick a mode")
+                                .font(.headline)
+                        }
+                        Spacer()
+                    }
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Text("Speed")
+                        Text(garage.activePathId == nil ? "Speed" : "Path speed")
                         Spacer()
-                        Text("\(live?.effectSpeed ?? 50)")
+                        Text("\(garage.activePathId == nil ? (live?.effectSpeed ?? 50) : garage.pathSpeed)")
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                     }
@@ -331,21 +378,49 @@ struct ModesScreen: View {
                     .textCase(.uppercase)
                     Slider(
                         value: Binding(
-                            get: { Double(live?.effectSpeed ?? 50) },
-                            set: { garage.setEffectSpeed(Int($0)) }
+                            get: {
+                                Double(garage.activePathId == nil ? (live?.effectSpeed ?? 50) : garage.pathSpeed)
+                            },
+                            set: {
+                                if garage.activePathId != nil || browser == .paths {
+                                    garage.pathSpeed = Int($0)
+                                } else {
+                                    garage.setEffectSpeed(Int($0))
+                                }
+                            }
                         ),
                         in: 0...100
                     )
                     .tint(shinnoRed)
                 }
-                TextField("Search Auto Play, curtain, water…", text: $query)
-                    .textFieldStyle(.roundedBorder)
-                    .textInputAutocapitalization(.never)
+                if browser != .paths {
+                    TextField("Search Auto Play, curtain, water…", text: $query)
+                        .textFieldStyle(.roundedBorder)
+                        .textInputAutocapitalization(.never)
+                } else {
+                    Text("Phone-timed zone chases across Emblem, Mirrors, and Bumper. Built-in modes stay on one device.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
+                        Button {
+                            browser = .paths
+                            query = ""
+                        } label: {
+                            Text("Paths")
+                                .font(.caption)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(
+                                    query.isEmpty && browser == .paths ? shinnoRed : Color.white.opacity(0.1),
+                                    in: Capsule()
+                                )
+                                .foregroundStyle(.white)
+                        }
                         ForEach(EffectGroup.allCases) { item in
                             Button {
-                                group = item
+                                browser = .group(item)
                                 query = ""
                             } label: {
                                 Text(item.title)
@@ -353,15 +428,51 @@ struct ModesScreen: View {
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 6)
                                     .background(
-                                        query.isEmpty && group == item ? Color.white : Color.white.opacity(0.1),
+                                        query.isEmpty && browser == .group(item) ? shinnoRed : Color.white.opacity(0.1),
                                         in: Capsule()
                                     )
-                                    .foregroundStyle(query.isEmpty && group == item ? .black : .white)
+                                    .foregroundStyle(.white)
                             }
                         }
                     }
                 }
-                if items.isEmpty {
+                if browser == .paths && query.isEmpty {
+                    ScrollView {
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                            ForEach(ZonePaths.all) { path in
+                                Button {
+                                    if garage.activePathId == path.id {
+                                        garage.stopPath()
+                                    } else {
+                                        garage.startPath(path.id)
+                                    }
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        HexCell()
+                                            .fill(path.swatch.color)
+                                            .frame(width: 22, height: 22)
+                                            .overlay(HexCell().stroke(.white.opacity(0.28), lineWidth: 1))
+                                        Text(path.name)
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(.white)
+                                        Text(path.blurb)
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                            .multilineTextAlignment(.leading)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(12)
+                                    .background(Color.black.opacity(0.25), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                            .stroke(garage.activePathId == path.id ? shinnoRed.opacity(0.7) : Color.white.opacity(0.08), lineWidth: 1)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                } else if items.isEmpty {
                     Text("No modes match.")
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)

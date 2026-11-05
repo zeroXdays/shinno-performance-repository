@@ -14,13 +14,16 @@ interface VehicleStageProps {
   car: CarId;
   controllers: Controller[];
   target: "all" | ZoneKind;
+  hotZones?: ZoneKind[];
   onSelect: (zone: "all" | ZoneKind) => void;
 }
 
-export function VehicleStage({ car, controllers, target, onSelect }: VehicleStageProps) {
+export function VehicleStage({ car, controllers, target, hotZones = [], onSelect }: VehicleStageProps) {
   const { t } = useI18n();
   const zoneCtrl = (kind: ZoneKind) => controllers.find((c) => c.zone === kind);
-  const playing = controllers.some((controller) => controller.power && controller.effectId != null);
+  const playing =
+    hotZones.length > 0 ||
+    controllers.some((controller) => controller.power && controller.effectId != null);
   const elapsed = useClock(playing);
 
   const toggle = (zone: ZoneKind) => {
@@ -33,6 +36,7 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
         {STAGE_ZONES.map((zone) => {
           const controller = zoneCtrl(zone.id);
           const selected = target === zone.id;
+          const hot = hotZones.includes(zone.id);
           const wide = zone.id === "emblem";
           return (
             <button
@@ -42,11 +46,13 @@ export function VehicleStage({ car, controllers, target, onSelect }: VehicleStag
               className={cn(
                 "flex flex-col items-stretch gap-2 rounded-2xl border px-3 py-3.5 text-left transition",
                 wide && "col-span-2",
-                selected
-                  ? "border-[#c41220]/80 bg-[#121212] shadow-[0_0_22px_rgba(196,18,32,0.22)]"
-                  : target === "all"
-                    ? "border-white/[0.08] bg-[#121212]/90"
-                    : "border-white/[0.05] bg-[#0a0a0a] opacity-45",
+                hot
+                  ? "border-[#c41220] bg-[#121212] shadow-[0_0_26px_rgba(196,18,32,0.35)]"
+                  : selected
+                    ? "border-[#c41220]/80 bg-[#121212] shadow-[0_0_22px_rgba(196,18,32,0.22)]"
+                    : target === "all"
+                      ? "border-white/[0.08] bg-[#121212]/90"
+                      : "border-white/[0.05] bg-[#0a0a0a] opacity-45",
               )}
             >
               <span className={cn("flex w-full items-center justify-center", wide ? "h-[7.25rem]" : "h-[5rem]")}>

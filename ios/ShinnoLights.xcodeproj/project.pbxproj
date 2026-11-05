@@ -19,6 +19,7 @@
 		A10000000000000000000061 /* LegalCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000071 /* LegalCopy.swift */; };
 		A10000000000000000000062 /* EffectsCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000072 /* EffectsCatalog.swift */; };
 		A10000000000000000000063 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000073 /* SettingsView.swift */; };
+		A10000000000000000000064 /* ZonePaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000074 /* ZonePaths.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +37,7 @@
 		A10000000000000000000071 /* LegalCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalCopy.swift; sourceTree = "<group>"; };
 		A10000000000000000000072 /* EffectsCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EffectsCatalog.swift; sourceTree = "<group>"; };
 		A10000000000000000000073 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A10000000000000000000074 /* ZonePaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZonePaths.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -95,6 +97,7 @@
 			children = (
 				A10000000000000000000034 /* GarageStore.swift */,
 				A10000000000000000000072 /* EffectsCatalog.swift */,
+				A10000000000000000000074 /* ZonePaths.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -187,6 +190,7 @@
 				A10000000000000000000026 /* ColorWheelView.swift in Sources */,
 				A10000000000000000000061 /* LegalCopy.swift in Sources */,
 				A10000000000000000000062 /* EffectsCatalog.swift in Sources */,
+				A10000000000000000000064 /* ZonePaths.swift in Sources */,
 				A10000000000000000000063 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
