@@ -529,7 +529,12 @@ final class GarageStore: ObservableObject {
         // if upper.contains("GB") || upper.contains("MELK") { return used.contains(.grille) ? .custom : .grille }
         if upper.contains("EM"), allowed.contains(.emblem) { return .emblem }
         // G37 emblem kits advertise ELK-BLEDDM / LED-DMX — park on Emblem when that zone is offered.
-        if (upper.contains("BLEDDM") || upper.contains("LED-DMX") || upper.contains("LEDDMX") || upper.contains("LED DMX")),
+        if (upper.contains("BLEDDM")
+            || upper.contains("LED-DMX")
+            || upper.contains("LED_DMX")
+            || upper.contains("LEDDMX")
+            || upper.contains("LED DMX")
+            || upper.contains("DMX")),
            allowed.contains(.emblem), !used.contains(.emblem)
         {
             return .emblem

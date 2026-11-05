@@ -10,23 +10,9 @@ struct ContentView: View {
     @State private var showSettings = false
 
     var body: some View {
-        TabView(selection: $tab) {
-            ColorScreen(tab: $tab)
-                .tabItem { Label("Color", systemImage: "paintpalette.fill") }
-                .tag(AppTab.color)
-            ModesScreen(tab: $tab)
-                .tabItem { Label("Modes", systemImage: "sparkles") }
-                .tag(AppTab.modes)
-            ScanScreen()
-                .tabItem { Label("Scan", systemImage: "dot.radiowaves.left.and.right") }
-                .tag(AppTab.scan)
-            DevicesScreen(tab: $tab)
-                .tabItem { Label("Devices", systemImage: "cpu") }
-                .tag(AppTab.devices)
-        }
-        .tint(shinnoRed)
-        .toolbar(.hidden, for: .navigationBar)
-        .safeAreaInset(edge: .top, spacing: 0) {
+        // Header sits in the main stack (not safeAreaInset) so Color/Modes
+        // stage tiles can never draw underneath the logo bar.
+        VStack(spacing: 0) {
             VStack(spacing: 0) {
                 ShinnoHeader(showSettings: $showSettings)
                 if garage.hub.bluetoothState == .poweredOff
@@ -55,8 +41,24 @@ struct ContentView: View {
                 }
             }
             .background(Color.black)
+
+            TabView(selection: $tab) {
+                ColorScreen(tab: $tab)
+                    .tabItem { Label("Color", systemImage: "paintpalette.fill") }
+                    .tag(AppTab.color)
+                ModesScreen(tab: $tab)
+                    .tabItem { Label("Modes", systemImage: "sparkles") }
+                    .tag(AppTab.modes)
+                ScanScreen()
+                    .tabItem { Label("Scan", systemImage: "dot.radiowaves.left.and.right") }
+                    .tag(AppTab.scan)
+                DevicesScreen(tab: $tab)
+                    .tabItem { Label("Devices", systemImage: "cpu") }
+                    .tag(AppTab.devices)
+            }
+            .tint(shinnoRed)
         }
-        .background(Color.black.ignoresSafeArea(edges: .bottom))
+        .background(Color.black.ignoresSafeArea())
         .sheet(isPresented: $showSettings) {
             SettingsView()
                 .environmentObject(garage)
@@ -205,7 +207,8 @@ struct ColorScreen: View {
             VehicleStageView()
                 .environmentObject(garage)
                 .padding(.horizontal, 16)
-                .padding(.top, 8)
+                .padding(.top, 16)
+                .padding(.bottom, 4)
 
             if garage.controllers.isEmpty {
                 EmptyGarageCard(
@@ -349,7 +352,7 @@ struct ModesScreen: View {
             VehicleStageView()
                 .environmentObject(garage)
                 .padding(.horizontal, 16)
-                .padding(.top, 8)
+                .padding(.top, 16)
                 .padding(.bottom, 10)
 
             VStack(spacing: 12) {

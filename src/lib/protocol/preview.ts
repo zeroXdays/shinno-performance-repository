@@ -138,7 +138,7 @@ function reversed(name: string, group: EffectGroup): boolean {
 
 /**
  * UI speed: 0 = slow, 100 = fast.
- * Firmware still uses 0 = fastest; encodeEffectSpeed inverts the byte.
+ * encodeEffectSpeed sends the same scale to the kit.
  */
 export function effectPeriodMs(speed: number, group: EffectGroup | Motion): number {
   const ui = Number.isFinite(speed) ? speed : 50;

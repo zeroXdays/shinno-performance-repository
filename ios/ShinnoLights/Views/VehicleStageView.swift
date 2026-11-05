@@ -6,26 +6,19 @@ struct VehicleStageView: View {
 
     private var zones: [ZoneKind] { garage.settings.car.kitZones }
     private var singleZone: Bool { zones.count == 1 }
-    private var halfZones: [ZoneKind] {
-        zones.filter { $0 != .emblem }
-    }
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 8),
+        GridItem(.flexible(), spacing: 8),
+    ]
 
     var body: some View {
-        VStack(spacing: 8) {
-            if singleZone, let only = zones.first {
-                zoneTile(only, wide: true)
-            } else {
-                if zones.contains(.emblem) {
-                    zoneTile(.emblem, wide: true)
-                }
-                if !halfZones.isEmpty {
-                    HStack(alignment: .top, spacing: 8) {
-                        ForEach(halfZones) { zone in
-                            zoneTile(zone, wide: false)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                        }
-                    }
-                    .fixedSize(horizontal: false, vertical: true)
+        VStack(spacing: 10) {
+            LazyVGrid(columns: columns, spacing: 8) {
+                ForEach(zones) { zone in
+                    let wide = zone == .emblem || singleZone
+                    zoneTile(zone, wide: wide)
+                        .gridCellColumns(wide ? 2 : 1)
                 }
             }
 
@@ -78,8 +71,7 @@ struct VehicleStageView: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: wide ? 104 : 76)
-                .clipped()
+                .frame(height: wide ? 96 : 72)
 
                 HStack(spacing: 6) {
                     Circle()
@@ -100,7 +92,8 @@ struct VehicleStageView: View {
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 14)
+            .padding(.top, 12)
+            .padding(.bottom, 10)
             .frame(maxWidth: .infinity, alignment: .top)
             .background(Color(white: 0.07), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(
@@ -151,18 +144,18 @@ private struct EmblemStageGlyph: View {
                             red: Double(glow.r) / 255,
                             green: Double(glow.g) / 255,
                             blue: Double(glow.b) / 255
-                        ).opacity(0.45)
+                        ).opacity(0.4)
                     )
-                    .blur(radius: 18)
-                    .frame(width: 140, height: 70)
+                    .blur(radius: 14)
+                    .frame(width: 120, height: 56)
             }
 
             TimelineView(.animation(minimumInterval: 1 / 20)) { timeline in
                 Canvas { context, size in
                     let cx = size.width / 2
                     let cy = size.height / 2
-                    let rx = size.width * 0.42
-                    let ry = size.height * 0.36
+                    let rx = min(size.width * 0.38, size.height * 0.9)
+                    let ry = size.height * 0.34
                     let n = 28
                     let t = timeline.date.timeIntervalSinceReferenceDate
                     for i in 0..<n {
@@ -173,7 +166,7 @@ private struct EmblemStageGlyph: View {
                             guard on, let controller else {
                                 return RGB(r: 60, g: 60, b: 60)
                             }
-                            if let _ = controller.effectId {
+                            if controller.effectId != nil {
                                 let lit = Int((t * Double(max(8, controller.effectSpeed)) / 12)
                                     .truncatingRemainder(dividingBy: Double(n)))
                                 if i == lit { return controller.color }
@@ -185,7 +178,7 @@ private struct EmblemStageGlyph: View {
                             }
                             return controller.color
                         }()
-                        let rect = CGRect(x: x - 3.2, y: y - 2.1, width: 6.4, height: 4.2)
+                        let rect = CGRect(x: x - 2.8, y: y - 1.8, width: 5.6, height: 3.6)
                         context.fill(
                             Path(ellipseIn: rect),
                             with: .color(
@@ -205,19 +198,20 @@ private struct EmblemStageGlyph: View {
             Image("Emblem")
                 .resizable()
                 .scaledToFit()
-                .frame(maxWidth: 132, maxHeight: 68)
-                .shadow(color: .black.opacity(0.7), radius: 8, y: 4)
+                .padding(.horizontal, 28)
+                .padding(.vertical, 10)
+                .shadow(color: .black.opacity(0.7), radius: 6, y: 3)
 
             Ellipse()
                 .fill(
                     RadialGradient(
-                        colors: [Color.white.opacity(0.18), .clear],
+                        colors: [Color.white.opacity(0.16), .clear],
                         center: UnitPoint(x: 0.28, y: 0.22),
                         startRadius: 2,
-                        endRadius: 60
+                        endRadius: 50
                     )
                 )
-                .frame(width: 110, height: 54)
+                .padding(18)
                 .blendMode(.softLight)
                 .allowsHitTesting(false)
         }
@@ -226,7 +220,7 @@ private struct EmblemStageGlyph: View {
     }
 }
 
-/// Horizontal tapered LED strip — matches web CellsGlyph (not a 3×3 keypad).
+/// Single horizontal tapered LED strip (not a keypad grid).
 private struct CellsStageGlyph: View {
     var count: Int
     var controller: PairedController?
@@ -235,50 +229,51 @@ private struct CellsStageGlyph: View {
         let on = controller?.power == true
         let color = controller?.color ?? RGB(r: 196, g: 18, b: 32)
         TimelineView(.animation(minimumInterval: 1 / 20)) { timeline in
-            Canvas { context, size in
+            GeometryReader { geo in
                 let n = max(1, count)
                 let tNow = timeline.date.timeIntervalSinceReferenceDate
-                for i in 0..<n {
-                    let t = n == 1 ? 0.5 : Double(i) / Double(n - 1)
-                    let w = (9 - Double(i) * 0.35) / 118 * size.width
-                    let h = (18 - abs(t - 0.5) * 6) / 36 * size.height
-                    let x = (6 + t * 100) / 118 * size.width
-                    let y = (18 + sin(t * .pi) * -2) / 36 * size.height - h / 2
-                    let lit: Bool = {
-                        guard on, controller?.effectId != nil else { return on }
-                        let speed = Double(max(8, controller?.effectSpeed ?? 50))
-                        let head = Int((tNow * speed / 14).truncatingRemainder(dividingBy: Double(n)))
-                        return i == head
-                    }()
-                    let fill: Color = {
-                        if !on { return Color.white.opacity(0.16) }
-                        if controller?.effectId != nil && !lit {
+                let midY = geo.size.height / 2
+                HStack(spacing: max(3, geo.size.width * 0.012)) {
+                    ForEach(0..<n, id: \.self) { i in
+                        let t = n == 1 ? 0.5 : Double(i) / Double(n - 1)
+                        let lit: Bool = {
+                            guard on, controller?.effectId != nil else { return on }
+                            let speed = Double(max(8, controller?.effectSpeed ?? 50))
+                            let head = Int((tNow * speed / 14).truncatingRemainder(dividingBy: Double(n)))
+                            return i == head
+                        }()
+                        let fill: Color = {
+                            if !on { return Color.white.opacity(0.16) }
+                            if controller?.effectId != nil && !lit {
+                                return Color(
+                                    red: Double(color.r) / 255,
+                                    green: Double(color.g) / 255,
+                                    blue: Double(color.b) / 255
+                                ).opacity(0.22)
+                            }
                             return Color(
                                 red: Double(color.r) / 255,
                                 green: Double(color.g) / 255,
                                 blue: Double(color.b) / 255
-                            ).opacity(0.22)
-                        }
-                        return Color(
-                            red: Double(color.r) / 255,
-                            green: Double(color.g) / 255,
-                            blue: Double(color.b) / 255
-                        )
-                    }()
-                    let rect = CGRect(x: x - w / 2, y: y, width: max(2, w), height: max(2, h))
-                    context.fill(
-                        Path(roundedRect: rect, cornerRadius: 1.6),
-                        with: .color(fill)
-                    )
+                            )
+                        }()
+                        RoundedRectangle(cornerRadius: 2, style: .continuous)
+                            .fill(fill)
+                            .frame(
+                                width: max(6, geo.size.width / CGFloat(n) * 0.72),
+                                height: max(10, geo.size.height * (0.42 - abs(t - 0.5) * 0.18))
+                            )
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                .position(x: geo.size.width / 2, y: midY)
             }
         }
-        .frame(maxWidth: 200, maxHeight: 36)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
-/// Horizontal bumper dots — matches web DotsGlyph density in the shared 80pt slot.
+/// Horizontal bumper dots in the shared half-width slot.
 private struct DotsStageGlyph: View {
     var count: Int
     var controller: PairedController?
@@ -287,43 +282,40 @@ private struct DotsStageGlyph: View {
         let on = controller?.power == true
         let color = controller?.color ?? RGB(r: 196, g: 18, b: 32)
         TimelineView(.animation(minimumInterval: 1 / 20)) { timeline in
-            Canvas { context, size in
+            GeometryReader { geo in
                 let n = max(1, count)
                 let tNow = timeline.date.timeIntervalSinceReferenceDate
-                for i in 0..<n {
-                    let t = n == 1 ? 0.5 : Double(i) / Double(n - 1)
-                    let x = (18 + t * 84) / 120 * size.width
-                    let y = size.height / 2
-                    let r = 5.2 / 28 * size.height
-                    let lit: Bool = {
-                        guard on, controller?.effectId != nil else { return on }
-                        let speed = Double(max(8, controller?.effectSpeed ?? 50))
-                        let head = Int((tNow * speed / 14).truncatingRemainder(dividingBy: Double(n)))
-                        return i == head
-                    }()
-                    let fill: Color = {
-                        if !on { return Color.white.opacity(0.16) }
-                        if controller?.effectId != nil && !lit {
+                HStack(spacing: max(8, geo.size.width * 0.06)) {
+                    ForEach(0..<n, id: \.self) { i in
+                        let lit: Bool = {
+                            guard on, controller?.effectId != nil else { return on }
+                            let speed = Double(max(8, controller?.effectSpeed ?? 50))
+                            let head = Int((tNow * speed / 14).truncatingRemainder(dividingBy: Double(n)))
+                            return i == head
+                        }()
+                        let fill: Color = {
+                            if !on { return Color.white.opacity(0.16) }
+                            if controller?.effectId != nil && !lit {
+                                return Color(
+                                    red: Double(color.r) / 255,
+                                    green: Double(color.g) / 255,
+                                    blue: Double(color.b) / 255
+                                ).opacity(0.22)
+                            }
                             return Color(
                                 red: Double(color.r) / 255,
                                 green: Double(color.g) / 255,
                                 blue: Double(color.b) / 255
-                            ).opacity(0.22)
-                        }
-                        return Color(
-                            red: Double(color.r) / 255,
-                            green: Double(color.g) / 255,
-                            blue: Double(color.b) / 255
-                        )
-                    }()
-                    context.fill(
-                        Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)),
-                        with: .color(fill)
-                    )
+                            )
+                        }()
+                        Circle()
+                            .fill(fill)
+                            .frame(width: 10, height: 10)
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             }
         }
-        .frame(maxWidth: 200, maxHeight: 28)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

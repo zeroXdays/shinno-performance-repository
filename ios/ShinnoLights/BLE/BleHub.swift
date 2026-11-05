@@ -151,10 +151,11 @@ final class BleHub: NSObject, ObservableObject {
         if central.isScanning {
             central.stopScan()
         }
-        // Broad scan — ELK-BLEDDM / BLEDOM kits often omit service UUIDs from ads.
+        // Allow duplicates — first ads are often nameless; LED-DMX / BLEDDM
+        // usually only put the local name on a later advertisement.
         central.scanForPeripherals(
             withServices: nil,
-            options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
+            options: [CBCentralManagerScanOptionAllowDuplicatesKey: true]
         )
         refreshStatus()
     }
@@ -338,6 +339,9 @@ extension BleHub: CBCentralManagerDelegate {
     }
 
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
+        peripherals[peripheral.identifier] = peripheral
+        peripheral.delegate = self
+
         let localName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
         let name = localName ?? peripheral.name
         if let name, !name.isEmpty {
@@ -346,14 +350,19 @@ extension BleHub: CBCentralManagerDelegate {
         let resolved = advertisedNames[peripheral.identifier] ?? name
         let matchesName = ElkProtocol.looksLikeController(resolved)
         let matchesService = ElkProtocol.advertisesLedService(advertisementData)
-        guard matchesName || matchesService else { return }
+        // Keep weak LED/DMX hits too — G37 emblems sometimes advertise oddly.
+        let weakHit = ElkProtocol.looksLikeLedKit(resolved)
+        guard matchesName || matchesService || weakHit else {
+            if shouldReconnect.contains(peripheral.identifier) {
+                connectIfNeeded(peripheral)
+            }
+            return
+        }
         let already = discovered.contains(where: { $0.identifier == peripheral.identifier })
         if !already {
             discovered.append(peripheral)
             refreshStatus()
         }
-        peripherals[peripheral.identifier] = peripheral
-        peripheral.delegate = self
         if shouldReconnect.contains(peripheral.identifier) {
             connectIfNeeded(peripheral)
         }

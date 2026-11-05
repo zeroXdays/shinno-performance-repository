@@ -50,8 +50,8 @@ export function encodeEffect(model: ModelProfile, effectId: number): Uint8Array 
 }
 
 export function encodeEffectSpeed(model: ModelProfile, percent: number): Uint8Array {
-  // UI: 0 = slow, 100 = fast. Firmware: 0 = fastest, 100 = slowest.
-  return fill(model.commands.effectSpeed, { v: clamp(100 - percent, 0, 100) });
+  // UI + Shinno kits: 0/1 = slow, 100 = fast. Send the UI value through as-is.
+  return fill(model.commands.effectSpeed, { v: clamp(percent, 0, 100) });
 }
 
 export function hexFrame(bytes: Uint8Array): string {

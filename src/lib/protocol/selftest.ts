@@ -35,9 +35,9 @@ const dim = encodeBrightness(elk, 50);
 if (dim[3] !== 50) throw new Error(`brightness byte expected 50 got ${dim[3]}`);
 
 const speedSlow = encodeEffectSpeed(elk, 0);
-if (speedSlow[3] !== 100) throw new Error(`UI speed 0 should write firmware 100, got ${speedSlow[3]}`);
+if (speedSlow[3] !== 0) throw new Error(`UI speed 0 should write 0 (slow), got ${speedSlow[3]}`);
 const speedFast = encodeEffectSpeed(elk, 100);
-if (speedFast[3] !== 0) throw new Error(`UI speed 100 should write firmware 0, got ${speedFast[3]}`);
+if (speedFast[3] !== 100) throw new Error(`UI speed 100 should write 100 (fast), got ${speedFast[3]}`);
 
 const flowPeriod = effectPeriodMs(50, "flow");
 const flowA = sampleEffect(143, 0, 50);

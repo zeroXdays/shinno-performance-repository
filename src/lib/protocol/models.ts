@@ -60,7 +60,7 @@ export const MODELS: ModelProfile[] = [
   {
     id: "ELK-BLEDDM",
     /** G37 emblem kits. Phone BLE lists often show this as ELK-BLEDDM / LED-DMX. */
-    prefixes: ["ELK-BLEDDM", "LED-DMX", "LEDDMX", "LED DMX"],
+    prefixes: ["ELK-BLEDDM", "LED-DMX", "LED_DMX", "LEDDMX", "LED DMX", "DMX"],
     writeUuid: FFF3,
     readUuid: FFF4,
     brightnessScale: "percent",
@@ -90,7 +90,7 @@ export const MODELS: ModelProfile[] = [
   },
   {
     id: "MELK",
-    prefixes: ["MELK-OA21", "MELK-OA10", "MELK-OC10", "MELK-OF10", "MELK-OG10", "MELK"],
+    prefixes: ["MELK-OF21", "MELK-OA21", "MELK-OA10", "MELK-OC10", "MELK-OF10", "MELK-OG10", "MELK"],
     writeUuid: FFF3,
     readUuid: FFF4,
     brightnessScale: "percent",
@@ -159,8 +159,10 @@ export function looksLikeController(advertisedName: string | null | undefined): 
     "MELK",
     "LEDBLE",
     "LED-",
+    "LED_",
     "LED DMX",
     "LEDDMX",
+    "DMX",
     "JACKY",
     "XSL-",
   ];

@@ -62,10 +62,10 @@ enum ElkProtocol {
         effectSpeed: [.byte(0x7E), .byte(0x07), .byte(0x02), .value, .byte(0x00), .byte(0x00), .byte(0x00), .byte(0x00), .byte(0xEF)]
     )
 
-    /// G37 emblem kits advertise as ELK-BLEDDM (often read as “LED DMX”).
+    /// G37 emblem kits advertise as ELK-BLEDDM / LED-DMX.
     static let elkBleddm = ModelProfile(
         id: "ELK-BLEDDM",
-        prefixes: ["ELK-BLEDDM", "LED-DMX", "LEDDMX", "LED DMX"],
+        prefixes: ["ELK-BLEDDM", "LED-DMX", "LED_DMX", "LEDDMX", "LED DMX", "DMX"],
         writeUUID: fff3,
         turnOn: [0x7E, 0x04, 0x04, 0xF0, 0x00, 0x01, 0xFF, 0x00, 0xEF],
         turnOff: [0x7E, 0x04, 0x04, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xEF],
@@ -89,7 +89,7 @@ enum ElkProtocol {
 
     static let melk = ModelProfile(
         id: "MELK",
-        prefixes: ["MELK-OA21", "MELK-OA10", "MELK-OC10", "MELK-OF10", "MELK-OG10", "MELK"],
+        prefixes: ["MELK-OF21", "MELK-OA21", "MELK-OA10", "MELK-OC10", "MELK-OF10", "MELK-OG10", "MELK"],
         writeUUID: fff3,
         turnOn: [0x7E, 0x04, 0x04, 0xF0, 0x00, 0x01, 0xFF, 0x00, 0xEF],
         turnOff: [0x7E, 0x04, 0x04, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xEF],
@@ -126,7 +126,13 @@ enum ElkProtocol {
         }
         // Containment fallback for names that embed the chip id mid-string.
         if bestLen < 0 {
-            if upper.contains("BLEDDM") || upper.contains("LED-DMX") || upper.contains("LEDDMX") || upper.contains("LED DMX") {
+            if upper.contains("BLEDDM")
+                || upper.contains("LED-DMX")
+                || upper.contains("LED_DMX")
+                || upper.contains("LEDDMX")
+                || upper.contains("LED DMX")
+                || upper.contains("DMX")
+            {
                 return elkBleddm
             }
             if upper.contains("BLEDOB") { return elkBledob }
@@ -147,9 +153,20 @@ enum ElkProtocol {
         }
         let loose = [
             "ELK-", "ELK~", "BLEDOM", "BLEDOB", "BLEDDM", "MELK",
-            "LEDBLE", "LED-", "LED DMX", "LEDDMX", "JACKY", "SP110", "LEDNET", "XSL-",
+            "LEDBLE", "LED-", "LED_", "LED DMX", "LEDDMX", "DMX",
+            "JACKY", "SP110", "LEDNET", "XSL-",
         ]
         return loose.contains { upper.contains($0) }
+    }
+
+    /// Broader LED-kit heuristic for Scan (still rejects phones / audio / watches).
+    static func looksLikeLedKit(_ name: String?) -> Bool {
+        let upper = normalizeName(name)
+        guard !upper.isEmpty else { return false }
+        if looksLikeController(upper) { return true }
+        let reject = ["IPHONE", "IPAD", "WATCH", "AIRPOD", "MACBOOK", "GALAXY", "PIXEL", "BEATS", "SOUNDBAR"]
+        if reject.contains(where: { upper.contains($0) }) { return false }
+        return upper.contains("LED") || upper.contains("DMX") || upper.contains("ELK") || upper.contains("MELK")
     }
 
     /// True when the advertisement includes a known LED service (name can be empty until connect).
@@ -182,7 +199,8 @@ enum ElkProtocol {
     }
 
     static func speed(_ model: ModelProfile, percent: Int) -> Data {
-        encode(model.effectSpeed, rgb: RGB(r: 0, g: 0, b: 0), value: UInt8(clamping: min(100, max(0, 100 - percent))))
+        // UI + kits: 1 = slow, 100 = fast (do not invert — Shinno/MELK/BLEDDM expect higher = faster).
+        encode(model.effectSpeed, rgb: RGB(r: 0, g: 0, b: 0), value: UInt8(clamping: min(100, max(0, percent))))
     }
 
     private static func encode(_ slots: [FrameSlot], rgb: RGB, value: UInt8) -> Data {
