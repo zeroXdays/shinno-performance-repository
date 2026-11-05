@@ -2,7 +2,10 @@ import SwiftUI
 
 struct ColorWheelView: View {
     var color: RGB
+    /// Continuous drag — keep this light (UI + throttled colour-only BLE).
     var onChange: (RGB) -> Void
+    /// Finger up — commit a full solid-colour write (safe for LEDDMX).
+    var onCommit: ((RGB) -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 14) {
@@ -39,16 +42,15 @@ struct ColorWheelView: View {
                 }
                 .frame(width: size, height: size)
                 .gesture(
-                    DragGesture(minimumDistance: 0).onChanged { value in
-                        let center = CGPoint(x: size / 2, y: size / 2)
-                        let dx = value.location.x - center.x
-                        let dy = value.location.y - center.y
-                        let dist = hypot(dx, dy) / (size / 2)
-                        var hue = atan2(dy, dx) * 180 / .pi + 90
-                        if hue < 0 { hue += 360 }
-                        let sat = min(dist / hexRadius(hue), 1)
-                        onChange(hsv(h: hue, s: sat, v: 1))
-                    }
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            onChange(colorAt(value.location, size: size))
+                        }
+                        .onEnded { value in
+                            let rgb = colorAt(value.location, size: size)
+                            onChange(rgb)
+                            onCommit?(rgb)
+                        }
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -81,6 +83,17 @@ struct HexCell: Shape {
         path.closeSubpath()
         return path
     }
+}
+
+private func colorAt(_ location: CGPoint, size: CGFloat) -> RGB {
+    let center = CGPoint(x: size / 2, y: size / 2)
+    let dx = location.x - center.x
+    let dy = location.y - center.y
+    let dist = hypot(dx, dy) / (size / 2)
+    var hue = atan2(dy, dx) * 180 / .pi + 90
+    if hue < 0 { hue += 360 }
+    let sat = min(dist / hexRadius(hue), 1)
+    return hsv(h: hue, s: sat, v: 1)
 }
 
 private func hexRadius(_ angle: Double) -> Double {

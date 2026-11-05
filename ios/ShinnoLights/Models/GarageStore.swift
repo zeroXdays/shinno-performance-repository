@@ -394,28 +394,47 @@ final class GarageStore: ObservableObject {
         }
     }
 
-    func setColor(_ rgb: RGB) {
+    enum ColorDelivery {
+        /// Colour-wheel drag: UI + throttled colour-only BLE (no power/pattern spam).
+        case live
+        /// Swatch / finger-up: full solid-colour sequence once.
+        case commit
+    }
+
+    func setColor(_ rgb: RGB, delivery: ColorDelivery = .commit) {
         stopPath()
-        // Update UI / state immediately; debounce the BLE burst so the colour
-        // wheel does not flood LEDDMX (withResponse only accepts one write at a time).
+        // Update UI / state immediately.
         for index in controllers.indices where matchesTarget(controllers[index]) {
             controllers[index].color = rgb
             controllers[index].power = true
             controllers[index].effectId = nil
         }
         colorWriteWork?.cancel()
-        let work = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-            self.mutate { controller, peripheral, _ in
+
+        switch delivery {
+        case .live:
+            // Wheel drag fires dozens of times/sec. Only push a single colour frame,
+            // throttled — repeating power/pattern-off locks LEDDMX for minutes.
+            let work = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                self.mutate { controller, peripheral, _ in
+                    let color = controller.color
+                    self.writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
+                        [ElkProtocol.color(model, rgb: color)]
+                    }
+                }
+            }
+            colorWriteWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.14, execute: work)
+        case .commit:
+            mutate { controller, peripheral, _ in
                 let brightness = controller.brightness
                 let color = controller.color
-                self.writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
-                    self.solidColorFrames(model: model, rgb: color, brightness: brightness)
+                writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
+                    solidColorFrames(model: model, rgb: color, brightness: brightness)
                 }
             }
         }
-        colorWriteWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.07, execute: work)
     }
 
     private func matchesTarget(_ controller: PairedController) -> Bool {

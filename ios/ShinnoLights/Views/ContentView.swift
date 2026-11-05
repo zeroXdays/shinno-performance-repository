@@ -244,7 +244,11 @@ struct ColorScreen: View {
                             .tint(shinnoRed)
                             .accessibilityLabel(powerOn ? "Turn off" : "Turn on")
                         }
-                        ColorWheelView(color: live?.color ?? RGB(r: 196, g: 18, b: 32)) { garage.setColor($0) }
+                        ColorWheelView(
+                            color: live?.color ?? RGB(r: 196, g: 18, b: 32),
+                            onChange: { garage.setColor($0, delivery: .live) },
+                            onCommit: { garage.setColor($0, delivery: .commit) }
+                        )
                         VStack(alignment: .leading) {
                             HStack {
                                 Text("Brightness")
