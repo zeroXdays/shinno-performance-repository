@@ -10,11 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { VehicleStage } from "@/components/vehicle-stage";
 import { SettingsMenu } from "@/components/settings-menu";
-import { ASSIGNABLE_ZONES, CARS, type ZoneKind } from "@/lib/catalog";
+import { assignableZonesForCar, CARS, kitZonesForCar, type ZoneKind } from "@/lib/catalog";
 import { useGarage } from "@/lib/garage-context";
 import { useI18n } from "@/lib/i18n";
 import { EFFECTS, EFFECT_GROUPS, type Rgb } from "@/lib/protocol";
-import { ZONE_PATHS } from "@/lib/paths";
+import { pathsForCar } from "@/lib/paths";
 import { rgbToCss, rgbToHex, SCENES } from "@/lib/scenes";
 import { cn } from "@/lib/utils";
 import type { TabId } from "@/lib/controller";
@@ -309,7 +309,9 @@ function EffectsPanel({ onGoScan }: { onGoScan: () => void }) {
     if (group === "paths") return [];
     return EFFECTS.filter((effect) => effect.group === group);
   }, [group, query]);
-  const activePath = ZONE_PATHS.find((path) => path.id === garage.activePathId);
+  const carPaths = useMemo(() => pathsForCar(garage.car), [garage.car]);
+  const pathZones = useMemo(() => kitZonesForCar(garage.car), [garage.car]);
+  const activePath = carPaths.find((path) => path.id === garage.activePathId);
   const empty = garage.controllers.length === 0;
 
   return (
@@ -339,7 +341,7 @@ function EffectsPanel({ onGoScan }: { onGoScan: () => void }) {
             </Button>
           </div>
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {(["mirrors", "emblem", "bumper"] as const).map((zone) => {
+            {pathZones.map((zone) => {
               const hot = garage.activePathZones.includes(zone);
               return (
                 <span
@@ -433,7 +435,7 @@ function EffectsPanel({ onGoScan }: { onGoScan: () => void }) {
       </div>
       {group === "paths" && !query ? (
         <div className="grid min-h-0 flex-1 grid-cols-2 content-start gap-2.5 overflow-y-auto rounded-xl border border-[#c41220]/35 bg-[#141414] p-2.5">
-          {ZONE_PATHS.map((path) => {
+          {carPaths.map((path) => {
             const activePathTile = garage.activePathId === path.id;
             const disabled = !garage.controllers.length;
             return (
@@ -634,7 +636,7 @@ function DeviceList({ onGoScan }: { onGoScan: () => void }) {
               onChange={(event) => garage.setZone(controller.id, event.target.value as ZoneKind)}
               aria-label={t(`zone.${controller.zone}`)}
             >
-              {ASSIGNABLE_ZONES.map((zone) => (
+              {assignableZonesForCar(garage.car).map((zone) => (
                 <option key={zone.id} value={zone.id} className="bg-neutral-900">
                   {t(`zone.${zone.id}`)}
                 </option>

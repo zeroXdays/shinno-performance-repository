@@ -14,7 +14,7 @@ import {
 import type { BleTransport, DiscoveredDevice } from "@/lib/ble/types";
 import { WebBluetoothTransport, isChooserCancel, webBluetoothAvailable } from "@/lib/ble/web-bluetooth";
 import { registerAutoReconnect } from "@/lib/ble/auto-reconnect";
-import type { CarId, ZoneKind } from "@/lib/catalog";
+import { kitZonesForCar, type CarId, type ZoneKind } from "@/lib/catalog";
 import { createController, guessZone, type Controller, type TabId } from "@/lib/controller";
 import {
   detectModel,
@@ -26,7 +26,7 @@ import {
   type Rgb,
 } from "@/lib/protocol";
 import { SCENES, type Scene } from "@/lib/scenes";
-import { dimBrightness, pathById, pathStepMs, type ZonePath } from "@/lib/paths";
+import { dimBrightness, pathByIdForCar, pathStepMs, type ZonePath } from "@/lib/paths";
 import { getSettings } from "@/lib/settings";
 import {
   getCar,
@@ -121,7 +121,19 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
   const setCar = useCallback((next: CarId) => {
     writeCar(next);
-  }, []);
+    const kit = new Set(kitZonesForCar(next));
+    pathRunId.current += 1;
+    if (pathTimer.current) {
+      clearTimeout(pathTimer.current);
+      pathTimer.current = null;
+    }
+    setActivePathId(null);
+    setActivePathZones([]);
+    setControllers((prev) =>
+      prev.filter((row) => !(isDemoController(row) && !kit.has(row.zone))),
+    );
+    setTarget((current) => (current !== "all" && !kit.has(current) ? "all" : current));
+  }, [setControllers]);
 
   const patch = useCallback(
     (id: string, update: Partial<Controller>) => {
@@ -243,12 +255,13 @@ export function GarageProvider({ children }: { children: ReactNode }) {
   /** DEMO: one-click seed for preview without BLE — remove via DEMO_DEVICES_ENABLED / demo-devices.ts */
   const seedDemoDevices = useCallback(() => {
     if (!DEMO_DEVICES_ENABLED) return;
-    const demos = buildDemoControllers();
+    const demos = buildDemoControllers(getCar());
+    const kit = new Set(kitZonesForCar(getCar()));
     setControllers((prev) => {
       const withoutDemo = prev.filter((row) => !isDemoController(row));
-      const keptReal = withoutDemo;
-      const next = [...keptReal];
+      const next = [...withoutDemo];
       for (const demo of demos) {
+        if (!kit.has(demo.zone)) continue;
         if (!next.some((row) => row.zone === demo.zone)) next.push(demo);
       }
       return next;
@@ -261,7 +274,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     async (discovery: DiscoveredDevice) => {
       if (controllers.some((c) => c.id === discovery.id)) return;
       const used = new Set(controllers.map((c) => c.zone));
-      const zone = guessZone(discovery.name, used);
+      const zone = guessZone(discovery.name, used, kitZonesForCar(getCar()));
       const model = detectModel(discovery.name);
       const controller = {
         ...createController({
@@ -512,7 +525,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
   const startPath = useCallback(
     async (pathId: string) => {
-      const path = pathById(pathId);
+      const path = pathByIdForCar(getCar(), pathId);
       if (!path) return;
       const garage = getGarageControllers();
       if (!garage.length) {
@@ -522,7 +535,10 @@ export function GarageProvider({ children }: { children: ReactNode }) {
       const covered = new Set(path.steps.flat());
       const hasZone = garage.some((controller) => covered.has(controller.zone));
       if (!hasZone) {
-        setLastError("Assign Emblem, Mirrors, or Bumper on Devices so this path has somewhere to go.");
+        const labels = kitZonesForCar(getCar())
+          .map((zone) => zone.charAt(0).toUpperCase() + zone.slice(1))
+          .join(", ");
+        setLastError(`Assign ${labels} on Devices so this path has somewhere to go.`);
         return;
       }
 

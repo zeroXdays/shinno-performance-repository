@@ -57,6 +57,30 @@ enum ZonePaths {
         all.first { $0.id == id }
     }
 
+    /// Paths whose steps only use kit zones for this car (G37 emblem-only keeps Pulse).
+    static func forCar(_ car: CarKind) -> [ZonePath] {
+        let allowed = Set(car.kitZones)
+        return all.compactMap { path in
+            let steps = path.steps.map { step in step.filter { allowed.contains($0) } }
+            let lostStep = zip(path.steps, steps).contains { original, clipped in
+                !original.isEmpty && clipped.isEmpty
+            }
+            guard !lostStep, steps.contains(where: { !$0.isEmpty }) else { return nil }
+            return ZonePath(
+                id: path.id,
+                name: path.name,
+                blurb: path.blurb,
+                steps: steps,
+                restOff: path.restOff,
+                swatch: path.swatch
+            )
+        }
+    }
+
+    static func named(_ id: String, for car: CarKind) -> ZonePath? {
+        forCar(car).first { $0.id == id }
+    }
+
     static func stepMs(speed: Int) -> Double {
         let t = 1 - Double(min(100, max(0, speed))) / 100
         return 220 + t * 780

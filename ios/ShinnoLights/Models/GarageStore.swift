@@ -16,10 +16,14 @@ enum ZoneKind: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    /// Zones shown in pickers. Grille is parked until we have a badge kit to test.
+    /// Zones shown in pickers for a car. Grille is parked until we have a badge kit to test.
+    static func assignable(for car: CarKind) -> [ZoneKind] {
+        car.kitZones + [.custom]
+    }
+
+    /// Fallback when car is unknown — prefer assignable(for:).
     static var assignable: [ZoneKind] {
-        // [.emblem, .mirrors, .bumper, .grille, .custom]
-        [.emblem, .mirrors, .bumper, .custom]
+        assignable(for: .q50)
     }
 }
 
@@ -36,6 +40,16 @@ enum CarKind: String, CaseIterable, Identifiable, Codable {
     }
     var enabled: Bool { self == .q50 || self == .g37 }
     var pickerLabel: String { enabled ? title : "\(title) — soon" }
+
+    /// Kit zones offered for this car. G37 is emblem-only until mirrors/bumper kits land.
+    var kitZones: [ZoneKind] {
+        switch self {
+        case .g37:
+            return [.emblem]
+        case .q50, .q60, .q70:
+            return [.emblem, .mirrors, .bumper]
+        }
+    }
 }
 
 enum ControlTarget: Equatable, Hashable {
@@ -188,7 +202,7 @@ final class GarageStore: ObservableObject {
             return
         }
         let used = Set(controllers.map(\.zone))
-        let zone = Self.guessZone(name, used: used)
+        let zone = Self.guessZone(name, used: used, preferred: settings.car.kitZones)
         let model = ElkProtocol.detect(name: name)
         do {
             try await hub.connect(peripheral)
@@ -297,6 +311,10 @@ final class GarageStore: ObservableObject {
     func setCar(_ car: CarKind) {
         guard car.enabled else { return }
         settings.car = car
+        stopPath()
+        if case .zone(let zone) = target, !car.kitZones.contains(zone), zone != .custom {
+            target = .all
+        }
     }
 
     func setPower(_ on: Bool) {
@@ -344,14 +362,15 @@ final class GarageStore: ObservableObject {
     }
 
     func startPath(_ id: String) {
-        guard let path = ZonePaths.named(id) else { return }
+        guard let path = ZonePaths.named(id, for: settings.car) else { return }
         guard !controllers.isEmpty else {
             lastError = "Add devices on Scan before running a zone path."
             return
         }
         let covered = Set(path.steps.flatMap { $0 })
         guard controllers.contains(where: { covered.contains($0.zone) }) else {
-            lastError = "Assign Emblem, Mirrors, or Bumper on Devices so this path has somewhere to go."
+            let labels = settings.car.kitZones.map(\.title).joined(separator: ", ")
+            lastError = "Assign \(labels) on Devices so this path has somewhere to go."
             return
         }
         stopPath()
@@ -365,7 +384,7 @@ final class GarageStore: ObservableObject {
     private func scheduleNextPathStep() {
         pathTimer?.invalidate()
         pathTimer = Timer.scheduledTimer(withTimeInterval: ZonePaths.stepMs(speed: pathSpeed) / 1000, repeats: false) { [weak self] _ in
-            guard let self, let live = ZonePaths.named(self.activePathId ?? "") else { return }
+            guard let self, let live = ZonePaths.named(self.activePathId ?? "", for: self.settings.car) else { return }
             self.pathStepIndex = (self.pathStepIndex + 1) % live.steps.count
             self.applyPathStep(live)
             self.scheduleNextPathStep()
@@ -458,14 +477,15 @@ final class GarageStore: ObservableObject {
         }
     }
 
-    static func guessZone(_ name: String, used: Set<ZoneKind>) -> ZoneKind {
+    static func guessZone(_ name: String, used: Set<ZoneKind>, preferred: [ZoneKind] = [.emblem, .mirrors, .bumper]) -> ZoneKind {
         let upper = name.uppercased()
-        if upper.contains("MR") { return .mirrors }
-        if upper.contains("BP") { return .bumper }
+        let allowed = Set(preferred + [.custom])
+        if upper.contains("MR"), allowed.contains(.mirrors) { return .mirrors }
+        if upper.contains("BP"), allowed.contains(.bumper) { return .bumper }
         // Grille badge kits often advertise MELK / GB — park until we have a kit to test:
         // if upper.contains("GB") || upper.contains("MELK") { return used.contains(.grille) ? .custom : .grille }
-        if upper.contains("EM") { return .emblem }
-        return [.emblem, .mirrors, .bumper, /* .grille, */ .custom].first { !used.contains($0) } ?? .custom
+        if upper.contains("EM"), allowed.contains(.emblem) { return .emblem }
+        return (preferred + [/* .grille, */ .custom]).first { allowed.contains($0) && !used.contains($0) } ?? .custom
     }
 
     private func load() {

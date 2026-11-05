@@ -2,8 +2,9 @@
  * ============================================================================
  * DEMO DEVICES — preview/testing without real BLE
  * ============================================================================
- * Seeds fake paired Emblem / Mirrors / Bumper controllers so Color, Modes,
- * and Paths are usable in the browser when no hardware is present.
+ * Seeds fake paired kit-zone controllers so Color, Modes, and Paths are usable
+ * in the browser when no hardware is present. Zone count follows kitZonesForCar
+ * (Q50: emblem/mirrors/bumper; G37: emblem only).
  *
  * Easy remove later:
  *   1. Set DEMO_DEVICES_ENABLED = false, OR
@@ -13,12 +14,10 @@
  */
 
 import { createController, defaultName, type Controller } from "./controller";
-import type { ZoneKind } from "./catalog";
+import { kitZonesForCar, type CarId, type ZoneKind } from "./catalog";
 
 /** Flip to false (or delete this module) to strip the demo path entirely. */
 export const DEMO_DEVICES_ENABLED = true;
-
-const DEMO_ZONES: ZoneKind[] = ["emblem", "mirrors", "bumper"];
 
 export function isDemoDeviceId(id: string): boolean {
   return id.startsWith("demo-");
@@ -28,9 +27,10 @@ export function isDemoController(controller: Pick<Controller, "id">): boolean {
   return isDemoDeviceId(controller.id);
 }
 
-/** Build three fake paired zone devices (connected, powered). */
-export function buildDemoControllers(): Controller[] {
-  return DEMO_ZONES.map((zone) => {
+/** Build fake paired zone devices for this car (connected, powered). */
+export function buildDemoControllers(car: CarId): Controller[] {
+  const zones: ZoneKind[] = kitZonesForCar(car);
+  return zones.map((zone) => {
     const base = createController({
       id: `demo-${zone}`,
       advertisedName: "DEMO ELK-BLEDOM",

@@ -28,11 +28,14 @@ export function isActiveCar(id: string): id is CarId {
  * take the 9-byte frames in `src/lib/protocol`. There is no unique SKU per zone —
  * one device drives each kit. Pair by Bluetooth name, then assign the zone.
  *
- * Typical garage:
+ * Typical garage (Q50):
  * - Emblem: ELK-BLEDOM
  * - Mirrors: ELK-BLEDOM or ELK-BLEDOB (one device for both housings)
  * - Bumper: ELK-BLEDOB or ELK-BLEDOM (one device for both sequentials)
  * - Grille badge: often MELK-OA10 — parked below until we have a kit to test
+ *
+ * G37 currently ships emblem only — restore mirrors/bumper in KIT_ZONES_BY_CAR
+ * when those kits are available.
  */
 export const ZONES: { id: ZoneKind; label: string }[] = [
   { id: "emblem", label: "Emblem" },
@@ -42,7 +45,37 @@ export const ZONES: { id: ZoneKind; label: string }[] = [
   { id: "custom", label: "Other" },
 ];
 
-/** Tiles on the car stage. Grille is omitted until we can test a badge kit. */
+/** Kit zones offered per car. Edit here to re-add G37 mirrors/bumper later. */
+export const KIT_ZONES_BY_CAR: Record<CarId, ZoneKind[]> = {
+  q50: ["emblem", "mirrors", "bumper"],
+  g37: ["emblem"],
+  q60: ["emblem", "mirrors", "bumper"],
+  q70: ["emblem", "mirrors", "bumper"],
+};
+
+export function kitZonesForCar(car: CarId): ZoneKind[] {
+  return KIT_ZONES_BY_CAR[car] ?? ["emblem"];
+}
+
+export function isKitZoneForCar(car: CarId, zone: ZoneKind): boolean {
+  return kitZonesForCar(car).includes(zone);
+}
+
+/** Tiles on the car stage (no "Other"). */
+export function stageZonesForCar(car: CarId) {
+  const kit = new Set(kitZonesForCar(car));
+  return ZONES.filter((zone) => kit.has(zone.id));
+}
+
+/** Zone picker options: kit zones + Other. */
+export function assignableZonesForCar(car: CarId) {
+  const kit = stageZonesForCar(car);
+  const other = ZONES.find((zone) => zone.id === "custom");
+  return other ? [...kit, other] : kit;
+}
+
+/** @deprecated Prefer stageZonesForCar(car) — kept for callers that are car-agnostic. */
 export const STAGE_ZONES = ZONES.filter((zone) => zone.id !== "custom");
 
+/** @deprecated Prefer assignableZonesForCar(car). */
 export const ASSIGNABLE_ZONES = ZONES;

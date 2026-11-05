@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useClock } from "@/hooks/use-clock";
 import type { CarId, ZoneKind } from "@/lib/catalog";
 import type { Controller } from "@/lib/controller";
-import { STAGE_ZONES } from "@/lib/catalog";
+import { stageZonesForCar } from "@/lib/catalog";
 import { rgbToCss, rgbToHex } from "@/lib/scenes";
 import { EFFECTS, sampleEffect, sampleLed } from "@/lib/protocol";
 import { cn, svgCoord } from "@/lib/utils";
@@ -20,6 +20,8 @@ interface VehicleStageProps {
 
 export function VehicleStage({ car, controllers, target, hotZones = [], onSelect }: VehicleStageProps) {
   const { t } = useI18n();
+  const zones = stageZonesForCar(car);
+  const singleZone = zones.length === 1;
   const zoneCtrl = (kind: ZoneKind) => controllers.find((c) => c.zone === kind);
   const playing =
     hotZones.length > 0 ||
@@ -32,12 +34,12 @@ export function VehicleStage({ car, controllers, target, hotZones = [], onSelect
 
   return (
     <div className="relative mx-auto w-full max-w-lg">
-      <div className="grid grid-cols-2 gap-2">
-        {STAGE_ZONES.map((zone) => {
+      <div className={cn("grid gap-2", singleZone ? "grid-cols-1" : "grid-cols-2")}>
+        {zones.map((zone) => {
           const controller = zoneCtrl(zone.id);
           const selected = target === zone.id;
           const hot = hotZones.includes(zone.id);
-          const wide = zone.id === "emblem";
+          const wide = zone.id === "emblem" || singleZone;
           return (
             <button
               key={zone.id}
@@ -45,7 +47,7 @@ export function VehicleStage({ car, controllers, target, hotZones = [], onSelect
               onClick={() => toggle(zone.id)}
               className={cn(
                 "flex flex-col items-stretch gap-2 rounded-2xl border px-3 py-3.5 text-left transition",
-                wide && "col-span-2",
+                wide && "col-span-full",
                 hot
                   ? "border-[#c41220] bg-[#121212] shadow-[0_0_26px_rgba(196,18,32,0.35)]"
                   : selected

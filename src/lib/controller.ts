@@ -66,17 +66,31 @@ export function defaultName(zone: ZoneKind): string {
   }
 }
 
-export function guessZone(name: string, used: Set<ZoneKind>): ZoneKind {
+export function guessZone(
+  name: string,
+  used: Set<ZoneKind>,
+  preferred: ZoneKind[] = ["emblem", "mirrors", "bumper"],
+): ZoneKind {
   const upper = name.toUpperCase();
-  if (upper.includes("MR") || upper.includes("MIRROR")) return "mirrors";
-  if (upper.includes("BP") || upper.includes("BUMP")) return "bumper";
+  const allowed = new Set<ZoneKind>([...preferred, "custom"]);
+  if (
+    (upper.includes("MR") || upper.includes("MIRROR")) &&
+    allowed.has("mirrors")
+  ) {
+    return "mirrors";
+  }
+  if ((upper.includes("BP") || upper.includes("BUMP")) && allowed.has("bumper")) {
+    return "bumper";
+  }
   // Grille badge kits often advertise MELK / GB — park until we have a kit to test:
   // if (upper.includes("GB") || upper.includes("GRILLE") || upper.includes("MELK")) {
   //   return used.has("grille") ? "custom" : "grille";
   // }
-  if (upper.includes("EM") || upper.includes("EMBLEM")) return "emblem";
-  const order: ZoneKind[] = ["emblem", "mirrors", "bumper", /* "grille", */ "custom"];
-  return order.find((zone) => !used.has(zone)) ?? "custom";
+  if ((upper.includes("EM") || upper.includes("EMBLEM")) && allowed.has("emblem")) {
+    return "emblem";
+  }
+  const order: ZoneKind[] = [...preferred, /* "grille", */ "custom"];
+  return order.find((zone) => allowed.has(zone) && !used.has(zone)) ?? "custom";
 }
 
 export function persistable(controllers: Controller[]): unknown {

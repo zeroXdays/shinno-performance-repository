@@ -182,7 +182,7 @@ struct ColorScreen: View {
                     HStack {
                         Menu {
                             Button("All lights") { garage.target = .all }
-                            ForEach(ZoneKind.assignable) { zone in
+                            ForEach(ZoneKind.assignable(for: garage.settings.car)) { zone in
                                 Button(zone.title) { garage.target = .zone(zone) }
                             }
                         } label: {
@@ -328,7 +328,7 @@ struct ModesScreen: View {
                                 .buttonStyle(.bordered)
                         }
                         HStack(spacing: 8) {
-                            ForEach([ZoneKind.mirrors, .emblem, .bumper], id: \.self) { zone in
+                            ForEach(garage.settings.car.kitZones, id: \.self) { zone in
                                 Text(zone.title)
                                     .font(.caption2)
                                     .padding(.horizontal, 10)
@@ -445,7 +445,7 @@ struct ModesScreen: View {
                 if browser == .paths && query.isEmpty {
                     ScrollView {
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                            ForEach(ZonePaths.all) { path in
+                            ForEach(ZonePaths.forCar(garage.settings.car)) { path in
                                 Button {
                                     if garage.activePathId == path.id {
                                         garage.stopPath()
@@ -656,7 +656,7 @@ struct DevicesScreen: View {
                                     get: { controller.zone },
                                     set: { garage.setZone(controller.id, $0) }
                                 )) {
-                                    ForEach(ZoneKind.assignable) { zone in
+                                    ForEach(ZoneKind.assignable(for: garage.settings.car)) { zone in
                                         Text(zone.title).tag(zone)
                                     }
                                 }

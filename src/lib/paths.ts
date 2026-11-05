@@ -1,4 +1,4 @@
-import type { ZoneKind } from "./catalog";
+import { kitZonesForCar, type CarId, type ZoneKind } from "./catalog";
 import type { Rgb } from "./protocol";
 
 export type PathRest = "off" | "dim";
@@ -63,6 +63,26 @@ export const ZONE_PATHS: ZonePath[] = [
 
 export function pathById(id: string): ZonePath | undefined {
   return ZONE_PATHS.find((path) => path.id === id);
+}
+
+/**
+ * Paths whose steps only use kit zones for this car.
+ * Steps are clipped to available zones; a path is dropped if any originally
+ * lit step loses every zone (so G37 emblem-only keeps Pulse, not Around).
+ */
+export function pathsForCar(car: CarId): ZonePath[] {
+  const allowed = new Set(kitZonesForCar(car));
+  return ZONE_PATHS.flatMap((path) => {
+    const steps = path.steps.map((step) => step.filter((zone) => allowed.has(zone)));
+    const lostStep = path.steps.some((step, index) => step.length > 0 && steps[index]!.length === 0);
+    if (lostStep) return [];
+    if (!steps.some((step) => step.length > 0)) return [];
+    return [{ ...path, steps }];
+  });
+}
+
+export function pathByIdForCar(car: CarId, id: string): ZonePath | undefined {
+  return pathsForCar(car).find((path) => path.id === id);
 }
 
 /** UI speed 0 = slow, 100 = fast → dwell per step in ms. */
