@@ -23,6 +23,7 @@
 		A10000000000000000000065 /* PurchaseLicense.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000075 /* PurchaseLicense.swift */; };
 		A10000000000000000000066 /* PurchaseGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000076 /* PurchaseGateView.swift */; };
 		A10000000000000000000067 /* VehicleStageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000077 /* VehicleStageView.swift */; };
+		A10000000000000000000068 /* EffectPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000078 /* EffectPreview.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,6 +45,7 @@
 		A10000000000000000000075 /* PurchaseLicense.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseLicense.swift; sourceTree = "<group>"; };
 		A10000000000000000000076 /* PurchaseGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseGateView.swift; sourceTree = "<group>"; };
 		A10000000000000000000077 /* VehicleStageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VehicleStageView.swift; sourceTree = "<group>"; };
+		A10000000000000000000078 /* EffectPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EffectPreview.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -103,6 +105,7 @@
 			children = (
 				A10000000000000000000034 /* GarageStore.swift */,
 				A10000000000000000000072 /* EffectsCatalog.swift */,
+				A10000000000000000000078 /* EffectPreview.swift */,
 				A10000000000000000000074 /* ZonePaths.swift */,
 				A10000000000000000000075 /* PurchaseLicense.swift */,
 			);
@@ -199,6 +202,7 @@
 				A10000000000000000000026 /* ColorWheelView.swift in Sources */,
 				A10000000000000000000061 /* LegalCopy.swift in Sources */,
 				A10000000000000000000062 /* EffectsCatalog.swift in Sources */,
+				A10000000000000000000068 /* EffectPreview.swift in Sources */,
 				A10000000000000000000064 /* ZonePaths.swift in Sources */,
 				A10000000000000000000065 /* PurchaseLicense.swift in Sources */,
 				A10000000000000000000066 /* PurchaseGateView.swift in Sources */,
@@ -255,7 +259,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ShinnoLights/Info.plist;
@@ -284,7 +288,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ShinnoLights/Info.plist;

@@ -66,14 +66,50 @@ export function paletteFor(id: number): Rgb[] {
   return colors.length > 0 ? colors : RAINBOW;
 }
 
+const DMX: Record<string, Rgb> = {
+  RD: RED,
+  GN: GREEN,
+  BU: BLUE,
+  YE: YELLOW,
+  CN: CYAN,
+  VT: PURPLE,
+  WH: WHITE,
+  BK: { r: 0, g: 0, b: 0 },
+  R: RED,
+  G: GREEN,
+  B: BLUE,
+  Y: YELLOW,
+  C: CYAN,
+  P: PURPLE,
+  W: WHITE,
+};
+
+function firstDmxToken(name: string): Rgb | undefined {
+  const upper = name.toUpperCase();
+  const keys = Object.keys(DMX).sort((a, b) => b.length - a.length);
+  for (const key of keys) {
+    if (new RegExp(`\\b${key}\\b`).test(upper)) return DMX[key];
+  }
+  return undefined;
+}
+
 function paletteFromName(name: string): Rgb[] {
   const flow = name.match(/^([WRGBYCP])-([WRGBYCP])-([WRGBYCP])/);
   if (flow) return [LETTER[flow[1]], LETTER[flow[2]], LETTER[flow[3]]];
+
+  const dmxFlow = name.toUpperCase().match(
+    /\b(WH|RD|GN|BU|YE|CN|VT|BK)\s+(WH|RD|GN|BU|YE|CN|VT|BK)\s+(WH|RD|GN|BU|YE|CN|VT|BK)\b/,
+  );
+  if (dmxFlow) return [DMX[dmxFlow[1]], DMX[dmxFlow[2]], DMX[dmxFlow[3]]];
 
   const six = name.match(/6-Color to (\w+)/);
   if (six && WORD[six[1]]) {
     const target = WORD[six[1]];
     return [...RAINBOW.filter((c) => c !== target), target];
+  }
+  if (name.includes("6 Colors")) {
+    const target = firstDmxToken(name);
+    if (target) return [...RAINBOW.filter((c) => c !== target), target];
   }
 
   const inBg = name.match(/7-Color in (\w+)/);
@@ -81,30 +117,57 @@ function paletteFromName(name: string): Rgb[] {
     const bg = WORD[inBg[1]];
     return [bg, ...RAINBOW.filter((c) => c !== bg)];
   }
+  if (name.toUpperCase().includes("7 COLOR ON")) {
+    const bg = firstDmxToken(name);
+    if (bg) return [bg, ...RAINBOW.filter((c) => c !== bg)];
+  }
 
   const dot = name.match(/^(\w+)-Dot in (\w+)/);
   if (dot && WORD[dot[1]] && WORD[dot[2]]) return [WORD[dot[2]], WORD[dot[1]]];
 
+  const onPair = name.toUpperCase().match(
+    /\b(WH|RD|GN|BU|YE|CN|VT|BK|[RGBYCP])\s+ON\s+(WH|RD|GN|BU|YE|CN|VT|BK|[RGBYCP])\b/,
+  );
+  if (onPair) return [DMX[onPair[2]], DMX[onPair[1]]];
+
   if (name.includes("B-P-C-Y")) return [BLUE, PURPLE, CYAN, YELLOW];
   if (name.includes("B-G-C-Y")) return [BLUE, GREEN, CYAN, YELLOW];
-  if (name.includes("R-G-B")) return [RED, GREEN, BLUE];
-  if (name.includes("Y-C-P")) return [YELLOW, CYAN, PURPLE];
-  if (name.includes("R-G ")) return [RED, GREEN];
-  if (name.includes("G-B ")) return [GREEN, BLUE];
-  if (name.includes("Y-B ")) return [YELLOW, BLUE];
-  if (name.includes("Y-C ")) return [YELLOW, CYAN];
-  if (name.includes("C-P ")) return [CYAN, PURPLE];
-  if (name.includes("R-Y ")) return [RED, YELLOW];
-  if (name.includes("R-P ")) return [RED, PURPLE];
-  if (name.includes("G-C ")) return [GREEN, CYAN];
-  if (name.includes("G-Y ")) return [GREEN, YELLOW];
-  if (name.includes("B-P ")) return [BLUE, PURPLE];
-  if (name.includes("7-Color") || name.includes("Magic") || name.includes("Auto Play") || name.includes("Energy")) {
+  if (name.includes("R-G-B") || name.includes("RD/GN/BU") || name.includes("R G B")) {
+    return [RED, GREEN, BLUE];
+  }
+  if (name.includes("Y-C-P") || name.includes("YE/CN/VT") || name.includes("Y C P")) {
+    return [YELLOW, CYAN, PURPLE];
+  }
+  if (name.includes("R-G ") || name.includes("RD/GN")) return [RED, GREEN];
+  if (name.includes("G-B ") || name.includes("GN/BU")) return [GREEN, BLUE];
+  if (name.includes("Y-B ") || name.includes("YE/BU")) return [YELLOW, BLUE];
+  if (name.includes("Y-C ") || name.includes("YE/CN")) return [YELLOW, CYAN];
+  if (name.includes("C-P ") || name.includes("CN/VT")) return [CYAN, PURPLE];
+  if (name.includes("R-Y ") || name.includes("RD/YE")) return [RED, YELLOW];
+  if (name.includes("R-P ") || name.includes("RD/VT")) return [RED, PURPLE];
+  if (name.includes("G-C ") || name.includes("GN/CN")) return [GREEN, CYAN];
+  if (name.includes("G-Y ") || name.includes("GN/YE")) return [GREEN, YELLOW];
+  if (name.includes("B-P ") || name.includes("BU/VT")) return [BLUE, PURPLE];
+  if (name.includes("BK/WH")) return [{ r: 0, g: 0, b: 0 }, WHITE];
+  if (
+    name.includes("7-Color") ||
+    name.includes("7 Colors") ||
+    name.includes("7 COLORS") ||
+    name.includes("Magic") ||
+    name.includes("Dreaming") ||
+    name.includes("Auto Play") ||
+    name.includes("Energy") ||
+    name.includes("Flutter") ||
+    name.includes("Follow Spot") ||
+    name.includes("Swab")
+  ) {
     return RAINBOW;
   }
 
   const single = name.match(/^(Red|Green|Blue|Yellow|Cyan|Purple|White)\b/);
   if (single) return [WORD[single[1]]];
+  const dmxSingle = firstDmxToken(name);
+  if (dmxSingle) return [dmxSingle];
   return RAINBOW;
 }
 
@@ -112,15 +175,25 @@ export function motionFor(effect: LedEffect | undefined): Motion {
   const name = effect?.name ?? "";
   const group = effect?.group ?? "basic";
   if (name.includes("Auto Play")) return "auto";
-  if (name.includes("Magic")) return "magic";
+  if (
+    name.includes("Magic") ||
+    name.includes("Dreaming") ||
+    name.includes("Flutter") ||
+    name.includes("Follow Spot") ||
+    name.includes("Swab")
+  ) {
+    return "magic";
+  }
   if (name.includes("Energy")) return "energy";
   if (name.includes("Strobe")) return "strobe";
-  if (name.includes("Jump")) return "jump";
+  if (name.includes("Jump") || name.includes("Hop")) return "jump";
   if (name.includes("Gradual")) return "gradual";
   if (name.includes("Marquee")) return "marquee";
   if (name.includes("Flush")) return "flush";
   if (name.includes("Wave")) return "wave";
-  if (name.includes("Race")) return "race";
+  if (name.includes("Race") || name.includes("Horse Race")) return "race";
+  if (name.includes("Trailing")) return "tail";
+  if (name.includes("Streaming")) return "water";
   if (group === "trans") return "trans";
   if (group === "tail") return "tail";
   if (group === "water") return "water";
@@ -133,7 +206,12 @@ export function motionFor(effect: LedEffect | undefined): Motion {
 function reversed(name: string, group: EffectGroup): boolean {
   // Flush Close/Open are spatial (ends↔center), not a reversed timeline.
   if (name.includes("Flush") && (name.includes("Close") || name.includes("Open"))) return false;
-  return group === "runback" || name.includes("Back") || name.includes("Close");
+  return (
+    group === "runback" ||
+    name.includes("Back") ||
+    name.includes("Backward") ||
+    name.includes("Close")
+  );
 }
 
 /**
@@ -371,7 +449,8 @@ export function sampleLed(
     return scale(cycle(colors, u, false), 0.06 + trail * trail * 0.94);
   }
   if (motion === "run") {
-    if (effect?.name.includes("7-Color in")) {
+    const name = effect?.name ?? "";
+    if (name.includes("7-Color in") || name.includes("7 COLOR ON")) {
       const bg = colors[0];
       const pack = colors.slice(1);
       let nearest = 1;
@@ -387,7 +466,7 @@ export function sampleLed(
       return nearest < 0.07 ? color : bg;
     }
     const head = dist < 0.07 ? 1 : Math.max(0.08, 1 - dist / 0.18);
-    if (effect?.name.includes("Dot") || effect?.name.includes(" in ")) {
+    if (name.includes("Dot") || name.includes(" in ") || name.includes(" ON ")) {
       return dist < 0.08 ? (colors[1] ?? WHITE) : colors[0];
     }
     return scale(cycle(colors, u, false), head);

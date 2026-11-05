@@ -62,12 +62,13 @@ struct VehicleStageView: View {
         } label: {
             VStack(spacing: 8) {
                 Group {
+                    let effect = liveEffect(for: controller)
                     if zone == .emblem {
-                        EmblemStageGlyph(controller: controller)
+                        EmblemStageGlyph(controller: controller, effect: effect)
                     } else if zone == .mirrors {
-                        CellsStageGlyph(count: 9, controller: controller)
+                        CellsStageGlyph(count: 9, controller: controller, effect: effect)
                     } else {
-                        DotsStageGlyph(count: 5, controller: controller)
+                        DotsStageGlyph(count: 5, controller: controller, effect: effect)
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -128,10 +129,16 @@ struct VehicleStageView: View {
         }
         return "On"
     }
+
+    private func liveEffect(for controller: PairedController?) -> LedEffect? {
+        guard let id = controller?.effectId else { return nil }
+        return EffectsCatalog.effects(for: garage.settings.car).first { $0.id == id }
+    }
 }
 
 private struct EmblemStageGlyph: View {
     var controller: PairedController?
+    var effect: LedEffect?
 
     var body: some View {
         let on = controller?.power == true
@@ -151,15 +158,15 @@ private struct EmblemStageGlyph: View {
                     .frame(width: 120, height: 56)
             }
 
-            TimelineView(.animation(minimumInterval: (on && controller?.effectId != nil) ? 1 / 20 : 60)) { timeline in
+            TimelineView(.animation(minimumInterval: (on && effect != nil) ? 1 / 20 : 60)) { timeline in
                 Canvas { context, size in
                     let cx = size.width / 2
                     let cy = size.height / 2
                     let rx = min(size.width * 0.38, size.height * 0.9)
                     let ry = size.height * 0.34
                     let n = 28
-                    let t = timeline.date.timeIntervalSinceReferenceDate
-                    let chasing = on && controller?.effectId != nil
+                    let elapsedMs = timeline.date.timeIntervalSinceReferenceDate * 1000
+                    let speed = controller?.effectSpeed ?? 50
                     for i in 0..<n {
                         let a = -Double.pi / 2 + (Double(i) / Double(n)) * Double.pi * 2
                         let x = cx + cos(a) * rx
@@ -168,14 +175,13 @@ private struct EmblemStageGlyph: View {
                             guard on, let controller else {
                                 return RGB(r: 60, g: 60, b: 60)
                             }
-                            if chasing {
-                                let lit = Int((t * Double(max(8, controller.effectSpeed)) / 12)
-                                    .truncatingRemainder(dividingBy: Double(n)))
-                                if i == lit { return controller.color }
-                                return RGB(
-                                    r: max(20, controller.color.r / 5),
-                                    g: max(20, controller.color.g / 5),
-                                    b: max(20, controller.color.b / 5)
+                            if let effect {
+                                return EffectPreview.sampleLed(
+                                    effect: effect,
+                                    index: i,
+                                    count: n,
+                                    elapsedMs: elapsedMs,
+                                    speed: speed
                                 )
                             }
                             return controller.color
@@ -226,11 +232,12 @@ private struct EmblemStageGlyph: View {
 private struct CellsStageGlyph: View {
     var count: Int
     var controller: PairedController?
+    var effect: LedEffect?
 
     var body: some View {
         let on = controller?.power == true
         let color = controller?.color ?? RGB(r: 196, g: 18, b: 32)
-        let animate = on && controller?.effectId != nil
+        let animate = on && effect != nil
         TimelineView(.animation(minimumInterval: animate ? 1 / 20 : 60)) { timeline in
             GeometryReader { geo in
                 let n = max(1, count)
@@ -240,32 +247,33 @@ private struct CellsStageGlyph: View {
                     (geo.size.width - totalSpacing) / CGFloat(n),
                     geo.size.height * 0.55
                 )
-                let tNow = timeline.date.timeIntervalSinceReferenceDate
+                let elapsedMs = timeline.date.timeIntervalSinceReferenceDate * 1000
+                let speed = controller?.effectSpeed ?? 50
                 HStack(spacing: spacing) {
                     ForEach(0..<n, id: \.self) { i in
-                        let lit: Bool = {
-                            guard animate else { return on }
-                            let speed = Double(max(8, controller?.effectSpeed ?? 50))
-                            let head = Int((tNow * speed / 14).truncatingRemainder(dividingBy: Double(n)))
-                            return i == head
-                        }()
-                        let fill: Color = {
-                            if !on { return Color.white.opacity(0.16) }
-                            if animate && !lit {
-                                return Color(
-                                    red: Double(color.r) / 255,
-                                    green: Double(color.g) / 255,
-                                    blue: Double(color.b) / 255
-                                ).opacity(0.22)
+                        let rgb: RGB = {
+                            if !on { return RGB(r: 40, g: 40, b: 40) }
+                            if let effect {
+                                return EffectPreview.sampleLed(
+                                    effect: effect,
+                                    index: i,
+                                    count: n,
+                                    elapsedMs: elapsedMs,
+                                    speed: speed
+                                )
                             }
-                            return Color(
-                                red: Double(color.r) / 255,
-                                green: Double(color.g) / 255,
-                                blue: Double(color.b) / 255
-                            )
+                            return color
                         }()
                         RoundedRectangle(cornerRadius: 2, style: .continuous)
-                            .fill(fill)
+                            .fill(
+                                on
+                                    ? Color(
+                                        red: Double(rgb.r) / 255,
+                                        green: Double(rgb.g) / 255,
+                                        blue: Double(rgb.b) / 255
+                                    )
+                                    : Color.white.opacity(0.16)
+                            )
                             .frame(width: side, height: side)
                     }
                 }
@@ -280,43 +288,45 @@ private struct CellsStageGlyph: View {
 private struct DotsStageGlyph: View {
     var count: Int
     var controller: PairedController?
+    var effect: LedEffect?
 
     var body: some View {
         let on = controller?.power == true
         let color = controller?.color ?? RGB(r: 196, g: 18, b: 32)
-        let animate = on && controller?.effectId != nil
+        let animate = on && effect != nil
         TimelineView(.animation(minimumInterval: animate ? 1 / 20 : 60)) { timeline in
             GeometryReader { geo in
                 let n = max(1, count)
                 let spacing = max(8, geo.size.width * 0.05)
                 let totalSpacing = spacing * CGFloat(n - 1)
                 let side = min(12, (geo.size.width - totalSpacing) / CGFloat(n), geo.size.height * 0.4)
-                let tNow = timeline.date.timeIntervalSinceReferenceDate
+                let elapsedMs = timeline.date.timeIntervalSinceReferenceDate * 1000
+                let speed = controller?.effectSpeed ?? 50
                 HStack(spacing: spacing) {
                     ForEach(0..<n, id: \.self) { i in
-                        let lit: Bool = {
-                            guard animate else { return on }
-                            let speed = Double(max(8, controller?.effectSpeed ?? 50))
-                            let head = Int((tNow * speed / 14).truncatingRemainder(dividingBy: Double(n)))
-                            return i == head
-                        }()
-                        let fill: Color = {
-                            if !on { return Color.white.opacity(0.16) }
-                            if animate && !lit {
-                                return Color(
-                                    red: Double(color.r) / 255,
-                                    green: Double(color.g) / 255,
-                                    blue: Double(color.b) / 255
-                                ).opacity(0.22)
+                        let rgb: RGB = {
+                            if !on { return RGB(r: 40, g: 40, b: 40) }
+                            if let effect {
+                                return EffectPreview.sampleLed(
+                                    effect: effect,
+                                    index: i,
+                                    count: n,
+                                    elapsedMs: elapsedMs,
+                                    speed: speed
+                                )
                             }
-                            return Color(
-                                red: Double(color.r) / 255,
-                                green: Double(color.g) / 255,
-                                blue: Double(color.b) / 255
-                            )
+                            return color
                         }()
                         Circle()
-                            .fill(fill)
+                            .fill(
+                                on
+                                    ? Color(
+                                        red: Double(rgb.r) / 255,
+                                        green: Double(rgb.g) / 255,
+                                        blue: Double(rgb.b) / 255
+                                    )
+                                    : Color.white.opacity(0.16)
+                            )
                             .frame(width: side, height: side)
                     }
                 }

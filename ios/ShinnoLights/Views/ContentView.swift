@@ -654,7 +654,7 @@ private struct ModePlayingBar: View {
     }
 }
 
-/// Animated LED glyph for each mode tile — same idea as web ModeGlyph.
+/// Animated LED glyph for each mode tile — same sampler + paths as web ModeGlyph.
 struct ModeGlyphView: View {
     var effect: LedEffect
     var speed: Int
@@ -664,89 +664,40 @@ struct ModeGlyphView: View {
     private let ledCount = 20
 
     var body: some View {
+        let motion = EffectPreview.motion(for: effect)
         TimelineView(.animation(minimumInterval: animate ? 1 / 24 : 60)) { timeline in
             Canvas { context, size in
-                let points = pathPoints(in: size)
+                let points = EffectPreview.pathPoints(motion: motion, ledCount: ledCount, in: size)
                 if points.count >= 2 {
                     var stroke = Path()
                     stroke.move(to: points[0])
                     for point in points.dropFirst() { stroke.addLine(to: point) }
                     context.stroke(stroke, with: .color(Color.white.opacity(0.12)), lineWidth: 2.2)
                 }
-                let t = animate ? timeline.date.timeIntervalSinceReferenceDate : 0
-                let pace = Double(max(8, speed)) / 18
+                let elapsedMs = animate
+                    ? timeline.date.timeIntervalSinceReferenceDate * 1000
+                    : 0
+                let dim = animate ? 1.0 : 0.45
                 for (index, point) in points.enumerated() {
-                    let phase = (t * pace + Double(index) * 0.35).truncatingRemainder(dividingBy: Double(ledCount))
-                    let lit = Int(phase)
-                    let rgb = paletteColor(at: (index + lit) % palette.count)
-                    let dim = animate ? 1.0 : 0.45
+                    let rgb = EffectPreview.sampleLed(
+                        effect: effect,
+                        index: index,
+                        count: ledCount,
+                        elapsedMs: elapsedMs,
+                        speed: speed
+                    )
                     let r: CGFloat = min(size.width, size.height) * 0.031
                     context.fill(
                         Path(ellipseIn: CGRect(x: point.x - r, y: point.y - r, width: r * 2, height: r * 2)),
-                        with: .color(Color(red: rgb.r * dim, green: rgb.g * dim, blue: rgb.b * dim))
+                        with: .color(
+                            Color(
+                                red: Double(rgb.r) / 255 * dim,
+                                green: Double(rgb.g) / 255 * dim,
+                                blue: Double(rgb.b) / 255 * dim
+                            )
+                        )
                     )
                 }
-            }
-        }
-    }
-
-    private var palette: [(r: Double, g: Double, b: Double)] {
-        switch effect.group {
-        case .water, .curtain: return [
-            (1, 0.11, 0.11), (0.14, 0.86, 0.28), (0.16, 0.35, 1),
-            (1, 0.86, 0.12), (0.19, 0.84, 1), (0.66, 0.19, 1), (1, 0.99, 0.96),
-        ]
-        case .tail, .run, .runback, .flow: return [
-            (1, 0.11, 0.11), (0.14, 0.86, 0.28), (0.16, 0.35, 1), (1, 0.99, 0.96),
-        ]
-        default: return [
-            (0.77, 0.07, 0.12), (1, 0.59, 0.09), (1, 0.86, 0.12),
-            (0.14, 0.86, 0.28), (0.19, 0.84, 1), (0.16, 0.35, 1), (0.66, 0.19, 1),
-        ]
-        }
-    }
-
-    private func paletteColor(at index: Int) -> (r: Double, g: Double, b: Double) {
-        palette[index % palette.count]
-    }
-
-    private func pathPoints(in size: CGSize) -> [CGPoint] {
-        let w = size.width
-        let h = size.height
-        switch effect.group {
-        case .water:
-            return (0..<ledCount).map { i in
-                let t = Double(i) / Double(ledCount - 1)
-                return CGPoint(x: w * (0.1 + t * 0.8), y: h * (0.5 + sin(t * .pi * 3) * 0.18))
-            }
-        case .curtain:
-            let half = ledCount / 2
-            let left = (0..<half).map { i in
-                CGPoint(x: w * 0.18, y: h * (0.14 + Double(i) / Double(max(1, half - 1)) * 0.72))
-            }
-            let right = (0..<half).map { i in
-                CGPoint(x: w * 0.82, y: h * (0.14 + Double(i) / Double(max(1, half - 1)) * 0.72))
-            }
-            return left + right
-        case .run, .runback, .tail, .flow, .trans:
-            return (0..<ledCount).map { i in
-                let t = Double(i) / Double(ledCount - 1)
-                return CGPoint(x: w * (0.1 + t * 0.8), y: h * 0.5)
-            }
-        default:
-            let inset = min(w, h) * 0.16
-            let rw = w - inset * 2
-            let rh = h - inset * 2
-            let perim = 2 * (rw + rh)
-            return (0..<ledCount).map { i in
-                var d = Double(i) / Double(ledCount) * perim
-                if d < rw { return CGPoint(x: inset + d, y: inset) }
-                d -= rw
-                if d < rh { return CGPoint(x: inset + rw, y: inset + d) }
-                d -= rh
-                if d < rw { return CGPoint(x: inset + rw - d, y: inset + rh) }
-                d -= rw
-                return CGPoint(x: inset, y: inset + rh - d)
             }
         }
     }
