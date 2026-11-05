@@ -20,8 +20,13 @@ function useLicenseReady() {
   return useSyncExternalStore(subscribeLicense, () => getLicense(), getServerLicense);
 }
 
+/** Flip to true to require Shopify order unlock again. */
+const PURCHASE_GATE_ENABLED = false;
+
 export function PurchaseGate({ children }: { children: ReactNode }) {
   const license = useLicenseReady();
+  // TEMP: lock screen commented out for upload/testing — re-enable with PURCHASE_GATE_ENABLED.
+  if (!PURCHASE_GATE_ENABLED) return <>{children}</>;
   if (license?.unlocked) return <>{children}</>;
   return <UnlockScreen />;
 }
