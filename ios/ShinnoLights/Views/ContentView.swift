@@ -333,11 +333,19 @@ struct ModesScreen: View {
     @State private var browser: ModesBrowser = .paths
     @State private var query = ""
 
+    /// Prefer the dialect of a linked kit so G37/LEDDMX never shows Lotus ids.
+    private var effectCar: CarKind {
+        if garage.controllers.contains(where: { ElkProtocol.isLeddmxName($0.advertisedName) }) {
+            return .g37
+        }
+        return garage.settings.car
+    }
+
     var items: [LedEffect] {
-        let catalog = EffectsCatalog.effects(for: garage.settings.car)
+        let catalog = EffectsCatalog.effects(for: effectCar)
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if !q.isEmpty { return catalog.filter { $0.name.lowercased().contains(q) } }
-        if case .group(let group) = browser { return EffectsCatalog.inGroup(group, car: garage.settings.car) }
+        if case .group(let group) = browser { return EffectsCatalog.inGroup(group, car: effectCar) }
         return []
     }
 
@@ -414,7 +422,7 @@ struct ModesScreen: View {
                     .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 } else {
                     ModePlayingBar(
-                        effect: EffectsCatalog.effects(for: garage.settings.car).first { $0.id == live?.effectId },
+                        effect: EffectsCatalog.effects(for: effectCar).first { $0.id == live?.effectId },
                         speed: speed,
                         powered: live?.power == true
                     )
@@ -565,10 +573,14 @@ struct ModesScreen: View {
                                         ModeGlyphView(
                                             effect: effect,
                                             speed: speed,
-                                            animate: hasDevices && (live?.power == true) && live?.effectId == effect.id
+                                            // Always preview-animate like the web ModeGlyph —
+                                            // freezing at t=0 makes every tile look like the same RGB bar.
+                                            animate: true,
+                                            active: hasDevices && live?.power == true && live?.effectId == effect.id
                                         )
                                             .aspectRatio(1, contentMode: .fit)
                                             .frame(maxWidth: .infinity)
+                                            .opacity(hasDevices && live?.effectId != nil && live?.effectId != effect.id ? 0.72 : 1)
                                         Text(effect.name)
                                             .font(.caption2)
                                             .foregroundStyle(Color.white.opacity(0.75))
@@ -658,14 +670,16 @@ private struct ModePlayingBar: View {
 struct ModeGlyphView: View {
     var effect: LedEffect
     var speed: Int
-    /// When false (device off / not selected live), freeze on a static preview.
+    /// When false, freeze on a static preview frame.
     var animate: Bool = true
+    /// Currently playing on a linked kit — full brightness; others stay readable.
+    var active: Bool = false
 
     private let ledCount = 20
 
     var body: some View {
         let motion = EffectPreview.motion(for: effect)
-        TimelineView(.animation(minimumInterval: animate ? 1 / 24 : 60)) { timeline in
+        TimelineView(.animation(minimumInterval: animate ? 1.0 / 20.0 : 60)) { timeline in
             Canvas { context, size in
                 let points = EffectPreview.pathPoints(motion: motion, ledCount: ledCount, in: size)
                 if points.count >= 2 {
@@ -676,8 +690,9 @@ struct ModeGlyphView: View {
                 }
                 let elapsedMs = animate
                     ? timeline.date.timeIntervalSinceReferenceDate * 1000
-                    : 0
-                let dim = animate ? 1.0 : 0.45
+                    : EffectPreview.periodMs(speed: speed, motion: motion) * 0.18
+                let dim = active || !animate ? 1.0 : 0.85
+                let ledR = min(size.width, size.height) * 0.033
                 for (index, point) in points.enumerated() {
                     let rgb = EffectPreview.sampleLed(
                         effect: effect,
@@ -686,16 +701,29 @@ struct ModeGlyphView: View {
                         elapsedMs: elapsedMs,
                         speed: speed
                     )
-                    let r: CGFloat = min(size.width, size.height) * 0.031
+                    let color = Color(
+                        red: Double(rgb.r) / 255 * dim,
+                        green: Double(rgb.g) / 255 * dim,
+                        blue: Double(rgb.b) / 255 * dim
+                    )
+                    // Soft glow so tails/runs read like the web drop-shadow glyphs.
                     context.fill(
-                        Path(ellipseIn: CGRect(x: point.x - r, y: point.y - r, width: r * 2, height: r * 2)),
-                        with: .color(
-                            Color(
-                                red: Double(rgb.r) / 255 * dim,
-                                green: Double(rgb.g) / 255 * dim,
-                                blue: Double(rgb.b) / 255 * dim
-                            )
-                        )
+                        Path(ellipseIn: CGRect(
+                            x: point.x - ledR * 1.8,
+                            y: point.y - ledR * 1.8,
+                            width: ledR * 3.6,
+                            height: ledR * 3.6
+                        )),
+                        with: .color(color.opacity(0.22))
+                    )
+                    context.fill(
+                        Path(ellipseIn: CGRect(
+                            x: point.x - ledR,
+                            y: point.y - ledR,
+                            width: ledR * 2,
+                            height: ledR * 2
+                        )),
+                        with: .color(color)
                     )
                 }
             }

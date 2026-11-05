@@ -83,12 +83,13 @@ enum ElkProtocol {
         id: "LEDDMX-00",
         prefixes: ["LEDDMX-00", "LEDDMX-03", "LEDDMX-", "LEDDMX", "LED-DMX", "LED_DMX", "LED DMX"],
         writeUUID: ffe1,
-        // LED+LAMP HCI sniff / decompile: power uses 01/00 (some forks send 03/02).
-        turnOn: [0x7B, 0xFF, 0x04, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xBF],
-        turnOff: [0x7B, 0xFF, 0x04, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xBF],
-        // Logical RGB — SPI channel-order lives on the controller, not in this frame.
-        // Pattern id 0 = "Off" (must be sent before solid colour or the kit stays in Dreaming).
-        color: [.byte(0x7B), .byte(0xFF), .byte(0x07), .red, .green, .blue, .byte(0x00), .byte(0xFF), .byte(0xBF)],
+        // LEDDMX-00 / LED LAMP open stacks (user154lt, led-hue-cycle) use 03/02 for power.
+        // Some HCI captures show 01/00 — 03/02 is what actually toggles LEDDMX-00 emblems.
+        turnOn: [0x7B, 0xFF, 0x04, 0x03, 0xFF, 0xFF, 0xFF, 0xFF, 0xBF],
+        turnOff: [0x7B, 0xFF, 0x04, 0x02, 0xFF, 0xFF, 0xFF, 0xFF, 0xBF],
+        // Wire order R-B-G on LEDDMX strips (green/blue swapped) — matches led-hue-cycle default.
+        // Pattern id 0 = "Off" before solid colour or the kit stays in Dreaming / Auto.
+        color: [.byte(0x7B), .byte(0xFF), .byte(0x07), .red, .blue, .green, .byte(0x00), .byte(0xFF), .byte(0xBF)],
         brightness: [.byte(0x7B), .byte(0xFF), .byte(0x01), .value32, .value, .byte(0x00), .byte(0xFF), .byte(0xFF), .byte(0xBF)],
         effect: [.byte(0x7B), .byte(0xFF), .byte(0x03), .value, .byte(0xFF), .byte(0xFF), .byte(0xFF), .byte(0xFF), .byte(0xBF)],
         effectSpeed: [.byte(0x7B), .byte(0xFF), .byte(0x02), .value, .byte(0xFF), .byte(0x00), .byte(0xFF), .byte(0xFF), .byte(0xBF)]

@@ -310,11 +310,9 @@ final class BleHub: NSObject, ObservableObject {
 
         let name = displayName(for: peripheral.identifier)
         let isLeddmx = ElkProtocol.isLeddmxName(name) || characteristic.uuid == ElkProtocol.ffe1
-        // LED+LAMP uses write-with-response by default; withoutResponse is often ignored.
+        // LEDDMX: prefer write-without-response when the char offers it (led-hue-cycle /
+        // LED LAMP path). withResponse is fine as a fallback and is still serialized.
         let writeType: CBCharacteristicWriteType = {
-            if isLeddmx, characteristic.properties.contains(.write) {
-                return .withResponse
-            }
             if characteristic.properties.contains(.writeWithoutResponse) {
                 return .withoutResponse
             }
@@ -359,7 +357,7 @@ final class BleHub: NSObject, ObservableObject {
         }
 
         let writeType: CBCharacteristicWriteType =
-            characteristic.properties.contains(.write) ? .withResponse : .withoutResponse
+            characteristic.properties.contains(.writeWithoutResponse) ? .withoutResponse : .withResponse
 
         // Match LED+LAMP: wait ~300ms after GATT is up, then auth + status via the serial queue.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self, weak peripheral] in

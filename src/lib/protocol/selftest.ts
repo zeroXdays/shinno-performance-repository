@@ -32,25 +32,31 @@ const dmxOn = encodePower(dmx, true);
 assert(
   "LEDDMX power on frame",
   hexFrame(dmxOn),
-  "7b ff 04 01 ff ff ff ff bf",
+  "7b ff 04 03 ff ff ff ff bf",
+);
+const dmxOff = encodePower(dmx, false);
+assert(
+  "LEDDMX power off frame",
+  hexFrame(dmxOff),
+  "7b ff 04 02 ff ff ff ff bf",
 );
 const dmxRed = encodeColor(dmx, { r: 255, g: 0, b: 0 });
 assert(
-  "LEDDMX red (logical RGB)",
+  "LEDDMX red (RBG wire order)",
   hexFrame(dmxRed),
   "7b ff 07 ff 00 00 00 ff bf",
 );
 const dmxGreen = encodeColor(dmx, { r: 0, g: 255, b: 0 });
 assert(
-  "LEDDMX green (logical RGB)",
+  "LEDDMX green (RBG wire order)",
   hexFrame(dmxGreen),
-  "7b ff 07 00 ff 00 00 ff bf",
+  "7b ff 07 00 00 ff 00 ff bf",
 );
 const dmxBlue = encodeColor(dmx, { r: 0, g: 0, b: 255 });
 assert(
-  "LEDDMX blue (logical RGB)",
+  "LEDDMX blue (RBG wire order)",
   hexFrame(dmxBlue),
-  "7b ff 07 00 00 ff 00 ff bf",
+  "7b ff 07 00 ff 00 00 ff bf",
 );
 assert(
   "LEDDMX pattern Off",
@@ -58,7 +64,7 @@ assert(
   "7b ff 03 00 ff ff ff ff bf",
 );
 const dmxSolid = encodeSolidColor(dmx, { r: 255, g: 0, b: 0 }, 100);
-assert("LEDDMX solid starts with power", hexFrame(dmxSolid[0]), "7b ff 04 01 ff ff ff ff bf");
+assert("LEDDMX solid starts with power", hexFrame(dmxSolid[0]), "7b ff 04 03 ff ff ff ff bf");
 assert("LEDDMX solid clears pattern", hexFrame(dmxSolid[1]), "7b ff 03 00 ff ff ff ff bf");
 assert("LEDDMX solid then color", hexFrame(dmxSolid[2]), "7b ff 07 ff 00 00 00 ff bf");
 

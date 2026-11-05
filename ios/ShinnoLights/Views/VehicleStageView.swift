@@ -125,14 +125,22 @@ struct VehicleStageView: View {
         guard let controller else { return "Empty" }
         if !controller.power { return "Off" }
         if let effectId = controller.effectId {
-            return EffectsCatalog.named(effectId, car: garage.settings.car) ?? "Mode"
+            let car: CarKind =
+                garage.controllers.contains(where: { ElkProtocol.isLeddmxName($0.advertisedName) })
+                ? .g37
+                : garage.settings.car
+            return EffectsCatalog.named(effectId, car: car) ?? "Mode"
         }
         return "On"
     }
 
     private func liveEffect(for controller: PairedController?) -> LedEffect? {
         guard let id = controller?.effectId else { return nil }
-        return EffectsCatalog.effects(for: garage.settings.car).first { $0.id == id }
+        let car: CarKind =
+            garage.controllers.contains(where: { ElkProtocol.isLeddmxName($0.advertisedName) })
+            ? .g37
+            : garage.settings.car
+        return EffectsCatalog.effects(for: car).first { $0.id == id }
     }
 }
 
