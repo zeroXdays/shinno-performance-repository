@@ -21,7 +21,22 @@ assert("detect ELK-BLEDOM", elk.id, "ELK-BLEDOM");
 assert("detect MELK", detectModel("MELK-OA10-XYZ").id, "MELK");
 assert("detect BLEDOB", detectModel("ELK-BLEDOB").id, "ELK-BLEDOB");
 assert("detect LEDBLE", detectModel("LEDBLE-01").id, "LEDBLE");
+assert("detect LEDDMX", detectModel("LEDDMX-00-003C").id, "LEDDMX-00");
 assert("fallback", detectModel("unknown").id, FALLBACK_MODEL.id);
+
+const dmx = detectModel("LEDDMX-00-003C");
+const dmxOn = encodePower(dmx, true);
+assert(
+  "LEDDMX power on frame",
+  hexFrame(dmxOn),
+  "7b ff 04 03 ff ff ff ff bf",
+);
+const dmxRed = encodeColor(dmx, { r: 255, g: 0, b: 0 });
+assert(
+  "LEDDMX red (RBG order)",
+  hexFrame(dmxRed),
+  "7b ff 07 ff 00 00 00 ff bf",
+);
 
 assert("power on", hexFrame(encodePower(elk, true)), "7e 04 04 f0 00 01 ff 00 ef");
 assert("power off", hexFrame(encodePower(elk, false)), "7e 04 04 00 00 00 ff 00 ef");

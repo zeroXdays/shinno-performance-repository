@@ -37,7 +37,8 @@ export function encodeColor(model: ModelProfile, rgb: Rgb): Uint8Array {
 
 /** Native brightness. `percent` is 0–100. */
 export function encodeBrightness(model: ModelProfile, percent: number): Uint8Array {
-  return fill(model.commands.brightness, { i: clamp(percent, 0, 100) });
+  const i = clamp(percent, 0, 100);
+  return fill(model.commands.brightness, { i, i32: Math.floor((i * 32) / 100) });
 }
 
 export function encodeWhite(model: ModelProfile, percent: number): Uint8Array | null {

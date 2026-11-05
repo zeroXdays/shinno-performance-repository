@@ -1,4 +1,4 @@
-export type TemplateByte = number | "r" | "g" | "b" | "i" | "v" | "w" | "c";
+export type TemplateByte = number | "r" | "g" | "b" | "i" | "i32" | "v" | "w" | "c";
 
 export interface ModelProfile {
   id: string;
@@ -73,19 +73,19 @@ export const MODELS: ModelProfile[] = [
     },
   },
   {
-    id: "LED-DMX",
-    /** G37 emblems that advertise as LED-DMX — HA "LED-" dialect on FFE1 (color is R-B-G). */
-    prefixes: ["LED-DMX", "LED_DMX", "LEDDMX", "LED DMX"],
+    id: "LEDDMX-00",
+    /** G37 emblems advertising LEDDMX-00-* / LEDDMX-03-* ("LED LAMP" app). Frames are 7B…BF. */
+    prefixes: ["LEDDMX-00", "LEDDMX-03", "LEDDMX-", "LEDDMX", "LED-DMX", "LED_DMX", "LED DMX"],
     writeUuid: FFE1,
     readUuid: FFE2,
     brightnessScale: "percent",
     commands: {
-      turnOn: [126, 4, 4, 1, 255, 255, 255, 0, 239],
-      turnOff: [126, 4, 4, 0, 0, 0, 0, 0, 239],
-      color: [126, 7, 5, 3, "r", "b", "g", 0, 239],
-      brightness: [126, 4, 1, "i", 255, 255, 255, 0, 239],
-      effect: [126, 5, 3, "v", 3, 255, 255, 0, 239],
-      effectSpeed: [126, 0, 2, "v", 0, 0, 0, 0, 239],
+      turnOn: [0x7b, 0xff, 0x04, 0x03, 0xff, 0xff, 0xff, 0xff, 0xbf],
+      turnOff: [0x7b, 0xff, 0x04, 0x02, 0xff, 0xff, 0xff, 0xff, 0xbf],
+      color: [0x7b, 0xff, 0x07, "r", "b", "g", 0x00, 0xff, 0xbf],
+      brightness: [0x7b, 0xff, 0x01, "i32", "i", 0x00, 0xff, 0xff, 0xbf],
+      effect: [0x7b, 0xff, 0x03, "v", 0xff, 0xff, 0xff, 0xff, 0xbf],
+      effectSpeed: [0x7b, 0xff, 0x02, "v", 0xff, 0xff, 0xff, 0xff, 0xbf],
     },
   },
   {

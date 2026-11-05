@@ -298,13 +298,7 @@ final class GarageStore: ObservableObject {
         let writable = hub.writableUUIDs(for: peripheral.identifier)
         let model = ElkProtocol.resolve(name: advertisedName, writable: writable)
         hub.write(peripheral, frames: build(model), prefer: model.writeUUID)
-
-        if ElkProtocol.isDmxFamily(advertisedName) {
-            let alt: ModelProfile = model.id == "LED-DMX" ? ElkProtocol.elkBleddm : ElkProtocol.ledDmx
-            if writable.contains(alt.writeUUID), alt.writeUUID != model.writeUUID {
-                hub.write(peripheral, frames: build(alt), prefer: alt.writeUUID)
-            }
-        }
+        // LEDDMX-00 uses a different framing (7B…BF) than ELK — do not dual-write BLEDDM.
     }
 
     func connect(_ id: UUID) async {

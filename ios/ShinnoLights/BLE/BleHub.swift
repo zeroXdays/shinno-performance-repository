@@ -292,13 +292,14 @@ final class BleHub: NSObject, ObservableObject {
             return .withResponse
         }()
 
+        // LEDDMX / FFE0 kits need ~50ms between writes or they drop frames.
+        let gap = characteristic.uuid == ElkProtocol.ffe1 ? 0.055 : 0.04
         for (index, frame) in frames.enumerated() {
-            let delay = 0.04 * Double(index)
+            let delay = gap * Double(index)
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak peripheral] in
                 guard let peripheral else { return }
                 if writeType == .withoutResponse, !peripheral.canSendWriteWithoutResponse {
-                    // Queue briefly until the radio can accept another write.
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.04) {
                         peripheral.writeValue(frame, for: characteristic, type: writeType)
                     }
                 } else {

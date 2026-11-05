@@ -867,7 +867,7 @@ struct ScanScreen: View {
 
     private func modelHint(_ name: String) -> String {
         let model = ElkProtocol.detect(name: name)
-        if model.id == "ELK-BLEDDM" || model.id == "LED-DMX" {
+        if model.id.hasPrefix("LEDDMX") || model.id == "ELK-BLEDDM" {
             return "G37 emblem · \(model.id)"
         }
         return "Bluetooth · \(model.id)"

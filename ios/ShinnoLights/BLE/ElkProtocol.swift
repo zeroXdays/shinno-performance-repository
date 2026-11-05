@@ -17,6 +17,8 @@ enum FrameSlot: Equatable, Hashable {
     case green
     case blue
     case value
+    /// LEDDMX brightness nibble: percent × 32 / 100.
+    case value32
 }
 
 struct ModelProfile: Equatable, Hashable {
@@ -75,17 +77,18 @@ enum ElkProtocol {
         effectSpeed: [.byte(0x7E), .byte(0x00), .byte(0x02), .value, .byte(0x00), .byte(0x00), .byte(0x00), .byte(0x00), .byte(0xEF)]
     )
 
-    /// G37 emblem kits that advertise as LED-DMX — HA "LED-" dialect on FFE1 (color is R-B-G).
+    /// G37 emblem kits advertising as LEDDMX-00-* / LEDDMX-03-* ("LED LAMP" app).
+    /// Different dialect from ELK: frames are `7B … BF` on FFE1, color order R-B-G.
     static let ledDmx = ModelProfile(
-        id: "LED-DMX",
-        prefixes: ["LED-DMX", "LED_DMX", "LEDDMX", "LED DMX"],
+        id: "LEDDMX-00",
+        prefixes: ["LEDDMX-00", "LEDDMX-03", "LEDDMX-", "LEDDMX", "LED-DMX", "LED_DMX", "LED DMX"],
         writeUUID: ffe1,
-        turnOn: [0x7E, 0x04, 0x04, 0x01, 0xFF, 0xFF, 0xFF, 0x00, 0xEF],
-        turnOff: [0x7E, 0x04, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xEF],
-        color: [.byte(0x7E), .byte(0x07), .byte(0x05), .byte(0x03), .red, .blue, .green, .byte(0x00), .byte(0xEF)],
-        brightness: [.byte(0x7E), .byte(0x04), .byte(0x01), .value, .byte(0xFF), .byte(0xFF), .byte(0xFF), .byte(0x00), .byte(0xEF)],
-        effect: [.byte(0x7E), .byte(0x05), .byte(0x03), .value, .byte(0x03), .byte(0xFF), .byte(0xFF), .byte(0x00), .byte(0xEF)],
-        effectSpeed: [.byte(0x7E), .byte(0x00), .byte(0x02), .value, .byte(0x00), .byte(0x00), .byte(0x00), .byte(0x00), .byte(0xEF)]
+        turnOn: [0x7B, 0xFF, 0x04, 0x03, 0xFF, 0xFF, 0xFF, 0xFF, 0xBF],
+        turnOff: [0x7B, 0xFF, 0x04, 0x02, 0xFF, 0xFF, 0xFF, 0xFF, 0xBF],
+        color: [.byte(0x7B), .byte(0xFF), .byte(0x07), .red, .blue, .green, .byte(0x00), .byte(0xFF), .byte(0xBF)],
+        brightness: [.byte(0x7B), .byte(0xFF), .byte(0x01), .value32, .value, .byte(0x00), .byte(0xFF), .byte(0xFF), .byte(0xBF)],
+        effect: [.byte(0x7B), .byte(0xFF), .byte(0x03), .value, .byte(0xFF), .byte(0xFF), .byte(0xFF), .byte(0xFF), .byte(0xBF)],
+        effectSpeed: [.byte(0x7B), .byte(0xFF), .byte(0x02), .value, .byte(0xFF), .byte(0xFF), .byte(0xFF), .byte(0xFF), .byte(0xBF)]
     )
 
     static let elkBle = ModelProfile(
@@ -144,11 +147,14 @@ enum ElkProtocol {
         }
         // Containment fallback for names that embed the chip id mid-string.
         if bestLen < 0 {
-            if upper.contains("LED-DMX") || upper.contains("LED_DMX") || upper.contains("LEDDMX") || upper.contains("LED DMX") {
+            if upper.contains("LEDDMX") || upper.contains("LED-DMX") || upper.contains("LED_DMX") || upper.contains("LED DMX") {
                 return ledDmx
             }
-            if upper.contains("BLEDDM") || upper.contains("DMX") {
+            if upper.contains("BLEDDM") {
                 return elkBleddm
+            }
+            if upper.contains("DMX") {
+                return ledDmx
             }
             if upper.contains("BLEDOB") { return elkBledob }
             if upper.contains("BLEDOM") { return elkBledom }
@@ -165,14 +171,15 @@ enum ElkProtocol {
             return detected
         }
         if isDmxFamily(name) {
+            // LEDDMX-00 always wants FFE1 + 7B frames; only fall back to BLEDDM if FFE1 is missing.
             if writable.contains(ffe1) { return ledDmx }
             if writable.contains(fff3) { return elkBleddm }
         }
         if writable.contains(fff3) {
-            if detected.id == "LEDBLE" || detected.id == "LED-DMX" { return elkBleddm }
+            if detected.id == "LEDBLE" || detected.id.hasPrefix("LEDDMX") { return elkBleddm }
             return detected
         }
-        if writable.contains(ffe1) { return detected.id == "ELK-BLEDDM" ? ledDmx : ledble }
+        if writable.contains(ffe1) { return detected.id == "ELK-BLEDDM" ? ledDmx : (detected.writeUUID == ffe1 ? detected : ledble) }
         return detected
     }
 
@@ -244,6 +251,9 @@ enum ElkProtocol {
             case .green: return UInt8(clamping: rgb.g)
             case .blue: return UInt8(clamping: rgb.b)
             case .value: return value
+            case .value32:
+                let pct = Int(value)
+                return UInt8(clamping: (pct * 32) / 100)
             }
         })
     }
