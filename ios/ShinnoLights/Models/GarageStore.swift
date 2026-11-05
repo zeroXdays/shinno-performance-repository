@@ -413,20 +413,12 @@ final class GarageStore: ObservableObject {
 
         switch delivery {
         case .live:
-            // Wheel drag fires dozens of times/sec. Only push a single colour frame,
-            // throttled — repeating power/pattern-off locks LEDDMX for minutes.
-            let work = DispatchWorkItem { [weak self] in
-                guard let self else { return }
-                self.mutate { controller, peripheral, _ in
-                    let color = controller.color
-                    self.writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
-                        [ElkProtocol.color(model, rgb: color)]
-                    }
-                }
-            }
-            colorWriteWork = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.14, execute: work)
+            // UI only while dragging. LEDDMX locks up if we stream BLE on every tick;
+            // swatches / finger-up use `.commit` (same path that already works).
+            break
         case .commit:
+            colorWriteWork?.cancel()
+            colorWriteWork = nil
             mutate { controller, peripheral, _ in
                 let brightness = controller.brightness
                 let color = controller.color

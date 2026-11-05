@@ -249,6 +249,10 @@ struct ColorScreen: View {
                             onChange: { garage.setColor($0, delivery: .live) },
                             onCommit: { garage.setColor($0, delivery: .commit) }
                         )
+                        Text("Drag to preview · release to set on the kit")
+                            .font(.caption2)
+                            .foregroundStyle(Color.white.opacity(0.4))
+                            .frame(maxWidth: .infinity, alignment: .center)
                         VStack(alignment: .leading) {
                             HStack {
                                 Text("Brightness")

@@ -9,7 +9,7 @@ import {
   LEDDMX_PATTERN_OFF,
 } from "./frames.ts";
 import { detectModel, FALLBACK_MODEL } from "./models.ts";
-import { effectPeriodMs, sampleEffect, sampleLed } from "./preview.ts";
+import { effectPeriodMs, paletteFor, sampleEffect, sampleLed } from "./preview.ts";
 import { EFFECTS } from "./effects.ts";
 import { hexToRgb, rgbToHex } from "../scenes.ts";
 
@@ -100,6 +100,19 @@ if (jumpA.r === jumpB.r && jumpA.g === jumpB.g && jumpA.b === jumpB.b) {
 const strobeOff = sampleEffect(196, effectPeriodMs(40, "strobe") * 0.8, 40);
 if (strobeOff.r + strobeOff.g + strobeOff.b !== 0) {
   throw new Error("7-color strobe should go dark in the off phase");
+}
+
+const yb = paletteFor(49);
+if (yb.length !== 2 || yb[0].r < 200 || yb[1].b < 200 || yb[0].b > 80) {
+  throw new Error(`Y-B Water palette should be yellow+blue, got ${JSON.stringify(yb)}`);
+}
+const wrw = paletteFor(144);
+if (wrw.length !== 3 || wrw[0].r < 250 || wrw[1].r < 200 || wrw[1].g > 80) {
+  throw new Error(`W-R-W Flow Back palette should be white-red-white, got ${JSON.stringify(wrw)}`);
+}
+const greenRun = paletteFor(92);
+if (greenRun.length !== 1 || greenRun[0].g < 180) {
+  throw new Error(`Green Run Back palette should be green only, got ${JSON.stringify(greenRun)}`);
 }
 
 const auto = EFFECTS.find((effect) => effect.id === 0);

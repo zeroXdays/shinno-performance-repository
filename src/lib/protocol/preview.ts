@@ -93,16 +93,51 @@ function firstDmxToken(name: string): Rgb | undefined {
   return undefined;
 }
 
+function letterCodes(name: string): Rgb[] | undefined {
+  const match = name.match(/\b[WRGBYCP](?:-[WRGBYCP])+\b/);
+  if (!match) return undefined;
+  const parts = match[0].split("-");
+  const colors = parts.map((p) => LETTER[p]).filter(Boolean);
+  return colors.length === parts.length && colors.length > 0 ? colors : undefined;
+}
+
+function spacedLetterCodes(name: string): Rgb[] | undefined {
+  const match = name.match(/\b[WRGBYCP](?:\s+[WRGBYCP])+\b/);
+  if (!match) return undefined;
+  const parts = match[0].split(/\s+/);
+  const colors = parts.map((p) => LETTER[p]).filter(Boolean);
+  return colors.length === parts.length && colors.length >= 2 ? colors : undefined;
+}
+
+function dmxSlashCodes(name: string): Rgb[] | undefined {
+  const match = name.toUpperCase().match(/\b(?:WH|RD|GN|BU|YE|CN|VT|BK)(?:\/(?:WH|RD|GN|BU|YE|CN|VT|BK))+\b/);
+  if (!match) return undefined;
+  const parts = match[0].split("/");
+  const colors = parts.map((p) => DMX[p]).filter(Boolean);
+  return colors.length === parts.length && colors.length > 0 ? colors : undefined;
+}
+
+function dmxSpaceCodes(name: string): Rgb[] | undefined {
+  const match = name
+    .toUpperCase()
+    .match(/\b(?:WH|RD|GN|BU|YE|CN|VT|BK)(?:\s+(?:WH|RD|GN|BU|YE|CN|VT|BK)){1,2}\b/);
+  if (!match) return undefined;
+  const parts = match[0].split(/\s+/);
+  const colors = parts.map((p) => DMX[p]).filter(Boolean);
+  return colors.length === parts.length && colors.length >= 2 ? colors : undefined;
+}
+
 function paletteFromName(name: string): Rgb[] {
-  const flow = name.match(/^([WRGBYCP])-([WRGBYCP])-([WRGBYCP])/);
-  if (flow) return [LETTER[flow[1]], LETTER[flow[2]], LETTER[flow[3]]];
+  const letters = letterCodes(name);
+  if (letters) return letters;
+  const spaced = spacedLetterCodes(name);
+  if (spaced) return spaced;
+  const slash = dmxSlashCodes(name);
+  if (slash) return slash;
+  const spacedDmx = dmxSpaceCodes(name);
+  if (spacedDmx) return spacedDmx;
 
-  const dmxFlow = name.toUpperCase().match(
-    /\b(WH|RD|GN|BU|YE|CN|VT|BK)\s+(WH|RD|GN|BU|YE|CN|VT|BK)\s+(WH|RD|GN|BU|YE|CN|VT|BK)\b/,
-  );
-  if (dmxFlow) return [DMX[dmxFlow[1]], DMX[dmxFlow[2]], DMX[dmxFlow[3]]];
-
-  const six = name.match(/6-Color to (\w+)/);
+  const six = name.match(/6-Color to (Red|Green|Blue|Yellow|Cyan|Purple|White)/i);
   if (six && WORD[six[1]]) {
     const target = WORD[six[1]];
     return [...RAINBOW.filter((c) => c !== target), target];
@@ -112,7 +147,7 @@ function paletteFromName(name: string): Rgb[] {
     if (target) return [...RAINBOW.filter((c) => c !== target), target];
   }
 
-  const inBg = name.match(/7-Color in (\w+)/);
+  const inBg = name.match(/7-Color in (Red|Green|Blue|Yellow|Cyan|Purple|White)/i);
   if (inBg && WORD[inBg[1]]) {
     const bg = WORD[inBg[1]];
     return [bg, ...RAINBOW.filter((c) => c !== bg)];
@@ -122,33 +157,18 @@ function paletteFromName(name: string): Rgb[] {
     if (bg) return [bg, ...RAINBOW.filter((c) => c !== bg)];
   }
 
-  const dot = name.match(/^(\w+)-Dot in (\w+)/);
+  const dot = name.match(
+    /(Red|Green|Blue|Yellow|Cyan|Purple|White)-Dot in (Red|Green|Blue|Yellow|Cyan|Purple|White)/i,
+  );
   if (dot && WORD[dot[1]] && WORD[dot[2]]) return [WORD[dot[2]], WORD[dot[1]]];
 
-  const onPair = name.toUpperCase().match(
-    /\b(WH|RD|GN|BU|YE|CN|VT|BK|[RGBYCP])\s+ON\s+(WH|RD|GN|BU|YE|CN|VT|BK|[RGBYCP])\b/,
-  );
+  const onPair = name.toUpperCase().match(/\b(WH|RD|GN|BU|YE|CN|VT|BK)\s+ON\s+(WH|RD|GN|BU|YE|CN|VT|BK)\b/);
   if (onPair) return [DMX[onPair[2]], DMX[onPair[1]]];
 
   if (name.includes("B-P-C-Y")) return [BLUE, PURPLE, CYAN, YELLOW];
   if (name.includes("B-G-C-Y")) return [BLUE, GREEN, CYAN, YELLOW];
-  if (name.includes("R-G-B") || name.includes("RD/GN/BU") || name.includes("R G B")) {
-    return [RED, GREEN, BLUE];
-  }
-  if (name.includes("Y-C-P") || name.includes("YE/CN/VT") || name.includes("Y C P")) {
-    return [YELLOW, CYAN, PURPLE];
-  }
-  if (name.includes("R-G ") || name.includes("RD/GN")) return [RED, GREEN];
-  if (name.includes("G-B ") || name.includes("GN/BU")) return [GREEN, BLUE];
-  if (name.includes("Y-B ") || name.includes("YE/BU")) return [YELLOW, BLUE];
-  if (name.includes("Y-C ") || name.includes("YE/CN")) return [YELLOW, CYAN];
-  if (name.includes("C-P ") || name.includes("CN/VT")) return [CYAN, PURPLE];
-  if (name.includes("R-Y ") || name.includes("RD/YE")) return [RED, YELLOW];
-  if (name.includes("R-P ") || name.includes("RD/VT")) return [RED, PURPLE];
-  if (name.includes("G-C ") || name.includes("GN/CN")) return [GREEN, CYAN];
-  if (name.includes("G-Y ") || name.includes("GN/YE")) return [GREEN, YELLOW];
-  if (name.includes("B-P ") || name.includes("BU/VT")) return [BLUE, PURPLE];
   if (name.includes("BK/WH")) return [{ r: 0, g: 0, b: 0 }, WHITE];
+
   if (
     name.includes("7-Color") ||
     name.includes("7 Colors") ||
@@ -164,8 +184,11 @@ function paletteFromName(name: string): Rgb[] {
     return RAINBOW;
   }
 
-  const single = name.match(/^(Red|Green|Blue|Yellow|Cyan|Purple|White)\b/);
-  if (single) return [WORD[single[1]]];
+  const single = name.match(/\b(Red|Green|Blue|Yellow|Cyan|Purple|White)\b/i);
+  if (single) {
+    const key = single[1][0].toUpperCase() + single[1].slice(1).toLowerCase();
+    if (WORD[key]) return [WORD[key]];
+  }
   const dmxSingle = firstDmxToken(name);
   if (dmxSingle) return [dmxSingle];
   return RAINBOW;
@@ -473,19 +496,23 @@ export function sampleLed(
   }
   if (motion === "water" || motion === "wave") {
     const ripple = 0.2 + 0.8 * (0.5 + 0.5 * Math.sin((s + u) * Math.PI * 4));
-    return scale(cycle(colors, s + u, true), ripple);
+    // Named pairs (Y-B, G-B) must stay on those stops — RGB-lerp invents muddy greens.
+    const smooth = colors.length > 3;
+    return scale(cycle(colors, s + u, smooth), ripple);
   }
   if (motion === "curtain") {
     const open = 1 - Math.abs(u * 2 - 1);
     const fromCenter = Math.abs(s - 0.5) * 2;
     const lit = effect?.name.includes("Close") ? fromCenter >= 1 - open : fromCenter <= open;
-    return scale(cycle(colors, u, true), lit ? 1 : 0.07);
+    const smooth = colors.length > 3;
+    return scale(cycle(colors, u, smooth), lit ? 1 : 0.07);
   }
   if (motion === "trans") {
     return sampleTrans(colors, s, u, effect?.name ?? "");
   }
   if (motion === "flow" || motion === "fade" || motion === "gradual") {
-    return cycle(colors, (s + u) % 1, true);
+    const smooth = colors.length > 3 && motion !== "flow";
+    return cycle(colors, (s + u) % 1, smooth);
   }
   if (motion === "flush") {
     const name = effect?.name ?? "";

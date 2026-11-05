@@ -126,17 +126,22 @@ enum EffectPreview {
             }
             return scale(cycle(colors, u, smooth: false), head)
         case .water, .wave:
+            // Discrete named colours (Y-B, G-B, …) — RGB-lerp would invent muddy greens.
             let ripple = 0.2 + 0.8 * (0.5 + 0.5 * sin((s + u) * .pi * 4))
-            return scale(cycle(colors, s + u, smooth: true), ripple)
+            let smooth = colors.count > 3
+            return scale(cycle(colors, s + u, smooth: smooth), ripple)
         case .curtain:
             let open = 1 - abs(u * 2 - 1)
             let fromCenter = abs(s - 0.5) * 2
             let lit = effect.name.contains("Close") ? fromCenter >= 1 - open : fromCenter <= open
-            return scale(cycle(colors, u, smooth: true), lit ? 1 : 0.07)
+            let smooth = colors.count > 3
+            return scale(cycle(colors, u, smooth: smooth), lit ? 1 : 0.07)
         case .trans:
             return sampleTrans(colors, s: s, u: u, name: effect.name)
         case .flow, .fade, .gradual:
-            return cycle(colors, (s + u).truncatingRemainder(dividingBy: 1), smooth: true)
+            // Flow names like W-R-W need the named stops, not invented mid hues.
+            let smooth = colors.count > 3 && motion != .flow
+            return cycle(colors, (s + u).truncatingRemainder(dividingBy: 1), smooth: smooth)
         case .flush:
             let band = 0.34
             let trail: Double
@@ -204,76 +209,61 @@ enum EffectPreview {
     // MARK: - Palette from name (Lotus + LEDDMX)
 
     private static func paletteFromName(_ name: String) -> [RGB] {
-        // Lotus W-R-W / letter flow
-        if let m = name.range(of: #"^([WRGBYCP])-([WRGBYCP])-([WRGBYCP])"#, options: .regularExpression) {
-            let parts = String(name[m]).split(separator: "-").map(String.init)
-            if parts.count == 3, let a = letter[parts[0]], let b = letter[parts[1]], let c = letter[parts[2]] {
-                return [a, b, c]
-            }
-        }
+        // Letter codes anywhere: "Y-B Water", "W-R-W Flow Back", "R-G-B Trans"
+        if let codes = letterCodes(in: name) { return codes }
 
-        // DMX flow: "WH RD WH", "RD WH RD"
-        if let tokens = dmxTriplet(name) { return tokens }
+        // Spaced letter codes: "R G B", "Y C P"
+        if let codes = spacedLetterCodes(in: name) { return codes }
 
-        // Lotus "6-Color to Red"
-        if let m = name.range(of: #"6-Color to (\w+)"#, options: .regularExpression) {
-            let word = String(name[m]).replacingOccurrences(of: "6-Color to ", with: "")
-            if let target = wordColor[word] {
+        // DMX slash pairs/triples: "YE/BU", "RD/GN/BU", "YE/CN/VT"
+        if let codes = dmxSlashCodes(in: name) { return codes }
+
+        // DMX flow: "WH RD WH"
+        if let tokens = dmxSpaceCodes(in: name) { return tokens }
+
+        // Lotus "6-Color to Red" / DMX "6 Colors RD"
+        if let m = name.range(of: #"6-Color to (Red|Green|Blue|Yellow|Cyan|Purple|White)"#, options: [.regularExpression, .caseInsensitive]) {
+            let word = String(name[m]).components(separatedBy: " ").last ?? ""
+            if let target = wordColor[word.capitalized] {
                 return rainbow.filter { $0 != target } + [target]
             }
         }
-
-        // DMX "Forward 6 Colors RD"
-        if name.contains("6 Colors"), let target = firstDmxToken(in: name) {
+        if name.contains("6 Colors"), let target = firstDmxColorToken(in: name) {
             return rainbow.filter { $0 != target } + [target]
         }
 
-        // Lotus "7-Color in Red"
-        if let m = name.range(of: #"7-Color in (\w+)"#, options: .regularExpression) {
-            let word = String(name[m]).replacingOccurrences(of: "7-Color in ", with: "")
-            if let bg = wordColor[word] {
+        // "7-Color in Red" / "7 COLOR ON RD"
+        if let m = name.range(of: #"7-Color in (Red|Green|Blue|Yellow|Cyan|Purple|White)"#, options: [.regularExpression, .caseInsensitive]) {
+            let word = String(name[m]).components(separatedBy: " ").last ?? ""
+            if let bg = wordColor[word.capitalized] {
                 return [bg] + rainbow.filter { $0 != bg }
             }
         }
-
-        // DMX "7 COLOR ON RD"
-        if name.uppercased().contains("7 COLOR ON"), let bg = firstDmxToken(in: name) {
+        if name.uppercased().contains("7 COLOR ON"), let bg = firstDmxColorToken(in: name) {
             return [bg] + rainbow.filter { $0 != bg }
         }
 
-        // Lotus "Red-Dot in Blue"
-        if let m = name.range(of: #"^(\w+)-Dot in (\w+)"#, options: .regularExpression) {
-            let bits = String(name[m]).replacingOccurrences(of: "-Dot in ", with: " ").split(separator: " ")
-            if bits.count == 2, let fg = wordColor[String(bits[0])], let bg = wordColor[String(bits[1])] {
+        // "Red-Dot in Blue" / "GN ON RD"
+        if let m = name.range(
+            of: #"(Red|Green|Blue|Yellow|Cyan|Purple|White)-Dot in (Red|Green|Blue|Yellow|Cyan|Purple|White)"#,
+            options: [.regularExpression, .caseInsensitive]
+        ) {
+            let bits = String(name[m]).replacingOccurrences(of: "-Dot in ", with: " ", options: .caseInsensitive)
+                .split(separator: " ")
+                .map { String($0).capitalized }
+            if bits.count == 2, let fg = wordColor[bits[0]], let bg = wordColor[bits[1]] {
                 return [bg, fg]
             }
         }
-
-        // DMX "GN ON RD" / "WH ON VT"
-        if name.uppercased().contains(" ON "),
-           let pair = dmxOnPair(name) {
+        if let pair = dmxOnPair(name) {
             return [pair.bg, pair.fg]
         }
 
         if name.contains("B-P-C-Y") { return [blue, purple, cyan, yellow] }
         if name.contains("B-G-C-Y") { return [blue, green, cyan, yellow] }
-        if name.contains("R-G-B") || name.contains("RD/GN/BU") || name.contains("R G B") {
-            return [red, green, blue]
-        }
-        if name.contains("Y-C-P") || name.contains("YE/CN/VT") || name.contains("Y C P") {
-            return [yellow, cyan, purple]
-        }
-        if name.contains("R-G ") || name.contains("RD/GN") { return [red, green] }
-        if name.contains("G-B ") || name.contains("GN/BU") { return [green, blue] }
-        if name.contains("Y-B ") || name.contains("YE/BU") { return [yellow, blue] }
-        if name.contains("Y-C ") || name.contains("YE/CN") { return [yellow, cyan] }
-        if name.contains("C-P ") || name.contains("CN/VT") { return [cyan, purple] }
-        if name.contains("R-Y ") || name.contains("RD/YE") { return [red, yellow] }
-        if name.contains("R-P ") || name.contains("RD/VT") { return [red, purple] }
-        if name.contains("G-C ") || name.contains("GN/CN") { return [green, cyan] }
-        if name.contains("G-Y ") || name.contains("GN/YE") { return [green, yellow] }
-        if name.contains("B-P ") || name.contains("BU/VT") { return [blue, purple] }
         if name.contains("BK/WH") { return [black, white] }
+
+        // Full rainbow only for explicit multi-color / auto names
         if name.contains("7-Color") || name.contains("7 Colors") || name.contains("7 COLORS")
             || name.contains("Magic") || name.contains("Dreaming") || name.contains("Auto Play")
             || name.contains("Energy") || name.contains("Flutter") || name.contains("Follow Spot")
@@ -281,65 +271,115 @@ enum EffectPreview {
             return rainbow
         }
 
-        if let single = firstDmxToken(in: name) { return [single] }
-        if let m = name.range(of: #"^(Red|Green|Blue|Yellow|Cyan|Purple|White)\b"#, options: .regularExpression) {
-            let word = String(name[m])
+        // Single named colour: "Green Run Back", "Red Tail", "Horse Race RD"
+        if let m = name.range(
+            of: #"\b(Red|Green|Blue|Yellow|Cyan|Purple|White)\b"#,
+            options: [.regularExpression, .caseInsensitive]
+        ) {
+            let word = String(name[m]).capitalized
             if let c = wordColor[word] { return [c] }
         }
+        if let single = firstDmxColorToken(in: name) { return [single] }
         return rainbow
     }
 
-    private static let letter: [String: RGB] = [
-        "R": red, "G": green, "B": blue, "Y": yellow, "C": cyan, "P": purple, "W": white,
-    ]
+    /// "Y-B", "R-G-B", "W-R-W" — exact named colours, never a muddy RGB blend fallback.
+    private static func letterCodes(in name: String) -> [RGB]? {
+        guard let match = name.range(
+            of: #"\b[WRGBYCP](?:-[WRGBYCP])+\b"#,
+            options: .regularExpression
+        ) else { return nil }
+        let parts = String(name[match]).split(separator: "-").map(String.init)
+        let colors = parts.compactMap { letterRGB[$0] }
+        return colors.count == parts.count && !colors.isEmpty ? colors : nil
+    }
 
-    private static let wordColor: [String: RGB] = [
-        "Red": red, "Green": green, "Blue": blue, "Yellow": yellow,
-        "Cyan": cyan, "Purple": purple, "White": white,
-    ]
+    private static func spacedLetterCodes(in name: String) -> [RGB]? {
+        guard let match = name.range(
+            of: #"\b[WRGBYCP](?:\s+[WRGBYCP])+\b"#,
+            options: .regularExpression
+        ) else { return nil }
+        let parts = String(name[match]).split(whereSeparator: \.isWhitespace).map(String.init)
+        let colors = parts.compactMap { letterRGB[$0] }
+        return colors.count == parts.count && colors.count >= 2 ? colors : nil
+    }
 
-    private static let dmxToken: [String: RGB] = [
-        "RD": red, "GN": green, "BU": blue, "YE": yellow,
-        "CN": cyan, "VT": purple, "WH": white, "BK": black,
-        "R": red, "G": green, "B": blue, "Y": yellow, "C": cyan, "P": purple, "W": white,
-    ]
-
-    private static func firstDmxToken(in name: String) -> RGB? {
+    private static func dmxSlashCodes(in name: String) -> [RGB]? {
         let upper = name.uppercased()
-        let keys = dmxToken.keys.sorted { $0.count > $1.count }
-        for key in keys {
-            // Prefer tokens that appear as standalone colour codes.
+        guard let match = upper.range(
+            of: #"\b(?:WH|RD|GN|BU|YE|CN|VT|BK)(?:/(?:WH|RD|GN|BU|YE|CN|VT|BK))+\b"#,
+            options: .regularExpression
+        ) else { return nil }
+        let parts = String(upper[match]).split(separator: "/").map(String.init)
+        let colors = parts.compactMap { dmxRGB[$0] }
+        return colors.count == parts.count && !colors.isEmpty ? colors : nil
+    }
+
+    private static func dmxSpaceCodes(in name: String) -> [RGB]? {
+        let upper = name.uppercased()
+        guard let match = upper.range(
+            of: #"\b(?:WH|RD|GN|BU|YE|CN|VT|BK)(?:\s+(?:WH|RD|GN|BU|YE|CN|VT|BK)){1,2}\b"#,
+            options: .regularExpression
+        ) else { return nil }
+        let parts = String(upper[match]).split(whereSeparator: \.isWhitespace).map(String.init)
+        let colors = parts.compactMap { dmxRGB[$0] }
+        return colors.count == parts.count && colors.count >= 2 ? colors : nil
+    }
+
+    private static func firstDmxColorToken(in name: String) -> RGB? {
+        let upper = name.uppercased()
+        for key in ["WH", "RD", "GN", "BU", "YE", "CN", "VT", "BK"] {
             if upper.range(of: #"\b\#(key)\b"#, options: .regularExpression) != nil {
-                return dmxToken[key]
+                return dmxRGB[key]
             }
         }
         return nil
     }
 
-    private static func dmxTriplet(_ name: String) -> [RGB]? {
-        let upper = name.uppercased()
-        guard let match = upper.range(
-            of: #"\b(WH|RD|GN|BU|YE|CN|VT|BK)\s+(WH|RD|GN|BU|YE|CN|VT|BK)\s+(WH|RD|GN|BU|YE|CN|VT|BK)\b"#,
-            options: .regularExpression
-        ) else { return nil }
-        let parts = String(upper[match]).split(separator: " ").map(String.init)
-        guard parts.count == 3,
-              let a = dmxToken[parts[0]],
-              let b = dmxToken[parts[1]],
-              let c = dmxToken[parts[2]] else { return nil }
-        return [a, b, c]
-    }
-
     private static func dmxOnPair(_ name: String) -> (fg: RGB, bg: RGB)? {
         let upper = name.uppercased()
         guard let match = upper.range(
-            of: #"\b(WH|RD|GN|BU|YE|CN|VT|BK|[RGBYCP])\s+ON\s+(WH|RD|GN|BU|YE|CN|VT|BK|[RGBYCP])\b"#,
+            of: #"\b(WH|RD|GN|BU|YE|CN|VT|BK)\s+ON\s+(WH|RD|GN|BU|YE|CN|VT|BK)\b"#,
             options: .regularExpression
         ) else { return nil }
-        let parts = String(upper[match]).replacingOccurrences(of: " ON ", with: " ").split(separator: " ").map(String.init)
-        guard parts.count == 2, let fg = dmxToken[parts[0]], let bg = dmxToken[parts[1]] else { return nil }
+        let parts = String(upper[match]).replacingOccurrences(of: " ON ", with: " ")
+            .split(whereSeparator: \.isWhitespace)
+            .map(String.init)
+        guard parts.count == 2, let fg = dmxRGB[parts[0]], let bg = dmxRGB[parts[1]] else { return nil }
         return (fg, bg)
     }
+
+    // Inline colour maps so static init order cannot leave empty tables.
+    private static let letterRGB: [String: RGB] = [
+        "R": RGB(r: 255, g: 28, b: 28),
+        "G": RGB(r: 36, g: 220, b: 72),
+        "B": RGB(r: 40, g: 90, b: 255),
+        "Y": RGB(r: 255, g: 220, b: 32),
+        "C": RGB(r: 48, g: 214, b: 255),
+        "P": RGB(r: 168, g: 48, b: 255),
+        "W": RGB(r: 255, g: 252, b: 245),
+    ]
+
+    private static let wordColor: [String: RGB] = [
+        "Red": RGB(r: 255, g: 28, b: 28),
+        "Green": RGB(r: 36, g: 220, b: 72),
+        "Blue": RGB(r: 40, g: 90, b: 255),
+        "Yellow": RGB(r: 255, g: 220, b: 32),
+        "Cyan": RGB(r: 48, g: 214, b: 255),
+        "Purple": RGB(r: 168, g: 48, b: 255),
+        "White": RGB(r: 255, g: 252, b: 245),
+    ]
+
+    private static let dmxRGB: [String: RGB] = [
+        "RD": RGB(r: 255, g: 28, b: 28),
+        "GN": RGB(r: 36, g: 220, b: 72),
+        "BU": RGB(r: 40, g: 90, b: 255),
+        "YE": RGB(r: 255, g: 220, b: 32),
+        "CN": RGB(r: 48, g: 214, b: 255),
+        "VT": RGB(r: 168, g: 48, b: 255),
+        "WH": RGB(r: 255, g: 252, b: 245),
+        "BK": RGB(r: 0, g: 0, b: 0),
+    ]
 
     // MARK: - Sampling helpers
 
