@@ -126,12 +126,8 @@ export function SettingsMenu() {
               </div>
             </section>
 
-            <section className="space-y-3">
-              <h3 className="text-xs font-medium tracking-[0.16em] text-white/40 uppercase">
-                {t("license.section")}
-              </h3>
-              <LicenseSettingsRow />
-            </section>
+            {/* Purchase unlock UI parked while PURCHASE_GATE_ENABLED is false */}
+            <LicenseSettingsRow />
 
             <section className="space-y-2">
               <h3 className="text-xs font-medium tracking-[0.16em] text-white/40 uppercase">

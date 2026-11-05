@@ -14,7 +14,7 @@ Power the lighting devices that shipped with your kits, allow Bluetooth, and the
 
 Save both a Q50 and a G37 in the garage and switch between them — each car keeps its own kits. G37 is emblem-only in this version. Q60 and Q70 are listed as soon and cannot be selected yet. Grille badge control is not in this version.
 
-Unlock with your Shopify order number and checkout email after buying a Shinno kit. There is no in-app shop and no demo mode. Names, colors, and paired devices stay on this iPhone.
+There is no account, no in-app shop, and no demo mode. Names, colors, and paired devices stay on this iPhone.
 
 Questions: support@shinnoperformance.com
 
