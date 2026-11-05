@@ -30,28 +30,43 @@ export function ModeGlyph({
   const d = useMemo(() => polyline(points), [points]);
   const palette = useMemo(() => paletteFor(effect.id), [effect.id]);
 
+  const reversed =
+    effect.name.includes("Back") ||
+    effect.name.includes("Backward") ||
+    effect.name.includes("Close") ||
+    effect.group === "runback";
+  const wash = palette[0] ? rgbCss(palette[0], 0.14) : "transparent";
+
   return (
-    <div className={cn("flex h-full w-full flex-col gap-1", className)}>
-      <svg viewBox="0 0 100 100" className="min-h-0 w-full flex-1" aria-hidden>
-        <path d={d} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round" />
-        {points.map((point, index) => {
-          const rgb = sampleLed(effect.id, index, LEDS, elapsed, speed);
-          return (
-            <circle
-              key={index}
-              cx={svgCoord(point.x)}
-              cy={svgCoord(point.y)}
-              r="3.4"
-              fill={rgbCss(rgb)}
-              style={{ filter: `drop-shadow(0 0 2px ${rgbCss(rgb, 0.85)})` }}
-            />
-          );
-        })}
-      </svg>
-      <div className="flex h-1.5 gap-0.5 px-1.5">
+    <div className={cn("flex h-full w-full flex-col gap-1.5", className)}>
+      <div
+        className="relative min-h-0 flex-1 overflow-hidden rounded-[10px] border border-white/[0.08]"
+        style={{ background: wash }}
+      >
+        <svg viewBox="0 0 100 100" className="h-full w-full p-1.5" aria-hidden>
+          <path d={d} fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+          {points.map((point, index) => {
+            const rgb = sampleLed(effect.id, index, LEDS, elapsed, speed);
+            return (
+              <circle
+                key={index}
+                cx={svgCoord(point.x)}
+                cy={svgCoord(point.y)}
+                r="3.6"
+                fill={rgbCss(rgb)}
+              />
+            );
+          })}
+        </svg>
+      </div>
+      <div className="flex h-3 gap-0.5 px-0.5">
         {palette.map((rgb, i) => (
-          <span key={i} className="h-full flex-1 rounded-[1px]" style={{ background: rgbCss(rgb) }} />
+          <span key={i} className="h-full flex-1 rounded-sm" style={{ background: rgbCss(rgb) }} />
         ))}
+      </div>
+      <div className="flex items-center gap-1 px-0.5 text-[9px] font-semibold text-white/45">
+        <span>{reversed ? "← Back" : "Fwd →"}</span>
+        <span className="ml-auto font-mono">{palette.length >= 7 ? "7-col" : `${palette.length}-col`}</span>
       </div>
     </div>
   );

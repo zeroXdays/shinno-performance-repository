@@ -557,8 +557,11 @@ export function sampleLed(
     return scale(cycle(colors, u, false), head);
   }
   if (motion === "water" || motion === "wave") {
-    const ripple = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin((s + u) * Math.PI * 4));
-    return scale(cycle(colors, s + u, allowSmooth(colors)), ripple);
+    // Chunky hard bands — R-G-B stays R/G/B (no rainbow smear from lerping).
+    const ripple = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin((s + u) * Math.PI * 4));
+    if (colors.length <= 1) return scale(colors[0] ?? { r: 0, g: 0, b: 0 }, ripple);
+    const band = colors[wrap(Math.floor((s * 0.85 + u) * colors.length), colors.length)];
+    return scale(band, ripple);
   }
   if (motion === "curtain") {
     const open = 1 - Math.abs(u * 2 - 1);

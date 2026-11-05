@@ -50,9 +50,13 @@ enum EffectPreview {
     }
 
     static func palette(for effect: LedEffect) -> [RGB] {
+        // Prefer exact tables so Modes tiles never fall through to rainbow by accident.
+        if let named = fixedPaletteByName[effect.name], !named.isEmpty { return named }
+        if let byId = fixedPaletteById[effect.id], !byId.isEmpty { return byId }
         let colors = paletteFromName(effect.name)
         return colors.isEmpty ? rainbow : colors
     }
+
 
     static func periodMs(speed: Int, motion: Motion) -> Double {
         let ui = Double(speed)
@@ -126,9 +130,12 @@ enum EffectPreview {
             }
             return scale(cycle(colors, u, smooth: false), head)
         case .water, .wave:
-            // Named stops only — never RGB-lerp (R→G invents yellow and reads as rainbow).
-            let ripple = 0.35 + 0.65 * (0.5 + 0.5 * sin((s + u) * .pi * 4))
-            return scale(cycle(colors, s + u, smooth: allowSmooth(colors)), ripple)
+            // Chunky hard bands along the wave — R-G-B stays R/G/B, never a rainbow smear.
+            let ripple = 0.4 + 0.6 * (0.5 + 0.5 * sin((s + u) * .pi * 4))
+            let band = colors.count <= 1
+                ? colors[0]
+                : colors[wrap(Int(floor((s * 0.85 + u) * Double(colors.count))), colors.count)]
+            return scale(band, ripple)
         case .curtain:
             let open = 1 - abs(u * 2 - 1)
             let fromCenter = abs(s - 0.5) * 2
@@ -201,6 +208,434 @@ enum EffectPreview {
             }
         }
     }
+
+    /// Exact colour stops keyed by Lotus effect id (web ModeGlyph parity).
+    private static let fixedPaletteById: [Int: [RGB]] = [
+        0: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // Auto Play
+        1: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // Magic Forward
+        2: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // Magic Back
+        3: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Trans
+        4: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Trans Back
+        5: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // R-G-B Trans
+        6: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // R-G-B Trans Back
+        7: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Y-C-P Trans
+        8: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Y-C-P Trans Back
+        9: [RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255), RGB(r: 255, g: 28, b: 28)], // 6-Color to Red
+        10: [RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255), RGB(r: 255, g: 28, b: 28)], // 6-Color to Red Back
+        11: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255), RGB(r: 36, g: 220, b: 72)], // 6-Color to Green
+        12: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255), RGB(r: 36, g: 220, b: 72)], // 6-Color to Green Back
+        13: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255), RGB(r: 40, g: 90, b: 255)], // 6-Color to Blue
+        14: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255), RGB(r: 40, g: 90, b: 255)], // 6-Color to Blue Back
+        15: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255), RGB(r: 48, g: 214, b: 255)], // 6-Color to Cyan
+        16: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255), RGB(r: 48, g: 214, b: 255)], // 6-Color to Cyan Back
+        17: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255), RGB(r: 255, g: 220, b: 32)], // 6-Color to Yellow
+        18: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255), RGB(r: 255, g: 220, b: 32)], // 6-Color to Yellow Back
+        19: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 6-Color to Purple
+        20: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 6-Color to Purple Back
+        21: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255), RGB(r: 255, g: 252, b: 245)], // 6-Color to White
+        22: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255), RGB(r: 255, g: 252, b: 245)], // 6-Color to White Back
+        23: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Tail
+        24: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Tail Back
+        25: [RGB(r: 255, g: 28, b: 28)], // Red Tail
+        26: [RGB(r: 255, g: 28, b: 28)], // Red Tail Back
+        27: [RGB(r: 36, g: 220, b: 72)], // Green Tail
+        28: [RGB(r: 36, g: 220, b: 72)], // Green Tail Back
+        29: [RGB(r: 40, g: 90, b: 255)], // Blue Tail
+        30: [RGB(r: 40, g: 90, b: 255)], // Blue Tail Back
+        31: [RGB(r: 255, g: 220, b: 32)], // Yellow Tail
+        32: [RGB(r: 255, g: 220, b: 32)], // Yellow Tail Back
+        33: [RGB(r: 48, g: 214, b: 255)], // Cyan Tail
+        34: [RGB(r: 48, g: 214, b: 255)], // Cyan Tail Back
+        35: [RGB(r: 168, g: 48, b: 255)], // Purple Tail
+        36: [RGB(r: 168, g: 48, b: 255)], // Purple Tail Back
+        37: [RGB(r: 255, g: 252, b: 245)], // White Tail
+        38: [RGB(r: 255, g: 252, b: 245)], // White Tail Back
+        39: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Water
+        40: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Water Back
+        41: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // R-G-B Water
+        42: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // R-G-B Water Back
+        43: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Y-C-P Water
+        44: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Y-C-P Water Back
+        45: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72)], // R-G Water
+        46: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72)], // R-G Water Back
+        47: [RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // G-B Water
+        48: [RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // G-B Water Back
+        49: [RGB(r: 255, g: 220, b: 32), RGB(r: 40, g: 90, b: 255)], // Y-B Water
+        50: [RGB(r: 255, g: 220, b: 32), RGB(r: 40, g: 90, b: 255)], // Y-B Water Back
+        51: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255)], // Y-C Water
+        52: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255)], // Y-C Water Back
+        53: [RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // C-P Water
+        54: [RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // C-P Water Back
+        55: [RGB(r: 255, g: 252, b: 245)], // White Water
+        56: [RGB(r: 255, g: 252, b: 245)], // White Water Back
+        57: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Close
+        58: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Open
+        59: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // R-G-B Close
+        60: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // R-G-B Open
+        61: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Y-C-P Close
+        62: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Y-C-P Open
+        63: [RGB(r: 255, g: 28, b: 28)], // Red Close
+        64: [RGB(r: 255, g: 28, b: 28)], // Red Open
+        65: [RGB(r: 36, g: 220, b: 72)], // Green Close
+        66: [RGB(r: 36, g: 220, b: 72)], // Green Open
+        67: [RGB(r: 40, g: 90, b: 255)], // Blue Close
+        68: [RGB(r: 40, g: 90, b: 255)], // Blue Open
+        69: [RGB(r: 255, g: 220, b: 32)], // Yellow Close
+        70: [RGB(r: 255, g: 220, b: 32)], // Yellow Open
+        71: [RGB(r: 48, g: 214, b: 255)], // Cyan Close
+        72: [RGB(r: 48, g: 214, b: 255)], // Cyan Open
+        73: [RGB(r: 168, g: 48, b: 255)], // Purple Close
+        74: [RGB(r: 168, g: 48, b: 255)], // Purple Open
+        75: [RGB(r: 255, g: 252, b: 245)], // White Close
+        76: [RGB(r: 255, g: 252, b: 245)], // White Open
+        77: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Race
+        78: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Race Back
+        79: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // R-G-B Race
+        80: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // R-G-B Race Back
+        81: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Y-C-P Race
+        82: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Y-C-P Race Back
+        83: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Wave
+        84: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Wave Back
+        85: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // R-G-B Wave
+        86: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // R-G-B Wave Back
+        87: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Y-C-P Wave
+        88: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Y-C-P Wave Back
+        89: [RGB(r: 255, g: 28, b: 28)], // Red Running
+        90: [RGB(r: 255, g: 28, b: 28)], // Red Run Back
+        91: [RGB(r: 36, g: 220, b: 72)], // Green Running
+        92: [RGB(r: 36, g: 220, b: 72)], // Green Run Back
+        93: [RGB(r: 40, g: 90, b: 255)], // Blue Running
+        94: [RGB(r: 40, g: 90, b: 255)], // Blue Run Back
+        95: [RGB(r: 255, g: 220, b: 32)], // Yellow Running
+        96: [RGB(r: 255, g: 220, b: 32)], // Yellow Run Back
+        97: [RGB(r: 48, g: 214, b: 255)], // Cyan Running
+        98: [RGB(r: 48, g: 214, b: 255)], // Cyan Run Back
+        99: [RGB(r: 168, g: 48, b: 255)], // Purple Running
+        100: [RGB(r: 168, g: 48, b: 255)], // Purple Run Back
+        101: [RGB(r: 255, g: 252, b: 245)], // White Running
+        102: [RGB(r: 255, g: 252, b: 245)], // White Run Back
+        103: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Running
+        104: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Run Back
+        105: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // R-G-B Running
+        106: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // R-G-B Run Back
+        107: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Y-C-P Running
+        108: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Y-C-P Run Back
+        109: [RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255), RGB(r: 48, g: 214, b: 255), RGB(r: 255, g: 220, b: 32)], // B-P-C-Y Running
+        110: [RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255), RGB(r: 48, g: 214, b: 255), RGB(r: 255, g: 220, b: 32)], // B-P-C-Y Run Back
+        111: [RGB(r: 40, g: 90, b: 255), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 255, g: 220, b: 32)], // B-G-C-Y Running
+        112: [RGB(r: 40, g: 90, b: 255), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 255, g: 220, b: 32)], // B-G-C-Y Run Back
+        113: [RGB(r: 255, g: 252, b: 245), RGB(r: 255, g: 28, b: 28)], // Red-Dot in White Running
+        114: [RGB(r: 255, g: 252, b: 245), RGB(r: 255, g: 28, b: 28)], // Red-Dot in White Run Back
+        115: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72)], // Green-Dot in Red Running
+        116: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72)], // Green-Dot in Red Run Back
+        117: [RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // Blue-Dot in Green Running
+        118: [RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // Blue-Dot in Green Run Back
+        119: [RGB(r: 40, g: 90, b: 255), RGB(r: 255, g: 220, b: 32)], // Yellow-Dot in Blue Running
+        120: [RGB(r: 40, g: 90, b: 255), RGB(r: 255, g: 220, b: 32)], // Yellow-Dot in Blue Run Back
+        121: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255)], // Cyan-Dot in Yellow Running
+        122: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255)], // Cyan-Dot in Yellow Run Back
+        123: [RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Purple-Dot in Cyan Running
+        124: [RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Purple-Dot in Cyan Run Back
+        125: [RGB(r: 168, g: 48, b: 255), RGB(r: 255, g: 252, b: 245)], // White-Dot in Purple Running
+        126: [RGB(r: 168, g: 48, b: 255), RGB(r: 255, g: 252, b: 245)], // White-Dot in Purple Run Back
+        127: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 252, b: 245)], // White-Dot in Red Running
+        128: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 252, b: 245)], // White-Dot in Red Run Back
+        129: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color in Red Running
+        130: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color in Red Run Back
+        131: [RGB(r: 36, g: 220, b: 72), RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color in Green Running
+        132: [RGB(r: 36, g: 220, b: 72), RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color in Green Run Back
+        133: [RGB(r: 40, g: 90, b: 255), RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color in Blue Running
+        134: [RGB(r: 40, g: 90, b: 255), RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color in Blue Run Back
+        135: [RGB(r: 255, g: 220, b: 32), RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color in Yellow Running
+        136: [RGB(r: 255, g: 220, b: 32), RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color in Yellow Run Back
+        137: [RGB(r: 48, g: 214, b: 255), RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color in Cyan Running
+        138: [RGB(r: 48, g: 214, b: 255), RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color in Cyan Run Back
+        139: [RGB(r: 168, g: 48, b: 255), RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255)], // 7-Color in Purple Running
+        140: [RGB(r: 168, g: 48, b: 255), RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255)], // 7-Color in Purple Run Back
+        141: [RGB(r: 255, g: 252, b: 245), RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color in White Running
+        142: [RGB(r: 255, g: 252, b: 245), RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color in White Run Back
+        143: [RGB(r: 255, g: 252, b: 245), RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 252, b: 245)], // W-R-W Flow
+        144: [RGB(r: 255, g: 252, b: 245), RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 252, b: 245)], // W-R-W Flow Back
+        145: [RGB(r: 255, g: 252, b: 245), RGB(r: 36, g: 220, b: 72), RGB(r: 255, g: 252, b: 245)], // W-G-W Flow
+        146: [RGB(r: 255, g: 252, b: 245), RGB(r: 36, g: 220, b: 72), RGB(r: 255, g: 252, b: 245)], // W-G-W Flow Back
+        147: [RGB(r: 255, g: 252, b: 245), RGB(r: 40, g: 90, b: 255), RGB(r: 255, g: 252, b: 245)], // W-B-W Flow
+        148: [RGB(r: 255, g: 252, b: 245), RGB(r: 40, g: 90, b: 255), RGB(r: 255, g: 252, b: 245)], // W-B-W Flow Back
+        149: [RGB(r: 255, g: 252, b: 245), RGB(r: 255, g: 220, b: 32), RGB(r: 255, g: 252, b: 245)], // W-Y-W Flow
+        150: [RGB(r: 255, g: 252, b: 245), RGB(r: 255, g: 220, b: 32), RGB(r: 255, g: 252, b: 245)], // W-Y-W Flow Back
+        151: [RGB(r: 255, g: 252, b: 245), RGB(r: 48, g: 214, b: 255), RGB(r: 255, g: 252, b: 245)], // W-C-W Flow
+        152: [RGB(r: 255, g: 252, b: 245), RGB(r: 48, g: 214, b: 255), RGB(r: 255, g: 252, b: 245)], // W-C-W Flow Back
+        153: [RGB(r: 255, g: 252, b: 245), RGB(r: 168, g: 48, b: 255), RGB(r: 255, g: 252, b: 245)], // W-P-W Flow
+        154: [RGB(r: 255, g: 252, b: 245), RGB(r: 168, g: 48, b: 255), RGB(r: 255, g: 252, b: 245)], // W-P-W Flow Back
+        155: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 252, b: 245), RGB(r: 255, g: 28, b: 28)], // R-W-R Flow
+        156: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 252, b: 245), RGB(r: 255, g: 28, b: 28)], // R-W-R Flow Back
+        157: [RGB(r: 36, g: 220, b: 72), RGB(r: 255, g: 252, b: 245), RGB(r: 36, g: 220, b: 72)], // G-W-G Flow
+        158: [RGB(r: 36, g: 220, b: 72), RGB(r: 255, g: 252, b: 245), RGB(r: 36, g: 220, b: 72)], // G-W-G Flow Back
+        159: [RGB(r: 40, g: 90, b: 255), RGB(r: 255, g: 252, b: 245), RGB(r: 40, g: 90, b: 255)], // B-W-B Flow
+        160: [RGB(r: 40, g: 90, b: 255), RGB(r: 255, g: 252, b: 245), RGB(r: 40, g: 90, b: 255)], // B-W-B Flow Back
+        161: [RGB(r: 255, g: 220, b: 32), RGB(r: 255, g: 252, b: 245), RGB(r: 255, g: 220, b: 32)], // Y-W-Y Flow
+        162: [RGB(r: 255, g: 220, b: 32), RGB(r: 255, g: 252, b: 245), RGB(r: 255, g: 220, b: 32)], // Y-W-Y Flow Back
+        163: [RGB(r: 48, g: 214, b: 255), RGB(r: 255, g: 252, b: 245), RGB(r: 48, g: 214, b: 255)], // C-W-C Flow
+        164: [RGB(r: 48, g: 214, b: 255), RGB(r: 255, g: 252, b: 245), RGB(r: 48, g: 214, b: 255)], // C-W-C Flow Back
+        165: [RGB(r: 168, g: 48, b: 255), RGB(r: 255, g: 252, b: 245), RGB(r: 168, g: 48, b: 255)], // P-W-P Flow
+        166: [RGB(r: 168, g: 48, b: 255), RGB(r: 255, g: 252, b: 245), RGB(r: 168, g: 48, b: 255)], // P-W-P Flow Back
+        167: [RGB(r: 40, g: 90, b: 255), RGB(r: 36, g: 220, b: 72)], // Green-Dot in Blue Running
+        168: [RGB(r: 40, g: 90, b: 255), RGB(r: 36, g: 220, b: 72)], // Green-Dot in Blue Run Back
+        169: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72)], // Green-Dot in Red Running
+        170: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72)], // Green-Dot in Red Run Back
+        171: [RGB(r: 40, g: 90, b: 255), RGB(r: 255, g: 28, b: 28)], // Red-Dot in Blue Running
+        172: [RGB(r: 40, g: 90, b: 255), RGB(r: 255, g: 28, b: 28)], // Red-Dot in Blue Run Back
+        173: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255)], // Cyan-Dot in Yellow Running
+        174: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255)], // Cyan-Dot in Yellow Run Back
+        175: [RGB(r: 168, g: 48, b: 255), RGB(r: 255, g: 220, b: 32)], // Yellow-Dot in Purple Running
+        176: [RGB(r: 168, g: 48, b: 255), RGB(r: 255, g: 220, b: 32)], // Yellow-Dot in Purple Run Back
+        177: [RGB(r: 255, g: 220, b: 32), RGB(r: 255, g: 252, b: 245)], // White-Dot in Yellow Running
+        178: [RGB(r: 168, g: 48, b: 255), RGB(r: 255, g: 220, b: 32)], // Yellow-Dot in Purple Run Back
+        179: [RGB(r: 255, g: 252, b: 245), RGB(r: 255, g: 220, b: 32)], // Yellow-Dot in White Running
+        180: [RGB(r: 255, g: 220, b: 32), RGB(r: 255, g: 252, b: 245)], // White-Dot in Yellow Run Back
+        181: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Flush
+        182: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Flush Back
+        183: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // R-G-B Flush
+        184: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // R-G-B Flush Back
+        185: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Y-C-P Flush
+        186: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Y-C-P Flush Back
+        187: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Flush Close
+        188: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Flush Open
+        189: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // R-G-B Flush Close
+        190: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // R-G-B Flush Open
+        191: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Y-C-P Flush Close
+        192: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Y-C-P Flush Open
+        193: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Jump
+        194: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // R-G-B Jump
+        195: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Y-C-P Jump
+        196: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Strobe
+        197: [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)], // R-G-B Strobe
+        198: [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)], // Y-C-P Strobe
+        199: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Gradual
+        200: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 220, b: 32)], // R-Y Gradual
+        201: [RGB(r: 255, g: 28, b: 28), RGB(r: 168, g: 48, b: 255)], // R-P Gradual
+        202: [RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255)], // G-C Gradual
+        203: [RGB(r: 36, g: 220, b: 72), RGB(r: 255, g: 220, b: 32)], // G-Y Gradual
+        204: [RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // B-P Gradual
+        205: [RGB(r: 255, g: 28, b: 28)], // Red Marquee
+        206: [RGB(r: 36, g: 220, b: 72)], // Green Marquee
+        207: [RGB(r: 40, g: 90, b: 255)], // Blue Marquee
+        208: [RGB(r: 255, g: 220, b: 32)], // Yellow Marquee
+        209: [RGB(r: 48, g: 214, b: 255)], // Cyan Marquee
+        210: [RGB(r: 168, g: 48, b: 255)], // Purple Marquee
+        211: [RGB(r: 255, g: 252, b: 245)], // White Marquee
+        212: [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)], // 7-Color Energy
+    ]
+
+    /// LEDDMX / G37 names (same ids, different labels).
+    private static let fixedPaletteByName: [String: [RGB]] = [
+        "Auto Play": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Forward Dreaming": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Backward Dreaming": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Forward 7 Colors": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Backward 7 Colors": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Forward RD/GN/BU": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)],
+        "Backward RD/GN/BU": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)],
+        "Forward YE/CN/VT": [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Backward YE/CN/VT": [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Forward 6 Colors RD": [RGB(r: 255, g: 28, b: 28)],
+        "Backward 6 Colors RD": [RGB(r: 255, g: 28, b: 28)],
+        "Forward 6 Colors GN": [RGB(r: 36, g: 220, b: 72)],
+        "Backward 6 Colors GN": [RGB(r: 36, g: 220, b: 72)],
+        "Forward 6 Colors BU": [RGB(r: 40, g: 90, b: 255)],
+        "Backward 6 Colors BU": [RGB(r: 40, g: 90, b: 255)],
+        "Forward 6 Colors CN": [RGB(r: 48, g: 214, b: 255)],
+        "Backward 6 Colors CN": [RGB(r: 48, g: 214, b: 255)],
+        "Forward 6 Colors YE": [RGB(r: 255, g: 220, b: 32)],
+        "Backward 6 Colors YE": [RGB(r: 255, g: 220, b: 32)],
+        "Forward 6 Colors VT": [RGB(r: 168, g: 48, b: 255)],
+        "Backward 6 Colors VT": [RGB(r: 168, g: 48, b: 255)],
+        "Forward 6 Colors WH": [RGB(r: 255, g: 252, b: 245)],
+        "Backward 6 Colors WH": [RGB(r: 255, g: 252, b: 245)],
+        "Forward Trailing 7 Colors": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Backward Trailing 7 Colors": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Forward Trailing RD": [RGB(r: 255, g: 28, b: 28)],
+        "Backward Trailing RD": [RGB(r: 255, g: 28, b: 28)],
+        "Forward Trailing GN": [RGB(r: 36, g: 220, b: 72)],
+        "Backward Trailing GN": [RGB(r: 36, g: 220, b: 72)],
+        "Forward Trailing BU": [RGB(r: 40, g: 90, b: 255)],
+        "Backward Trailing BU": [RGB(r: 40, g: 90, b: 255)],
+        "Forward Trailing YE": [RGB(r: 255, g: 220, b: 32)],
+        "Backward Trailing YE": [RGB(r: 255, g: 220, b: 32)],
+        "Forward Trailing CN": [RGB(r: 48, g: 214, b: 255)],
+        "Backward Trailing CN": [RGB(r: 48, g: 214, b: 255)],
+        "Forward Trailing VT": [RGB(r: 168, g: 48, b: 255)],
+        "Backward Trailing VT": [RGB(r: 168, g: 48, b: 255)],
+        "Forward Trailing WH": [RGB(r: 255, g: 252, b: 245)],
+        "Backward Trailing WH": [RGB(r: 255, g: 252, b: 245)],
+        "Forward Streaming 7 Colors": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Backward Streaming 7 Colors": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Forward Streaming RD/GN/BU": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)],
+        "Backward Streaming RD/GN/BU": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)],
+        "Forward Streaming YE/CN/VT": [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Backward Streaming YE/CN/VT": [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Forward Streaming RD/GN": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72)],
+        "Backward Streaming RD/GN": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72)],
+        "Forward Streaming GN/BU": [RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)],
+        "Backward Streaming GN/BU": [RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)],
+        "Forward Streaming YE/BU": [RGB(r: 255, g: 220, b: 32), RGB(r: 40, g: 90, b: 255)],
+        "Backward Streaming YE/BU": [RGB(r: 255, g: 220, b: 32), RGB(r: 40, g: 90, b: 255)],
+        "Forward Streaming YE/CN": [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255)],
+        "Backward Streaming YE/CN": [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255)],
+        "Forward Streaming CN/VT": [RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Backward Streaming CN/VT": [RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Forward Streaming BK/WH": [RGB(r: 0, g: 0, b: 0), RGB(r: 255, g: 252, b: 245)],
+        "Backward Streaming BK/WH": [RGB(r: 0, g: 0, b: 0), RGB(r: 255, g: 252, b: 245)],
+        "Open Curtain 7 Colors": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Close Curtain 7 Colors": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Open Curtain RD/GN/BU": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)],
+        "Close Curtain RD/GN/BU": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)],
+        "Open Curtain YE/CN/VT": [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Close Curtain YE/CN/VT": [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Forward Follow Spot 7 Colors": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Backward Follow Spot 7 Colors": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Forward Follow Spot RD/GN/BU": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)],
+        "Backward Follow Spot RD/GN/BU": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)],
+        "Forward Follow Spot YE/CN/VT": [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Backward Follow Spot YE/CN/VT": [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Forward Flutter 7 Colors": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Backward Flutter 7 Colors": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Forward Flutter RD/GN/BU": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)],
+        "Backward Flutter RD/GN/BU": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)],
+        "Forward Flutter YE/CN/VT": [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Backward Flutter YE/CN/VT": [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Hop 7 Colors": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Hop RD/GN/BU": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)],
+        "Hop YE/CN/VT": [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Strobe 7 Colors": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Strobe RD/GN/BU": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)],
+        "Strobe YE/CN/VT": [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Gradual 7 Colors": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Gradual RD/YE": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 220, b: 32)],
+        "Gradual RD/VT": [RGB(r: 255, g: 28, b: 28), RGB(r: 168, g: 48, b: 255)],
+        "Gradual GN/CN": [RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255)],
+        "Gradual GN/YE": [RGB(r: 36, g: 220, b: 72), RGB(r: 255, g: 220, b: 32)],
+        "Gradual BU/VT": [RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Close Curtain RD": [RGB(r: 255, g: 28, b: 28)],
+        "Close Curtain GN": [RGB(r: 36, g: 220, b: 72)],
+        "Close Curtain BU": [RGB(r: 40, g: 90, b: 255)],
+        "Close Curtain YE": [RGB(r: 255, g: 220, b: 32)],
+        "Close Curtain CN": [RGB(r: 48, g: 214, b: 255)],
+        "Close Curtain VT": [RGB(r: 168, g: 48, b: 255)],
+        "Close Curtain WH": [RGB(r: 255, g: 252, b: 245)],
+        "Open Curtain RD": [RGB(r: 255, g: 28, b: 28)],
+        "Open Curtain GN": [RGB(r: 36, g: 220, b: 72)],
+        "Open Curtain BU": [RGB(r: 40, g: 90, b: 255)],
+        "Open Curtain YE": [RGB(r: 255, g: 220, b: 32)],
+        "Open Curtain CN": [RGB(r: 48, g: 214, b: 255)],
+        "Open Curtain VT": [RGB(r: 168, g: 48, b: 255)],
+        "Open Curtain WH": [RGB(r: 255, g: 252, b: 245)],
+        "Horse Race RD": [RGB(r: 255, g: 28, b: 28)],
+        "Horse Race GN": [RGB(r: 36, g: 220, b: 72)],
+        "Horse Race BU": [RGB(r: 40, g: 90, b: 255)],
+        "Horse Race YE": [RGB(r: 255, g: 220, b: 32)],
+        "Horse Race CN": [RGB(r: 48, g: 214, b: 255)],
+        "Horse Race VT": [RGB(r: 168, g: 48, b: 255)],
+        "Horse Race WH": [RGB(r: 255, g: 252, b: 245)],
+        "Forward Run RD": [RGB(r: 255, g: 28, b: 28)],
+        "Backward Run RD": [RGB(r: 255, g: 28, b: 28)],
+        "Forward Run GN": [RGB(r: 36, g: 220, b: 72)],
+        "Backward Run GN": [RGB(r: 36, g: 220, b: 72)],
+        "Forward Run BU": [RGB(r: 40, g: 90, b: 255)],
+        "Backward Run BU": [RGB(r: 40, g: 90, b: 255)],
+        "Forward Run YE": [RGB(r: 255, g: 220, b: 32)],
+        "Backward Run YE": [RGB(r: 255, g: 220, b: 32)],
+        "Forward Run CN": [RGB(r: 48, g: 214, b: 255)],
+        "Backward Run CN": [RGB(r: 48, g: 214, b: 255)],
+        "Forward Run VT": [RGB(r: 168, g: 48, b: 255)],
+        "Backward Run VT": [RGB(r: 168, g: 48, b: 255)],
+        "Forward Run WH": [RGB(r: 255, g: 252, b: 245)],
+        "Backward Run WH": [RGB(r: 255, g: 252, b: 245)],
+        "Forward Run 7 Colors": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Backward Run 7 Colors": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Forward Run RD/GN/BU": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)],
+        "Backward Run RD/GN/BU": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)],
+        "Forward Run YE/CN/VT": [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Backward Run YE/CN/VT": [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Forward Run BU/YE/VT": [RGB(r: 40, g: 90, b: 255), RGB(r: 255, g: 220, b: 32), RGB(r: 168, g: 48, b: 255)],
+        "Forward Run GN/BU/YE": [RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255), RGB(r: 255, g: 220, b: 32)],
+        "Backward Run BU/YE/VT": [RGB(r: 40, g: 90, b: 255), RGB(r: 255, g: 220, b: 32), RGB(r: 168, g: 48, b: 255)],
+        "Forward Run RD/GN/WH": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 255, g: 252, b: 245)],
+        "Backward Run RD/GN/WH": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 255, g: 252, b: 245)],
+        "Forward Run GN ON RD": [RGB(r: 36, g: 220, b: 72)],
+        "Backward Run GN ON RD": [RGB(r: 36, g: 220, b: 72)],
+        "Forward Run BU ON GN": [RGB(r: 40, g: 90, b: 255)],
+        "Backward Run BU ON GN": [RGB(r: 40, g: 90, b: 255)],
+        "Forward Run YE ON BU": [RGB(r: 255, g: 220, b: 32)],
+        "Backward Run YE ON BU": [RGB(r: 255, g: 220, b: 32)],
+        "Forward Run CN ON YE": [RGB(r: 48, g: 214, b: 255)],
+        "Backward Run CN ON YE": [RGB(r: 48, g: 214, b: 255)],
+        "Forward Run VT ON CN": [RGB(r: 168, g: 48, b: 255)],
+        "Backward Run VT ON CN": [RGB(r: 168, g: 48, b: 255)],
+        "Forward Run WH ON VT": [RGB(r: 255, g: 252, b: 245)],
+        "Backward Run WH ON VT": [RGB(r: 255, g: 252, b: 245)],
+        "Forward Run WH ON RD": [RGB(r: 255, g: 252, b: 245)],
+        "Backward Run WH ON RD": [RGB(r: 255, g: 252, b: 245)],
+        "Forward Run 7 COLOR ON RD": [RGB(r: 255, g: 28, b: 28)],
+        "Backward Run 7 COLOR ON RD": [RGB(r: 255, g: 28, b: 28)],
+        "Forward Run 7 COLOR ON GN": [RGB(r: 36, g: 220, b: 72)],
+        "Backward Run 7 COLOR ON GN": [RGB(r: 36, g: 220, b: 72)],
+        "Forward Run 7 COLOR ON BU": [RGB(r: 40, g: 90, b: 255)],
+        "Backward Run 7 COLOR ON BU": [RGB(r: 40, g: 90, b: 255)],
+        "Forward Run 7 COLOR ON YE": [RGB(r: 255, g: 220, b: 32)],
+        "Backward Run 7 COLOR ON YE": [RGB(r: 255, g: 220, b: 32)],
+        "Forward Run 7 COLOR ON CN": [RGB(r: 48, g: 214, b: 255)],
+        "Backward Run 7 COLOR ON CN": [RGB(r: 48, g: 214, b: 255)],
+        "Forward Run 7 COLOR ON VT": [RGB(r: 168, g: 48, b: 255)],
+        "Backward Run 7 COLOR ON VT": [RGB(r: 168, g: 48, b: 255)],
+        "Forward Run 7 COLOR ON WH": [RGB(r: 255, g: 252, b: 245)],
+        "Backward Run 7 COLOR ON WH": [RGB(r: 255, g: 252, b: 245)],
+        "Forward Flow WH RD WH": [RGB(r: 255, g: 252, b: 245)],
+        "Backward Flow WH RD WH": [RGB(r: 255, g: 252, b: 245)],
+        "Forward Flow WH GN WH": [RGB(r: 255, g: 252, b: 245)],
+        "Backward Flow WH GN WH": [RGB(r: 255, g: 252, b: 245)],
+        "Forward Flow WH BU WH": [RGB(r: 255, g: 252, b: 245)],
+        "Backward Flow WH BU WH": [RGB(r: 255, g: 252, b: 245)],
+        "Forward Flow WH YE WH": [RGB(r: 255, g: 252, b: 245)],
+        "Backward Flow WH YE WH": [RGB(r: 255, g: 252, b: 245)],
+        "Forward Flow WH CN WH": [RGB(r: 255, g: 252, b: 245)],
+        "Backward Flow WH CN WH": [RGB(r: 255, g: 252, b: 245)],
+        "Forward Flow WH VT WH": [RGB(r: 255, g: 252, b: 245)],
+        "Backward Flow WH VT WH": [RGB(r: 255, g: 252, b: 245)],
+        "Forward Flow RD WH RD": [RGB(r: 255, g: 28, b: 28)],
+        "Backward Flow RD WH RD": [RGB(r: 255, g: 28, b: 28)],
+        "Forward Flow GN WH GN": [RGB(r: 36, g: 220, b: 72)],
+        "Backward Flow GN WH GN": [RGB(r: 36, g: 220, b: 72)],
+        "Forward Flow BU WH BU": [RGB(r: 40, g: 90, b: 255)],
+        "Backward Flow BU WH BU": [RGB(r: 40, g: 90, b: 255)],
+        "Forward Flow YE WH YE": [RGB(r: 255, g: 220, b: 32)],
+        "Backward Flow YE WH YE": [RGB(r: 255, g: 220, b: 32)],
+        "Forward Flow CN WH CN": [RGB(r: 48, g: 214, b: 255)],
+        "Backward Flow CN WH CN": [RGB(r: 48, g: 214, b: 255)],
+        "Forward Flow VT WH VT": [RGB(r: 168, g: 48, b: 255)],
+        "Backward Flow VT WH VT": [RGB(r: 168, g: 48, b: 255)],
+        "Forward Run GN ON BU": [RGB(r: 36, g: 220, b: 72)],
+        "Backward Run GN ON BU": [RGB(r: 36, g: 220, b: 72)],
+        "Forward Run RD ON BU": [RGB(r: 255, g: 28, b: 28)],
+        "Backward Run RD ON BU": [RGB(r: 255, g: 28, b: 28)],
+        "Forward Run YE ON VT": [RGB(r: 255, g: 220, b: 32)],
+        "Backward Run YE ON VT": [RGB(r: 255, g: 220, b: 32)],
+        "Forward Run WH ON YE": [RGB(r: 255, g: 252, b: 245)],
+        "Backward Run WH ON YE": [RGB(r: 255, g: 252, b: 245)],
+        "Forward Run YE ON WH": [RGB(r: 255, g: 220, b: 32)],
+        "Backward Run YE ON WH": [RGB(r: 255, g: 220, b: 32)],
+        "Forward Swab 7 COLORS": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Backward Swab 7 COLORS": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Forward Swab RD GN BU": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Backward Swab RD GN BU": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Forward Swab YE CN VT": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Backward Swab YE CN VT": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Open Curtain Swab 7 COLORS": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Close Curtain Swab 7 COLORS": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Open Curtain Swab R G B": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Close Curtain Swab R G B": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Open Curtain Swab Y C P": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+        "Close Curtain Swab Y C P": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
+    ]
 
     // MARK: - Palette from name (Lotus + LEDDMX)
 

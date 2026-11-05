@@ -560,58 +560,67 @@ struct ModesScreen: View {
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    ScrollView(showsIndicators: false) {
-                        LazyVGrid(
-                            columns: [
-                                GridItem(.flexible(), spacing: 8),
-                                GridItem(.flexible(), spacing: 8),
-                                GridItem(.flexible(), spacing: 8),
-                            ],
-                            spacing: 8
-                        ) {
-                            ForEach(items) { effect in
-                                Button {
-                                    guard hasDevices else {
-                                        tab = .scan
-                                        return
-                                    }
-                                    garage.setEffect(effect.id)
-                                } label: {
-                                    VStack(spacing: 6) {
-                                        ModeGlyphView(
-                                            effect: effect,
-                                            speed: speed,
-                                            animate: true,
-                                            active: hasDevices && live?.power == true && live?.effectId == effect.id
-                                        )
+                    // Two columns so each ModeGlyph is large enough to tell apart (matches web sampler).
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Preview build 21 · colours match each mode name")
+                            .font(.caption2)
+                            .foregroundStyle(Color.white.opacity(0.35))
+
+                        ScrollView(showsIndicators: false) {
+                            LazyVGrid(
+                                columns: [
+                                    GridItem(.flexible(), spacing: 10),
+                                    GridItem(.flexible(), spacing: 10),
+                                ],
+                                spacing: 10
+                            ) {
+                                ForEach(items) { effect in
+                                    Button {
+                                        guard hasDevices else {
+                                            tab = .scan
+                                            return
+                                        }
+                                        garage.setEffect(effect.id)
+                                    } label: {
+                                        VStack(spacing: 8) {
+                                            ModeGlyphView(
+                                                effect: effect,
+                                                speed: speed,
+                                                animate: true,
+                                                active: hasDevices && live?.power == true && live?.effectId == effect.id,
+                                                showsLegend: true
+                                            )
                                             .frame(maxWidth: .infinity)
                                             .opacity(hasDevices && live?.effectId != nil && live?.effectId != effect.id ? 0.72 : 1)
-                                        Text(effect.name)
-                                            .font(.caption2)
-                                            .foregroundStyle(Color.white.opacity(0.75))
-                                            .multilineTextAlignment(.center)
-                                            .lineLimit(2)
-                                            .minimumScaleFactor(0.85)
-                                            .frame(minHeight: 28, alignment: .top)
+                                            Text(effect.name)
+                                                .font(.caption.weight(.medium))
+                                                .foregroundStyle(Color.white.opacity(0.82))
+                                                .multilineTextAlignment(.center)
+                                                .lineLimit(2)
+                                                .minimumScaleFactor(0.8)
+                                                .frame(minHeight: 32, alignment: .top)
+                                        }
+                                        .padding(8)
+                                        .frame(maxWidth: .infinity)
+                                        .background(Color(white: 0.05), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                                .stroke(
+                                                    live?.effectId == effect.id && garage.activePathId == nil
+                                                        ? shinnoRed.opacity(0.7)
+                                                        : Color.white.opacity(0.08),
+                                                    lineWidth: live?.effectId == effect.id && garage.activePathId == nil ? 2 : 1
+                                                )
+                                        )
+                                        .opacity(hasDevices ? 1 : 0.72)
                                     }
-                                    .padding(6)
-                                    .frame(maxWidth: .infinity)
-                                    .background(Color(white: 0.05), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                            .stroke(
-                                                live?.effectId == effect.id && garage.activePathId == nil
-                                                    ? shinnoRed.opacity(0.7)
-                                                    : Color.white.opacity(0.08),
-                                                lineWidth: live?.effectId == effect.id && garage.activePathId == nil ? 2 : 1
-                                            )
-                                    )
-                                    .opacity(hasDevices ? 1 : 0.72)
+                                    .buttonStyle(.plain)
+                                    .id("mode-tile-\(effect.id)")
                                 }
-                                .buttonStyle(.plain)
                             }
+                            .padding(.bottom, 12)
                         }
-                        .padding(.bottom, 12)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
