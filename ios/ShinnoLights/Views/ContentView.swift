@@ -334,9 +334,10 @@ struct ModesScreen: View {
     @State private var query = ""
 
     var items: [LedEffect] {
+        let catalog = EffectsCatalog.effects(for: garage.settings.car)
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if !q.isEmpty { return EffectsCatalog.all.filter { $0.name.lowercased().contains(q) } }
-        if case .group(let group) = browser { return EffectsCatalog.inGroup(group) }
+        if !q.isEmpty { return catalog.filter { $0.name.lowercased().contains(q) } }
+        if case .group(let group) = browser { return EffectsCatalog.inGroup(group, car: garage.settings.car) }
         return []
     }
 
@@ -413,7 +414,7 @@ struct ModesScreen: View {
                     .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 } else {
                     ModePlayingBar(
-                        effect: EffectsCatalog.all.first { $0.id == live?.effectId },
+                        effect: EffectsCatalog.effects(for: garage.settings.car).first { $0.id == live?.effectId },
                         speed: speed,
                         powered: live?.power == true
                     )
@@ -822,11 +823,7 @@ struct ScanScreen: View {
 
                 Section("Nearby") {
                     if unpaired.isEmpty, garage.hub.bluetoothState == .poweredOn {
-                        Text(
-                            garage.settings.car == .g37
-                                ? "No G37 kits yet. Power the LEDDMX emblem, stand near the car, then tap Rescan."
-                                : "No Q50 kits yet. Power ELK/MELK boxes, stand near the car, then tap Rescan."
-                        )
+                        Text("No kits yet. Power the lighting boxes, stand near the car, then tap Rescan.")
                             .foregroundStyle(.secondary)
                     }
                     ForEach(unpaired) { item in
@@ -872,11 +869,7 @@ struct ScanScreen: View {
     }
 
     private func modelHint(_ name: String) -> String {
-        let model = ElkProtocol.detect(name: name)
-        if model.id.hasPrefix("LEDDMX") || model.id == "ELK-BLEDDM" {
-            return "G37 emblem · \(model.id)"
-        }
-        return "Bluetooth · \(model.id)"
+        "Bluetooth · tap Add to pair"
     }
 }
 

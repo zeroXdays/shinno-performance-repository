@@ -86,7 +86,8 @@ enum ElkProtocol {
         // LED+LAMP decompile: power uses 01/00 (not 03/02).
         turnOn: [0x7B, 0xFF, 0x04, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xBF],
         turnOff: [0x7B, 0xFF, 0x04, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xBF],
-        color: [.byte(0x7B), .byte(0xFF), .byte(0x07), .red, .green, .blue, .byte(0x00), .byte(0xFF), .byte(0xBF)],
+        // LEDDMX strips are typically wired R-B-G (green/blue swapped on the wire).
+        color: [.byte(0x7B), .byte(0xFF), .byte(0x07), .red, .blue, .green, .byte(0x00), .byte(0xFF), .byte(0xBF)],
         brightness: [.byte(0x7B), .byte(0xFF), .byte(0x01), .value32, .value, .byte(0x00), .byte(0xFF), .byte(0xFF), .byte(0xBF)],
         effect: [.byte(0x7B), .byte(0xFF), .byte(0x03), .value, .byte(0xFF), .byte(0xFF), .byte(0xFF), .byte(0xFF), .byte(0xBF)],
         effectSpeed: [.byte(0x7B), .byte(0xFF), .byte(0x02), .value, .byte(0xFF), .byte(0x00), .byte(0xFF), .byte(0xFF), .byte(0xBF)]
@@ -139,13 +140,17 @@ enum ElkProtocol {
             || upper.contains("BLEDDM")
     }
 
-    /// Q50 ↔ ELK/MELK kits · G37 ↔ LEDDMX emblem kits only.
+    /// Known DMX names → G37 only. Known ELK/MELK names → Q50 only.
+    /// Unidentified names → both, so the user can place them.
     static func allowed(for car: CarKind, name: String?) -> Bool {
+        let dmx = isLeddmxName(name)
+        let elk = isElkFamilyName(name)
+        if !dmx && !elk { return true }
         switch car {
         case .g37:
-            return isLeddmxName(name)
+            return dmx
         case .q50, .q60, .q70:
-            return isElkFamilyName(name)
+            return elk
         }
     }
 

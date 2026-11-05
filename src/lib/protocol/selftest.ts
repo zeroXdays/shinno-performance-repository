@@ -33,9 +33,15 @@ assert(
 );
 const dmxRed = encodeColor(dmx, { r: 255, g: 0, b: 0 });
 assert(
-  "LEDDMX red",
+  "LEDDMX red (RBG wire order)",
   hexFrame(dmxRed),
   "7b ff 07 ff 00 00 00 ff bf",
+);
+const dmxGreen = encodeColor(dmx, { r: 0, g: 255, b: 0 });
+assert(
+  "LEDDMX green (RBG wire order)",
+  hexFrame(dmxGreen),
+  "7b ff 07 00 00 ff 00 ff bf",
 );
 
 assert("power on", hexFrame(encodePower(elk, true)), "7e 04 04 f0 00 01 ff 00 ef");

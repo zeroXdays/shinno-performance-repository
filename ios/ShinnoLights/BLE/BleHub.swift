@@ -26,7 +26,7 @@ enum BluetoothState: Equatable {
         case .waiting:
             return "Shinno Sync needs Bluetooth permission to find your lighting devices. Tap Allow when iOS asks."
         case .poweredOn:
-            return "Shinno Sync scans for Shinno RGB kits, including G37 emblem controllers that advertise as ELK-BLEDDM."
+            return "Shinno Sync scans for the lighting devices that ship with Shinno RGB kits."
         case .poweredOff:
             return "Turn Bluetooth on in iOS Settings to find and control your Shinno lighting devices."
         case .unauthorized:
@@ -171,7 +171,7 @@ final class BleHub: NSObject, ObservableObject {
         }
         let n = discovered.count
         if n == 0 {
-            status = "Scanning for ELK-BLEDDM / ELK-BLEDOM kits…"
+            status = "Scanning for nearby lighting kits…"
         } else {
             status = "Found \(n) nearby · keep kits powered"
         }

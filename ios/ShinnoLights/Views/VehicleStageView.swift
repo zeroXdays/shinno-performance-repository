@@ -124,7 +124,7 @@ struct VehicleStageView: View {
         guard let controller else { return "Empty" }
         if !controller.power { return "Off" }
         if let effectId = controller.effectId {
-            return EffectsCatalog.named(effectId) ?? "Mode"
+            return EffectsCatalog.named(effectId, car: garage.settings.car) ?? "Mode"
         }
         return "On"
     }
