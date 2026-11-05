@@ -26,7 +26,7 @@ struct ModeGlyphView: View {
                         ? timeline.date.timeIntervalSinceReferenceDate * 1000 + phase
                         : period * 0.22 + phase
                     let dim = active || !animate ? 1.0 : 0.92
-                    let ledR = max(compact ? 2.6 : 3.0, min(size.width, size.height) * (compact ? 0.04 : 0.036))
+                    let ledR = max(compact ? 2.4 : 2.8, min(size.width, size.height) * (compact ? 0.038 : 0.034))
 
                     if points.count >= 2 {
                         var stroke = Path()
@@ -34,8 +34,8 @@ struct ModeGlyphView: View {
                         for point in points.dropFirst() { stroke.addLine(to: point) }
                         context.stroke(
                             stroke,
-                            with: .color(Color.white.opacity(0.14)),
-                            style: StrokeStyle(lineWidth: compact ? 1.6 : 2.2, lineCap: .round, lineJoin: .round)
+                            with: .color(Color.white.opacity(0.12)),
+                            style: StrokeStyle(lineWidth: compact ? 1.5 : 2.0, lineCap: .round, lineJoin: .round)
                         )
                     }
 
@@ -52,16 +52,7 @@ struct ModeGlyphView: View {
                             green: Double(rgb.g) / 255 * dim,
                             blue: Double(rgb.b) / 255 * dim
                         )
-                        // Soft halo (web drop-shadow) — keep tight so tiles stay crisp, not ragged.
-                        context.fill(
-                            Path(ellipseIn: CGRect(
-                                x: point.x - ledR * 1.45,
-                                y: point.y - ledR * 1.45,
-                                width: ledR * 2.9,
-                                height: ledR * 2.9
-                            )),
-                            with: .color(color.opacity(0.28))
-                        )
+                        // Crisp LED only — no wide halos that tint the card muddy colours.
                         context.fill(
                             Path(ellipseIn: CGRect(
                                 x: point.x - ledR,
@@ -83,7 +74,7 @@ struct ModeGlyphView: View {
                             .fill(rgb.color)
                     }
                 }
-                .frame(height: compact ? 6 : 8)
+                .frame(height: compact ? 5 : 7)
                 .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
                 .padding(.horizontal, 2)
             }

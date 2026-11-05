@@ -156,17 +156,18 @@ private struct EmblemStageGlyph: View {
         let glow = on ? (controller?.color ?? RGB(r: 196, g: 18, b: 32)) : nil
 
         ZStack {
+            // Soft centered glow only — no offset softLight blob (that read as a random shadow).
             if let glow {
-                Ellipse()
+                Circle()
                     .fill(
                         Color(
                             red: Double(glow.r) / 255,
                             green: Double(glow.g) / 255,
                             blue: Double(glow.b) / 255
-                        ).opacity(0.4)
+                        ).opacity(0.22)
                     )
-                    .blur(radius: 14)
-                    .frame(width: 120, height: 56)
+                    .blur(radius: 10)
+                    .frame(width: 64, height: 64)
             }
 
             TimelineView(.animation(minimumInterval: (on && effect != nil) ? 1 / 20 : 60)) { timeline in
@@ -219,20 +220,6 @@ private struct EmblemStageGlyph: View {
                 .scaledToFit()
                 .padding(.horizontal, 28)
                 .padding(.vertical, 10)
-                .shadow(color: .black.opacity(0.7), radius: 6, y: 3)
-
-            Ellipse()
-                .fill(
-                    RadialGradient(
-                        colors: [Color.white.opacity(0.16), .clear],
-                        center: UnitPoint(x: 0.28, y: 0.22),
-                        startRadius: 2,
-                        endRadius: 50
-                    )
-                )
-                .padding(18)
-                .blendMode(.softLight)
-                .allowsHitTesting(false)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()

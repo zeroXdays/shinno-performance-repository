@@ -541,7 +541,7 @@ struct ModesScreen: View {
                                     }
                                     garage.setEffect(effect.id)
                                 } label: {
-                                    VStack(spacing: 4) {
+                                    VStack(spacing: 5) {
                                         ModeGlyphView(
                                             effect: effect,
                                             speed: speed,
@@ -551,25 +551,26 @@ struct ModesScreen: View {
                                             compact: true
                                         )
                                         .frame(maxWidth: .infinity)
-                                        .opacity(hasDevices && live?.effectId != nil && live?.effectId != effect.id ? 0.72 : 1)
+                                        .opacity(hasDevices && live?.effectId != nil && live?.effectId != effect.id ? 0.78 : 1)
                                         Text(effect.name)
                                             .font(.system(size: 10, weight: .medium))
-                                            .foregroundStyle(Color.white.opacity(0.82))
+                                            .foregroundStyle(Color.white.opacity(0.78))
                                             .multilineTextAlignment(.center)
                                             .lineLimit(2)
                                             .minimumScaleFactor(0.75)
                                             .frame(minHeight: 24, alignment: .top)
                                     }
-                                    .padding(5)
+                                    .padding(.vertical, 4)
+                                    .padding(.horizontal, 2)
                                     .frame(maxWidth: .infinity)
-                                    .background(Color(white: 0.05), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                                    // No fill — LEDs + colour strip carry the look; selected gets a light red ring only.
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: 11, style: .continuous)
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
                                             .stroke(
                                                 live?.effectId == effect.id && garage.activePathId == nil
                                                     ? shinnoRed.opacity(0.7)
-                                                    : Color.white.opacity(0.08),
-                                                lineWidth: live?.effectId == effect.id && garage.activePathId == nil ? 2 : 1
+                                                    : Color.clear,
+                                                lineWidth: 1.5
                                             )
                                     )
                                     .opacity(hasDevices ? 1 : 0.72)
