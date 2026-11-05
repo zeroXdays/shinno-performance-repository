@@ -259,7 +259,8 @@ final class BleHub: NSObject, ObservableObject {
             connectWaiters[peripheralId] = continuation
             central.connect(peripheral, options: nil)
             DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
-                guard let self, let waiter = self.connectWaiters.removeValue(forKey: peripheralId) else { return }
+                guard let hub = self else { return }
+                guard let waiter = hub.connectWaiters.removeValue(forKey: peripheralId) else { return }
                 waiter.resume(throwing: BleError.timeout)
             }
         }
@@ -270,7 +271,8 @@ final class BleHub: NSObject, ObservableObject {
     }
 
     func writableUUIDs(for id: UUID) -> [CBUUID] {
-        Array(writableByUUID[id]?.keys ?? [])
+        guard let map = writableByUUID[id] else { return [] }
+        return Array(map.keys)
     }
 
     func write(_ peripheral: CBPeripheral, frames: [Data], prefer preferUUID: CBUUID? = nil) {
