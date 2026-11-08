@@ -44,12 +44,8 @@ workflows:
         script: |
           set -euo pipefail
           echo "BUNDLE_ID=$BUNDLE_ID"
-          echo "APPLE_TEAM_ID=${APPLE_TEAM_ID:-<missing>}"
           echo "APP_STORE_APPLE_ID=$APP_STORE_APPLE_ID"
-          if [ -z "${APPLE_TEAM_ID:-}" ]; then
-            echo "ERROR: APPLE_TEAM_ID is empty. Add it to Codemagic env group 'appstore'." >&2
-            exit 1
-          fi
+          echo "APPLE_TEAM_ID=${APPLE_TEAM_ID:-<will resolve from App Store Connect>}"
           if [[ ! "${APP_STORE_APPLE_ID:-}" =~ ^[0-9]+$ ]]; then
             echo "ERROR: APP_STORE_APPLE_ID must be the numeric Connect app id (got '${APP_STORE_APPLE_ID:-}')." >&2
             echo "Remove any APP_STORE_APPLE_ID=\$APP_STORE_APPLE_ID self-reference from the env group." >&2
@@ -66,9 +62,20 @@ workflows:
           xcode-project use-profiles
       - name: Set team on Xcode project
         script: |
-          # DEVELOPMENT_TEAM is empty in the checked-in project
-          if [ -n "$APPLE_TEAM_ID" ]; then
-            sed -i.bak "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = $APPLE_TEAM_ID;/g" \
+          set -euo pipefail
+          # Optional: env group APPLE_TEAM_ID, else TeamIdentifier from the fetched profile.
+          # xcode-project use-profiles usually stamps the team too — empty here is OK.
+          TEAM="${APPLE_TEAM_ID:-}"
+          if [ -z "$TEAM" ]; then
+            TEAM=$(find "$HOME/Library/MobileDevice/Provisioning Profiles" -name '*.mobileprovision' 2>/dev/null \
+              | while read -r prof; do
+                  security cms -D -i "$prof" 2>/dev/null \
+                    | awk '/TeamIdentifier/{getline; gsub(/[^A-Z0-9]/,""); if (length($0)==10) {print; exit}}'
+                done | head -1 || true)
+          fi
+          echo "DEVELOPMENT_TEAM -> ${TEAM:-<leave for use-profiles>}"
+          if [ -n "$TEAM" ]; then
+            sed -i.bak "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = $TEAM;/g" \
               ios/ShinnoLights.xcodeproj/project.pbxproj
           fi
       - name: Increment iOS build number

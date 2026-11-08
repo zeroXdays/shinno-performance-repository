@@ -5,7 +5,7 @@ Apple’s website asks for a **Certificate Signing Request** only if you create 
 ## Correct path (recommended)
 
 1. Make sure GitHub `main` has the latest `codemagic.yaml` (the one that runs `app-store-connect fetch-signing-files … --create`).
-2. In Codemagic, env group `appstore` must include `APPLE_TEAM_ID`.
+2. In Codemagic, env group `appstore` may include `APPLE_TEAM_ID` (optional — Codemagic can take it from the signing profile / `shinno` integration).
 3. App Store Connect integration must be named **`shinno`** and use an API key with **App Manager** (or Admin) access.
 4. Start a **new** build. Codemagic creates the distribution certificate + App Store profile itself. No CSR upload.
 
