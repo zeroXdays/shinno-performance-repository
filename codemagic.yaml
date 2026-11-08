@@ -9,10 +9,10 @@
 # One-time Codemagic setup:
 # 1. Connect this GitHub repo
 # 2. Teams → Integrations → App Store Connect → name the integration exactly `shinno`
-# 3. Environment group `appstore` with:
-#      APPLE_TEAM_ID
+# 3. Environment group `appstore` (secure) with:
+#      CERTIFICATE_PRIVATE_KEY   ← required (PEM). See appstore/CODEMAGIC_SIGNING.md
+#      APPLE_TEAM_ID             ← optional
 #    (Issuer/Key/P8 live on the App Store Connect integration — not required again here)
-#    Optional override: APP_STORE_APPLE_ID (defaults below to the Connect app id)
 # 4. Start workflow "Shinno Sync → App Store Connect"
 
 workflows:
@@ -23,16 +23,12 @@ workflows:
     integrations:
       app_store_connect: shinno
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.shinnoperformance.lights
+      # Script-based signing below — do not also set ios_signing here (conflicts / missing key).
       vars:
         XCODE_PROJECT: "ios/ShinnoLights.xcodeproj"
         XCODE_SCHEME: "ShinnoLights"
         BUNDLE_ID: "com.shinnoperformance.lights"
         # Numeric App Store Connect Apple ID for Shinno Sync.
-        # Do NOT write `$APP_STORE_APPLE_ID` here — that ships as a literal and breaks
-        # build-number + publish. Group override still wins when set to a number.
         APP_STORE_APPLE_ID: "6830956380"
       groups:
         - appstore
@@ -45,26 +41,37 @@ workflows:
           set -euo pipefail
           echo "BUNDLE_ID=$BUNDLE_ID"
           echo "APP_STORE_APPLE_ID=$APP_STORE_APPLE_ID"
-          echo "APPLE_TEAM_ID=${APPLE_TEAM_ID:-<will resolve from App Store Connect>}"
+          echo "APPLE_TEAM_ID=${APPLE_TEAM_ID:-<from signing profile>}"
           if [[ ! "${APP_STORE_APPLE_ID:-}" =~ ^[0-9]+$ ]]; then
             echo "ERROR: APP_STORE_APPLE_ID must be the numeric Connect app id (got '${APP_STORE_APPLE_ID:-}')." >&2
-            echo "Remove any APP_STORE_APPLE_ID=\$APP_STORE_APPLE_ID self-reference from the env group." >&2
             exit 1
           fi
+          if [ -z "${CERTIFICATE_PRIVATE_KEY:-}" ]; then
+            echo "ERROR: CERTIFICATE_PRIVATE_KEY is missing from Codemagic env group 'appstore'." >&2
+            echo "Add a 2048-bit RSA PEM (BEGIN RSA PRIVATE KEY) as a secure variable." >&2
+            echo "See appstore/CODEMAGIC_SIGNING.md" >&2
+            exit 1
+          fi
+          if ! printf '%s' "$CERTIFICATE_PRIVATE_KEY" | grep -q "PRIVATE KEY"; then
+            echo "ERROR: CERTIFICATE_PRIVATE_KEY does not look like a PEM private key." >&2
+            exit 1
+          fi
+          echo "CERTIFICATE_PRIVATE_KEY: present"
       - name: Fetch or create signing files
         script: |
           set -euo pipefail
-          # --create makes the App Store profile + cert if Apple doesn't have them yet
+          # Persistent private key is required. Without --certificate-key, --create mints a
+          # throwaway cert whose key dies with the VM; the next build then fails with
+          # "Cannot save Signing Certificates without certificate private key".
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
+            --certificate-key="@env:CERTIFICATE_PRIVATE_KEY" \
             --create
           keychain add-certificates
           xcode-project use-profiles
       - name: Set team on Xcode project
         script: |
           set -euo pipefail
-          # Optional: env group APPLE_TEAM_ID, else TeamIdentifier from the fetched profile.
-          # xcode-project use-profiles usually stamps the team too — empty here is OK.
           TEAM="${APPLE_TEAM_ID:-}"
           if [ -z "$TEAM" ]; then
             TEAM=$(find "$HOME/Library/MobileDevice/Provisioning Profiles" -name '*.mobileprovision' 2>/dev/null \
@@ -80,9 +87,6 @@ workflows:
           fi
       - name: Increment iOS build number
         script: |
-          # App Store Connect rejects reuse of the same CFBundleVersion.
-          # Take the max of TestFlight, App Store, checked-in version, and Codemagic
-          # PROJECT_BUILD_NUMBER — then +1 so every upload is unique.
           set -euo pipefail
           PBX="ios/ShinnoLights.xcodeproj/project.pbxproj"
           if [[ ! "${APP_STORE_APPLE_ID:-}" =~ ^[0-9]+$ ]]; then
@@ -123,7 +127,6 @@ workflows:
           TMP=$(mktemp -d)
           unzip -q "$IPA" -d "$TMP"
           PLIST=$(find "$TMP" -name Info.plist | head -1)
-          # Prefer PlistBuddy on macOS builders
           if [ -x /usr/libexec/PlistBuddy ]; then
             VER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST")
             BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PLIST")
@@ -144,5 +147,4 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
-        # Leave false until screenshots + listing are done in Connect
         submit_to_app_store: false

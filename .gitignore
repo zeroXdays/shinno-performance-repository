@@ -50,3 +50,9 @@ ios/**/*.xcuserstate
 /agent-tools/
 
 
+
+# iOS signing secrets — never commit
+*.p12
+*.pem
+*private_key*
+ios_distribution_private_key
