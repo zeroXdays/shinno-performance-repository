@@ -11,8 +11,8 @@
 # 2. Teams → Integrations → App Store Connect → name the integration exactly `shinno`
 # 3. Environment group `appstore` with:
 #      APPLE_TEAM_ID
-#      APP_STORE_APPLE_ID          (numeric, e.g. 6830956380)
 #    (Issuer/Key/P8 live on the App Store Connect integration — not required again here)
+#    Optional override: APP_STORE_APPLE_ID (defaults below to the Connect app id)
 # 4. Start workflow "Shinno Sync → App Store Connect"
 
 workflows:
@@ -30,15 +30,34 @@ workflows:
         XCODE_PROJECT: "ios/ShinnoLights.xcodeproj"
         XCODE_SCHEME: "ShinnoLights"
         BUNDLE_ID: "com.shinnoperformance.lights"
-        APP_STORE_APPLE_ID: $APP_STORE_APPLE_ID
+        # Numeric App Store Connect Apple ID for Shinno Sync.
+        # Do NOT write `$APP_STORE_APPLE_ID` here — that ships as a literal and breaks
+        # build-number + publish. Group override still wins when set to a number.
+        APP_STORE_APPLE_ID: "6830956380"
       groups:
         - appstore
     scripts:
       - name: Set up keychain
         script: |
           keychain initialize
+      - name: Validate App Store Connect env
+        script: |
+          set -euo pipefail
+          echo "BUNDLE_ID=$BUNDLE_ID"
+          echo "APPLE_TEAM_ID=${APPLE_TEAM_ID:-<missing>}"
+          echo "APP_STORE_APPLE_ID=$APP_STORE_APPLE_ID"
+          if [ -z "${APPLE_TEAM_ID:-}" ]; then
+            echo "ERROR: APPLE_TEAM_ID is empty. Add it to Codemagic env group 'appstore'." >&2
+            exit 1
+          fi
+          if [[ ! "${APP_STORE_APPLE_ID:-}" =~ ^[0-9]+$ ]]; then
+            echo "ERROR: APP_STORE_APPLE_ID must be the numeric Connect app id (got '${APP_STORE_APPLE_ID:-}')." >&2
+            echo "Remove any APP_STORE_APPLE_ID=\$APP_STORE_APPLE_ID self-reference from the env group." >&2
+            exit 1
+          fi
       - name: Fetch or create signing files
         script: |
+          set -euo pipefail
           # --create makes the App Store profile + cert if Apple doesn't have them yet
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
@@ -59,6 +78,10 @@ workflows:
           # PROJECT_BUILD_NUMBER — then +1 so every upload is unique.
           set -euo pipefail
           PBX="ios/ShinnoLights.xcodeproj/project.pbxproj"
+          if [[ ! "${APP_STORE_APPLE_ID:-}" =~ ^[0-9]+$ ]]; then
+            echo "ERROR: APP_STORE_APPLE_ID='$APP_STORE_APPLE_ID' is not numeric" >&2
+            exit 1
+          fi
           LATEST_TF=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" --platform IOS 2>/dev/null || true)
           LATEST_AS=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID" --platform IOS 2>/dev/null || true)
           CHECKED_IN=$(grep -oE 'CURRENT_PROJECT_VERSION = [0-9]+' "$PBX" | head -1 | grep -oE '[0-9]+' || echo 0)

@@ -13,6 +13,15 @@ Apple’s website asks for a **Certificate Signing Request** only if you create 
 
 Apple rejects an IPA when `CFBundleVersion` (build number) was already used. `codemagic.yaml` now bumps that automatically from the latest TestFlight / App Store build before each IPA. If publish still fails, open the Codemagic build log → **Publishing** step and read the Apple error line (duplicate build, missing compliance, bad API key, etc.).
 
+### `APP_STORE_APPLE_ID=$APP_STORE_APPLE_ID` in the build log
+
+That means the env var never resolved to the numeric Connect app id. In Codemagic → Environment variables → group `appstore`, either:
+
+- delete `APP_STORE_APPLE_ID` (the workflow defaults to `6830956380`), or
+- set it to the digits only (e.g. `6830956380`) — never `$APP_STORE_APPLE_ID`.
+
+Then start a **new** build (don’t retry the failed one).
+
 ## If you already started a manual certificate on Apple’s site
 
 Cancel/back out. Don’t finish it. Let Codemagic create signing files instead.
