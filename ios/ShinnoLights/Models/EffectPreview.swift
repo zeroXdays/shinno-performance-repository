@@ -50,11 +50,13 @@ enum EffectPreview {
     }
 
     static func palette(for effect: LedEffect) -> [RGB] {
-        // Prefer exact tables so Modes tiles never fall through to rainbow by accident.
+        // Name table first, then parse the label. Lotus byId is last because G37/LEDDMX
+        // reuses the same numeric ids with different names (e.g. 209 = Curtain Swab YCP).
         if let named = fixedPaletteByName[effect.name], !named.isEmpty { return named }
-        if let byId = fixedPaletteById[effect.id], !byId.isEmpty { return byId }
         let colors = paletteFromName(effect.name)
-        return colors.isEmpty ? rainbow : colors
+        if !colors.isEmpty { return colors }
+        if let byId = fixedPaletteById[effect.id], !byId.isEmpty { return byId }
+        return rainbow
     }
 
 
@@ -437,20 +439,6 @@ enum EffectPreview {
         "Backward RD/GN/BU": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 40, g: 90, b: 255)],
         "Forward YE/CN/VT": [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)],
         "Backward YE/CN/VT": [RGB(r: 255, g: 220, b: 32), RGB(r: 48, g: 214, b: 255), RGB(r: 168, g: 48, b: 255)],
-        "Forward 6 Colors RD": [RGB(r: 255, g: 28, b: 28)],
-        "Backward 6 Colors RD": [RGB(r: 255, g: 28, b: 28)],
-        "Forward 6 Colors GN": [RGB(r: 36, g: 220, b: 72)],
-        "Backward 6 Colors GN": [RGB(r: 36, g: 220, b: 72)],
-        "Forward 6 Colors BU": [RGB(r: 40, g: 90, b: 255)],
-        "Backward 6 Colors BU": [RGB(r: 40, g: 90, b: 255)],
-        "Forward 6 Colors CN": [RGB(r: 48, g: 214, b: 255)],
-        "Backward 6 Colors CN": [RGB(r: 48, g: 214, b: 255)],
-        "Forward 6 Colors YE": [RGB(r: 255, g: 220, b: 32)],
-        "Backward 6 Colors YE": [RGB(r: 255, g: 220, b: 32)],
-        "Forward 6 Colors VT": [RGB(r: 168, g: 48, b: 255)],
-        "Backward 6 Colors VT": [RGB(r: 168, g: 48, b: 255)],
-        "Forward 6 Colors WH": [RGB(r: 255, g: 252, b: 245)],
-        "Backward 6 Colors WH": [RGB(r: 255, g: 252, b: 245)],
         "Forward Trailing 7 Colors": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
         "Backward Trailing 7 Colors": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
         "Forward Trailing RD": [RGB(r: 255, g: 28, b: 28)],
@@ -561,80 +549,10 @@ enum EffectPreview {
         "Backward Run BU/YE/VT": [RGB(r: 40, g: 90, b: 255), RGB(r: 255, g: 220, b: 32), RGB(r: 168, g: 48, b: 255)],
         "Forward Run RD/GN/WH": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 255, g: 252, b: 245)],
         "Backward Run RD/GN/WH": [RGB(r: 255, g: 28, b: 28), RGB(r: 36, g: 220, b: 72), RGB(r: 255, g: 252, b: 245)],
-        "Forward Run GN ON RD": [RGB(r: 36, g: 220, b: 72)],
-        "Backward Run GN ON RD": [RGB(r: 36, g: 220, b: 72)],
-        "Forward Run BU ON GN": [RGB(r: 40, g: 90, b: 255)],
-        "Backward Run BU ON GN": [RGB(r: 40, g: 90, b: 255)],
-        "Forward Run YE ON BU": [RGB(r: 255, g: 220, b: 32)],
-        "Backward Run YE ON BU": [RGB(r: 255, g: 220, b: 32)],
-        "Forward Run CN ON YE": [RGB(r: 48, g: 214, b: 255)],
-        "Backward Run CN ON YE": [RGB(r: 48, g: 214, b: 255)],
-        "Forward Run VT ON CN": [RGB(r: 168, g: 48, b: 255)],
-        "Backward Run VT ON CN": [RGB(r: 168, g: 48, b: 255)],
-        "Forward Run WH ON VT": [RGB(r: 255, g: 252, b: 245)],
-        "Backward Run WH ON VT": [RGB(r: 255, g: 252, b: 245)],
-        "Forward Run WH ON RD": [RGB(r: 255, g: 252, b: 245)],
-        "Backward Run WH ON RD": [RGB(r: 255, g: 252, b: 245)],
-        "Forward Run 7 COLOR ON RD": [RGB(r: 255, g: 28, b: 28)],
-        "Backward Run 7 COLOR ON RD": [RGB(r: 255, g: 28, b: 28)],
-        "Forward Run 7 COLOR ON GN": [RGB(r: 36, g: 220, b: 72)],
-        "Backward Run 7 COLOR ON GN": [RGB(r: 36, g: 220, b: 72)],
-        "Forward Run 7 COLOR ON BU": [RGB(r: 40, g: 90, b: 255)],
-        "Backward Run 7 COLOR ON BU": [RGB(r: 40, g: 90, b: 255)],
-        "Forward Run 7 COLOR ON YE": [RGB(r: 255, g: 220, b: 32)],
-        "Backward Run 7 COLOR ON YE": [RGB(r: 255, g: 220, b: 32)],
-        "Forward Run 7 COLOR ON CN": [RGB(r: 48, g: 214, b: 255)],
-        "Backward Run 7 COLOR ON CN": [RGB(r: 48, g: 214, b: 255)],
-        "Forward Run 7 COLOR ON VT": [RGB(r: 168, g: 48, b: 255)],
-        "Backward Run 7 COLOR ON VT": [RGB(r: 168, g: 48, b: 255)],
-        "Forward Run 7 COLOR ON WH": [RGB(r: 255, g: 252, b: 245)],
-        "Backward Run 7 COLOR ON WH": [RGB(r: 255, g: 252, b: 245)],
-        "Forward Flow WH RD WH": [RGB(r: 255, g: 252, b: 245)],
-        "Backward Flow WH RD WH": [RGB(r: 255, g: 252, b: 245)],
-        "Forward Flow WH GN WH": [RGB(r: 255, g: 252, b: 245)],
-        "Backward Flow WH GN WH": [RGB(r: 255, g: 252, b: 245)],
-        "Forward Flow WH BU WH": [RGB(r: 255, g: 252, b: 245)],
-        "Backward Flow WH BU WH": [RGB(r: 255, g: 252, b: 245)],
-        "Forward Flow WH YE WH": [RGB(r: 255, g: 252, b: 245)],
-        "Backward Flow WH YE WH": [RGB(r: 255, g: 252, b: 245)],
-        "Forward Flow WH CN WH": [RGB(r: 255, g: 252, b: 245)],
-        "Backward Flow WH CN WH": [RGB(r: 255, g: 252, b: 245)],
-        "Forward Flow WH VT WH": [RGB(r: 255, g: 252, b: 245)],
-        "Backward Flow WH VT WH": [RGB(r: 255, g: 252, b: 245)],
-        "Forward Flow RD WH RD": [RGB(r: 255, g: 28, b: 28)],
-        "Backward Flow RD WH RD": [RGB(r: 255, g: 28, b: 28)],
-        "Forward Flow GN WH GN": [RGB(r: 36, g: 220, b: 72)],
-        "Backward Flow GN WH GN": [RGB(r: 36, g: 220, b: 72)],
-        "Forward Flow BU WH BU": [RGB(r: 40, g: 90, b: 255)],
-        "Backward Flow BU WH BU": [RGB(r: 40, g: 90, b: 255)],
-        "Forward Flow YE WH YE": [RGB(r: 255, g: 220, b: 32)],
-        "Backward Flow YE WH YE": [RGB(r: 255, g: 220, b: 32)],
-        "Forward Flow CN WH CN": [RGB(r: 48, g: 214, b: 255)],
-        "Backward Flow CN WH CN": [RGB(r: 48, g: 214, b: 255)],
-        "Forward Flow VT WH VT": [RGB(r: 168, g: 48, b: 255)],
-        "Backward Flow VT WH VT": [RGB(r: 168, g: 48, b: 255)],
-        "Forward Run GN ON BU": [RGB(r: 36, g: 220, b: 72)],
-        "Backward Run GN ON BU": [RGB(r: 36, g: 220, b: 72)],
-        "Forward Run RD ON BU": [RGB(r: 255, g: 28, b: 28)],
-        "Backward Run RD ON BU": [RGB(r: 255, g: 28, b: 28)],
-        "Forward Run YE ON VT": [RGB(r: 255, g: 220, b: 32)],
-        "Backward Run YE ON VT": [RGB(r: 255, g: 220, b: 32)],
-        "Forward Run WH ON YE": [RGB(r: 255, g: 252, b: 245)],
-        "Backward Run WH ON YE": [RGB(r: 255, g: 252, b: 245)],
-        "Forward Run YE ON WH": [RGB(r: 255, g: 220, b: 32)],
-        "Backward Run YE ON WH": [RGB(r: 255, g: 220, b: 32)],
         "Forward Swab 7 COLORS": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
         "Backward Swab 7 COLORS": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
-        "Forward Swab RD GN BU": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
-        "Backward Swab RD GN BU": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
-        "Forward Swab YE CN VT": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
-        "Backward Swab YE CN VT": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
         "Open Curtain Swab 7 COLORS": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
         "Close Curtain Swab 7 COLORS": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
-        "Open Curtain Swab R G B": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
-        "Close Curtain Swab R G B": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
-        "Open Curtain Swab Y C P": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
-        "Close Curtain Swab Y C P": [RGB(r: 255, g: 28, b: 28), RGB(r: 255, g: 150, b: 24), RGB(r: 255, g: 220, b: 32), RGB(r: 36, g: 220, b: 72), RGB(r: 48, g: 214, b: 255), RGB(r: 40, g: 90, b: 255), RGB(r: 168, g: 48, b: 255)],
     ]
 
     // MARK: - Palette from name (Lotus + LEDDMX)
@@ -665,8 +583,17 @@ enum EffectPreview {
                 return [bg] + rainbow.filter { $0 != bg }
             }
         }
-        if name.uppercased().contains("7 COLOR ON"), let bg = firstDmxColorToken(in: name) {
-            return [bg] + rainbow.filter { $0 != bg }
+        if name.uppercased().contains("7 COLOR ON") {
+            let tokens = name.uppercased().split(whereSeparator: \.isWhitespace).map(String.init)
+            let bg: RGB?
+            if let on = tokens.firstIndex(of: "ON"), on + 1 < tokens.count {
+                bg = dmxRGB[tokens[on + 1]]
+            } else {
+                bg = firstDmxColorToken(in: name)
+            }
+            if let bg {
+                return [bg] + rainbow.filter { $0 != bg }
+            }
         }
 
         if let m = name.range(
@@ -787,13 +714,26 @@ enum EffectPreview {
     private static func spacedLetterCodes(in name: String) -> [RGB]? {
         let tokens = name.split(whereSeparator: \.isWhitespace).map(String.init)
         guard tokens.count >= 2 else { return nil }
-        // Leading run of single-letter colour codes: "R G B Trans"
-        var colors: [RGB] = []
-        for token in tokens {
-            guard token.count == 1, let c = letterRGB[token] else { break }
-            colors.append(c)
+        // Any run of single-letter colour codes: "Open Curtain Swab Y C P", "R G B Trans"
+        var best: [RGB]?
+        var i = 0
+        while i < tokens.count {
+            guard tokens[i].count == 1, let first = letterRGB[tokens[i]] else {
+                i += 1
+                continue
+            }
+            var colors = [first]
+            var j = i + 1
+            while j < tokens.count, tokens[j].count == 1, let next = letterRGB[tokens[j]] {
+                colors.append(next)
+                j += 1
+            }
+            if colors.count >= 2, best == nil || colors.count > (best?.count ?? 0) {
+                best = colors
+            }
+            i = max(j, i + 1)
         }
-        return colors.count >= 2 ? colors : nil
+        return best
     }
 
     private static func dmxSlashCodes(in name: String) -> [RGB]? {

@@ -22,6 +22,7 @@ import {
   encodeEffect,
   encodeEffectSpeed,
   encodePower,
+  encodePowerSequence,
   encodeSolidColor,
   type Rgb,
 } from "@/lib/protocol";
@@ -570,7 +571,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
       haltPathTimer();
       await forEachSelected(async (controller) => {
         const model = detectModel(controller.advertisedName);
-        await writeTo(controller, [encodePower(model, on)]);
+        await writeTo(controller, encodePowerSequence(model, on));
       }, { power: on, effectId: undefined });
     },
     [forEachSelected, haltPathTimer, writeTo],

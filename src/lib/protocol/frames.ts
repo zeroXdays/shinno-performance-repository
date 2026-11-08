@@ -38,11 +38,26 @@ export function encodeColor(model: ModelProfile, rgb: Rgb): Uint8Array {
 /** LEDDMX pattern 0 = Off — required before a solid colour sticks. */
 export const LEDDMX_PATTERN_OFF = 0;
 
+/** Mic / EQ off — exits music-reactive mode that can look like pattern cycling. */
+export const LEDDMX_MIC_OFF = Uint8Array.from([0x7b, 0xff, 0x0b, 0x00, 0x00, 0xff, 0xff, 0xff, 0xbf]);
+
 export function isLedDmxModel(model: ModelProfile): boolean {
   return model.id.startsWith("LEDDMX");
 }
 
-/** Power on + (pattern Off for LEDDMX) + colour + brightness. */
+/** LEDDMX must leave mic + pattern modes before a bare power-off sticks. */
+export function encodePowerSequence(model: ModelProfile, on: boolean): Uint8Array[] {
+  if (on) return [encodePower(model, true)];
+  if (!isLedDmxModel(model)) return [encodePower(model, false)];
+  return [
+    LEDDMX_MIC_OFF,
+    encodeEffect(model, LEDDMX_PATTERN_OFF),
+    encodeColor(model, { r: 0, g: 0, b: 0 }),
+    encodePower(model, false),
+  ];
+}
+
+/** Power on + (mic/pattern Off for LEDDMX) + colour + brightness. */
 export function encodeSolidColor(
   model: ModelProfile,
   rgb: Rgb,
@@ -50,6 +65,7 @@ export function encodeSolidColor(
 ): Uint8Array[] {
   const frames: Uint8Array[] = [encodePower(model, true)];
   if (isLedDmxModel(model)) {
+    frames.push(LEDDMX_MIC_OFF);
     frames.push(encodeEffect(model, LEDDMX_PATTERN_OFF));
   }
   frames.push(encodeColor(model, rgb));

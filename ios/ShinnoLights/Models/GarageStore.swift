@@ -388,8 +388,9 @@ final class GarageStore: ObservableObject {
     func setPower(_ on: Bool) {
         mutate { controller, peripheral, _ in
             controller.power = on
+            if !on { controller.effectId = nil }
             writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
-                [ElkProtocol.power(model, on: on)]
+                ElkProtocol.powerSequence(model, on: on)
             }
         }
     }

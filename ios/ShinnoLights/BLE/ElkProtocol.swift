@@ -83,13 +83,13 @@ enum ElkProtocol {
         id: "LEDDMX-00",
         prefixes: ["LEDDMX-00", "LEDDMX-03", "LEDDMX-", "LEDDMX", "LED-DMX", "LED_DMX", "LED DMX"],
         writeUUID: ffe1,
-        // LEDDMX-00 / LED LAMP open stacks (user154lt, led-hue-cycle) use 03/02 for power.
-        // Some HCI captures show 01/00 — 03/02 is what actually toggles LEDDMX-00 emblems.
+        // LEDDMX-00 / LED LAMP open stacks use 03/02 for power.
         turnOn: [0x7B, 0xFF, 0x04, 0x03, 0xFF, 0xFF, 0xFF, 0xFF, 0xBF],
         turnOff: [0x7B, 0xFF, 0x04, 0x02, 0xFF, 0xFF, 0xFF, 0xFF, 0xBF],
-        // Wire order R-B-G on LEDDMX strips (green/blue swapped) — matches led-hue-cycle default.
+        // Logical RGB — Shinno G37 emblems already map channels on the controller.
+        // (Earlier R-B-G wire swap made yellow look purple, green look blue, etc.)
         // Pattern id 0 = "Off" before solid colour or the kit stays in Dreaming / Auto.
-        color: [.byte(0x7B), .byte(0xFF), .byte(0x07), .red, .blue, .green, .byte(0x00), .byte(0xFF), .byte(0xBF)],
+        color: [.byte(0x7B), .byte(0xFF), .byte(0x07), .red, .green, .blue, .byte(0x00), .byte(0xFF), .byte(0xBF)],
         brightness: [.byte(0x7B), .byte(0xFF), .byte(0x01), .value32, .value, .byte(0x00), .byte(0xFF), .byte(0xFF), .byte(0xBF)],
         effect: [.byte(0x7B), .byte(0xFF), .byte(0x03), .value, .byte(0xFF), .byte(0xFF), .byte(0xFF), .byte(0xFF), .byte(0xBF)],
         effectSpeed: [.byte(0x7B), .byte(0xFF), .byte(0x02), .value, .byte(0xFF), .byte(0x00), .byte(0xFF), .byte(0xFF), .byte(0xBF)]
@@ -298,6 +298,19 @@ enum ElkProtocol {
 
     static func power(_ model: ModelProfile, on: Bool) -> Data {
         Data(on ? model.turnOn : model.turnOff)
+    }
+
+    /// LEDDMX ignores a bare off while Dreaming / in a pattern / mic-reactive.
+    /// Exit those modes, black the strip, then send power-off.
+    static func powerSequence(_ model: ModelProfile, on: Bool) -> [Data] {
+        if on { return [power(model, on: true)] }
+        guard isLedDmx(model) else { return [power(model, on: false)] }
+        return [
+            ledDmxMicOff,
+            effect(model, id: ledDmxPatternOff),
+            color(model, rgb: RGB(r: 0, g: 0, b: 0)),
+            power(model, on: false),
+        ]
     }
 
     static func color(_ model: ModelProfile, rgb: RGB) -> Data {

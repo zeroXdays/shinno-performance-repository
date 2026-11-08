@@ -66,6 +66,14 @@ export function paletteFor(id: number): Rgb[] {
   return colors.length > 0 ? colors : RAINBOW;
 }
 
+/** Parse a mode label into preview stops (G37/LEDDMX + Lotus names). */
+export function paletteFromEffectName(name: string): Rgb[] {
+  const colors = paletteFromName(name).filter(
+    (color): color is Rgb => Boolean(color) && Number.isFinite(color.r),
+  );
+  return colors.length > 0 ? colors : RAINBOW;
+}
+
 const DMX: Record<string, Rgb> = {
   RD: RED,
   GN: GREEN,
@@ -209,7 +217,9 @@ function paletteFromName(name: string): Rgb[] {
     return [bg, ...RAINBOW.filter((c) => c !== bg)];
   }
   if (name.toUpperCase().includes("7 COLOR ON")) {
-    const bg = firstDmxToken(name);
+    const tokens = name.toUpperCase().split(/\s+/);
+    const on = tokens.indexOf("ON");
+    const bg = on >= 0 && on + 1 < tokens.length ? DMX[tokens[on + 1]] : firstDmxToken(name);
     if (bg) return [bg, ...RAINBOW.filter((c) => c !== bg)];
   }
 

@@ -4,12 +4,14 @@ import {
   encodeEffect,
   encodeEffectSpeed,
   encodePower,
+  encodePowerSequence,
   encodeSolidColor,
   hexFrame,
+  LEDDMX_MIC_OFF,
   LEDDMX_PATTERN_OFF,
 } from "./frames.ts";
 import { detectModel, FALLBACK_MODEL } from "./models.ts";
-import { effectPeriodMs, paletteFor, sampleEffect, sampleLed } from "./preview.ts";
+import { effectPeriodMs, paletteFor, paletteFromEffectName, sampleEffect, sampleLed } from "./preview.ts";
 import { EFFECTS } from "./effects.ts";
 import { hexToRgb, rgbToHex } from "../scenes.ts";
 
@@ -42,31 +44,40 @@ assert(
 );
 const dmxRed = encodeColor(dmx, { r: 255, g: 0, b: 0 });
 assert(
-  "LEDDMX red (RBG wire order)",
+  "LEDDMX red (RGB wire order)",
   hexFrame(dmxRed),
   "7b ff 07 ff 00 00 00 ff bf",
 );
 const dmxGreen = encodeColor(dmx, { r: 0, g: 255, b: 0 });
 assert(
-  "LEDDMX green (RBG wire order)",
+  "LEDDMX green (RGB wire order)",
   hexFrame(dmxGreen),
-  "7b ff 07 00 00 ff 00 ff bf",
+  "7b ff 07 00 ff 00 00 ff bf",
 );
 const dmxBlue = encodeColor(dmx, { r: 0, g: 0, b: 255 });
 assert(
-  "LEDDMX blue (RBG wire order)",
+  "LEDDMX blue (RGB wire order)",
   hexFrame(dmxBlue),
-  "7b ff 07 00 ff 00 00 ff bf",
+  "7b ff 07 00 00 ff 00 ff bf",
 );
 assert(
   "LEDDMX pattern Off",
   hexFrame(encodeEffect(dmx, LEDDMX_PATTERN_OFF)),
   "7b ff 03 00 ff ff ff ff bf",
 );
+assert(
+  "LEDDMX mic off",
+  hexFrame(LEDDMX_MIC_OFF),
+  "7b ff 0b 00 00 ff ff ff bf",
+);
 const dmxSolid = encodeSolidColor(dmx, { r: 255, g: 0, b: 0 }, 100);
 assert("LEDDMX solid starts with power", hexFrame(dmxSolid[0]), "7b ff 04 03 ff ff ff ff bf");
-assert("LEDDMX solid clears pattern", hexFrame(dmxSolid[1]), "7b ff 03 00 ff ff ff ff bf");
-assert("LEDDMX solid then color", hexFrame(dmxSolid[2]), "7b ff 07 ff 00 00 00 ff bf");
+assert("LEDDMX solid clears mic", hexFrame(dmxSolid[1]), "7b ff 0b 00 00 ff ff ff bf");
+assert("LEDDMX solid clears pattern", hexFrame(dmxSolid[2]), "7b ff 03 00 ff ff ff ff bf");
+assert("LEDDMX solid then color", hexFrame(dmxSolid[3]), "7b ff 07 ff 00 00 00 ff bf");
+const dmxPowerOff = encodePowerSequence(dmx, false);
+assert("LEDDMX power-off sequence length", String(dmxPowerOff.length), "4");
+assert("LEDDMX power-off ends with off", hexFrame(dmxPowerOff[3]), "7b ff 04 02 ff ff ff ff bf");
 
 assert("power on", hexFrame(encodePower(elk, true)), "7e 04 04 f0 00 01 ff 00 ef");
 assert("power off", hexFrame(encodePower(elk, false)), "7e 04 04 00 00 00 ff 00 ef");
@@ -237,6 +248,38 @@ for (const effect of EFFECTS) {
       }
     }
   }
+}
+
+const ycpSwab = paletteFromEffectName("Open Curtain Swab Y C P");
+if (
+  ycpSwab.length !== 3 ||
+  ycpSwab[0].r < 200 ||
+  ycpSwab[0].g < 180 ||
+  ycpSwab[1].g < 180 ||
+  ycpSwab[1].b < 180 ||
+  ycpSwab[2].b < 180
+) {
+  throw new Error(`YCP swab should be yellow/cyan/purple, got ${JSON.stringify(ycpSwab)}`);
+}
+const rgbSwab = paletteFromEffectName("Open Curtain Swab R G B");
+if (rgbSwab.length !== 3 || rgbSwab[1].g < 180 || rgbSwab[2].b < 200) {
+  throw new Error(`RGB swab should be red/green/blue, got ${JSON.stringify(rgbSwab)}`);
+}
+const sixBu = paletteFromEffectName("Forward 6 Colors BU");
+if (sixBu.length < 6 || sixBu[sixBu.length - 1].b < 200) {
+  throw new Error(`6 Colors BU should end on blue with a multi-stop palette, got ${JSON.stringify(sixBu)}`);
+}
+const flowWhRd = paletteFromEffectName("Forward Flow WH RD WH");
+if (flowWhRd.length !== 3 || flowWhRd[1].r < 200 || flowWhRd[1].g > 80) {
+  throw new Error(`Flow WH RD WH should be white-red-white, got ${JSON.stringify(flowWhRd)}`);
+}
+const runWhOnVt = paletteFromEffectName("Forward Run WH ON VT");
+if (runWhOnVt.length !== 2 || runWhOnVt[0].b < 180 || runWhOnVt[1].r < 250) {
+  throw new Error(`Run WH ON VT should be violet field + white head, got ${JSON.stringify(runWhOnVt)}`);
+}
+const sevenOnGn = paletteFromEffectName("Forward Run 7 COLOR ON GN");
+if (sevenOnGn.length < 6 || sevenOnGn[0].g < 180) {
+  throw new Error(`7 COLOR ON GN should start green then rainbow, got ${JSON.stringify(sevenOnGn)}`);
 }
 
 const shinnoRed = { r: 225, g: 6, b: 0 };
