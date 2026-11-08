@@ -172,10 +172,15 @@ private struct EmblemStageGlyph: View {
 
             TimelineView(.animation(minimumInterval: (on && effect != nil) ? 1 / 20 : 60)) { timeline in
                 Canvas { context, size in
+                    // Keep LED footprints inside the tile — previous ry sat LEDs on the
+                    // clip edge so the top of the ring looked cut off.
+                    let ledW: CGFloat = 5.6
+                    let ledH: CGFloat = 3.6
+                    let margin = max(ledW, ledH) / 2 + 1.5
                     let cx = size.width / 2
                     let cy = size.height / 2
-                    let rx = min(size.width * 0.38, size.height * 0.9)
-                    let ry = size.height * 0.34
+                    let rx = max(8, min(size.width * 0.36, size.width / 2 - margin))
+                    let ry = max(8, min(size.height * 0.30, size.height / 2 - margin))
                     let n = 28
                     let elapsedMs = timeline.date.timeIntervalSinceReferenceDate * 1000
                     let speed = controller?.effectSpeed ?? 50
@@ -198,7 +203,7 @@ private struct EmblemStageGlyph: View {
                             }
                             return controller.color
                         }()
-                        let rect = CGRect(x: x - 2.8, y: y - 1.8, width: 5.6, height: 3.6)
+                        let rect = CGRect(x: x - ledW / 2, y: y - ledH / 2, width: ledW, height: ledH)
                         context.fill(
                             Path(ellipseIn: rect),
                             with: .color(
@@ -222,7 +227,6 @@ private struct EmblemStageGlyph: View {
                 .padding(.vertical, 10)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .clipped()
     }
 }
 
