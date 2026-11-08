@@ -165,15 +165,9 @@ private struct EmblemStageGlyph: View {
             let vPad = max(8 as CGFloat, size.height * 0.10)
             let availW = max(1, size.width - hPad * 2)
             let availH = max(1, size.height - vPad * 2)
-            let fitH: CGFloat
-            let fitW: CGFloat
-            if availW / availH > Self.emblemAspect {
-                fitH = availH
-                fitW = availH * Self.emblemAspect
-            } else {
-                fitW = availW
-                fitH = availW / Self.emblemAspect
-            }
+            let fitByHeight = availW / availH > Self.emblemAspect
+            let fitW = fitByHeight ? availH * Self.emblemAspect : availW
+            let fitH = fitByHeight ? availH : availW / Self.emblemAspect
             // Ring just outside the fitted emblem — same center, same aspect.
             let ledW: CGFloat = 5.2
             let ledH: CGFloat = 3.4
