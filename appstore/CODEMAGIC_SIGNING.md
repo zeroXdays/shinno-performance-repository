@@ -10,14 +10,27 @@ Automatic signing needs a **persistent** 2048-bit RSA private key. Without it, `
 Cannot save Signing Certificates without certificate private key
 ```
 
-### Add it once in Codemagic
+### Create group `appstore` first (or you’ll see “unknown variable group”)
 
-1. Codemagic → your app → **Environment variables** → group **`appstore`**
-2. Add secure variable:
-   - **Name:** `CERTIFICATE_PRIVATE_KEY`
-   - **Value:** full PEM including the header/footer lines  
-     (`-----BEGIN RSA PRIVATE KEY-----` … `-----END RSA PRIVATE KEY-----`)
-3. Save. Start a **new** build (don’t retry the failed one).
+`codemagic.yaml` imports group **`appstore`**. Codemagic will refuse to start if that group does not exist yet:
+
+```text
+Codemagic.yaml references to unknown variable group(s): appstore
+```
+
+There is **no** empty group list and no separate “New group” button. You create the group by adding the first variable:
+
+1. Codemagic → open the **Shinno** / GitHub app → **Environment variables** tab  
+   (app settings — not Teams → Integrations)
+2. Fill the form:
+   - **Variable name:** `CERTIFICATE_PRIVATE_KEY`
+   - **Variable value:** paste the full PEM including  
+     `-----BEGIN RSA PRIVATE KEY-----` … `-----END RSA PRIVATE KEY-----`
+   - **Group:** type exactly `appstore` (lowercase, no spaces — must match yaml)
+   - Enable **Secret**
+3. Click **Add** — that creates group `appstore`
+4. Confirm the page now shows group **appstore**
+5. **Then** start a new build
 
 Keep reusing this same key for every Shinno build. Do **not** generate a new key per build (Apple caps distribution certificates at ~3).
 
