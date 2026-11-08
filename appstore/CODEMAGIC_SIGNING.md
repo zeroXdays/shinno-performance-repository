@@ -58,6 +58,17 @@ ssh-keygen -t rsa -b 2048 -m PEM -f ios_distribution_private_key -q -N ""
 
 Apple rejects an IPA when `CFBundleVersion` was already used. `codemagic.yaml` bumps that from TestFlight / App Store before each IPA. If publish still fails, open the Codemagic **Publishing** step and read the Apple error line.
 
+### “Post-process failed” (Magic Actions)
+
+Codemagic uploads the IPA first, then a separate **post-process** job waits for Apple to finish processing so it can submit to TestFlight. That wait fails when:
+
+1. **Xcode 26 altool** uploaded with the wrong / unresolved Apple ID — fixed in `codemagic.yaml` via  
+   `APP_STORE_CONNECT_ALTOOL_ADDITIONAL_ARGUMENTS=--apple-id 6830956380 --use-old-altool`
+2. **Apple rejected the binary** — check the App Store Connect email (duplicate build, Invalid Swift Support, etc.). The build never appears, so Magic Actions times out at ~15 minutes.
+3. **ASC is just slow** — the IPA may still show up later under TestFlight → iOS builds.
+
+Current workflow sets `submit_to_testflight: false` so upload success is not blocked by Magic Actions. After a green Publishing step, open **App Store Connect → TestFlight**; the build should appear once Apple finishes processing (often a few minutes). Add yourself as an Internal Tester there if needed.
+
 ### `APP_STORE_APPLE_ID=$APP_STORE_APPLE_ID` in the build log
 
 Delete that variable from the env group, or set it to digits only (`6830956380`).

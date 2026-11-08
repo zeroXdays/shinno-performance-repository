@@ -30,6 +30,10 @@ workflows:
         BUNDLE_ID: "com.shinnoperformance.lights"
         # Numeric App Store Connect Apple ID for Shinno Sync.
         APP_STORE_APPLE_ID: "6830956380"
+        # Xcode 26+ altool often fails to resolve the app / reports success then
+        # Magic Actions post-process cannot find the build. Force the ASC app id
+        # and the legacy altool path (Codemagic KB: Xcode 26.2 altool error 19).
+        APP_STORE_CONNECT_ALTOOL_ADDITIONAL_ARGUMENTS: "--apple-id 6830956380 --use-old-altool"
       groups:
         - appstore
     scripts:
@@ -146,5 +150,10 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
-        submit_to_testflight: true
+        # Upload IPA only. Internal TestFlight builds show up after Apple
+        # processes them — no Magic Actions wait. `submit_to_testflight: true`
+        # was causing "Post-process failed" when ASC took >15m or rejected the
+        # binary quietly (Xcode 26 altool / duplicate build). Flip back on once
+        # uploads reliably land in Connect.
+        submit_to_testflight: false
         submit_to_app_store: false
