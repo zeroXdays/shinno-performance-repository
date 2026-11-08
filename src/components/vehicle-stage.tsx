@@ -106,10 +106,11 @@ function ZoneGlyph({
 function EmblemGlyph({ controller, elapsed }: { controller?: Controller; elapsed: number }) {
   const on = Boolean(controller?.power);
   const n = 28;
+  // Match Emblem.png aspect (~1.84) and hug the chrome — not a wide flat oval.
   const cx = 80;
   const cy = 46;
-  const rx = 66;
-  const ry = 34;
+  const rx = 54;
+  const ry = 30;
   const leds = Array.from({ length: n }, (_, i) => {
     const a = -Math.PI / 2 + (i / n) * Math.PI * 2;
     return {
@@ -128,47 +129,38 @@ function EmblemGlyph({ controller, elapsed }: { controller?: Controller; elapsed
     <div className="relative flex h-full w-full max-w-[15rem] items-center justify-center">
       {glow ? (
         <span
-          className="pointer-events-none absolute inset-[18%] rounded-[50%] opacity-55 blur-xl"
+          className="pointer-events-none absolute inset-[22%] rounded-[50%] opacity-55 blur-xl"
           style={{ background: rgbToCss(glow, 0.55) }}
           aria-hidden
         />
       ) : null}
-      <svg viewBox="0 0 160 92" className="absolute inset-0 h-full w-full overflow-visible" aria-hidden>
-        <ellipse
-          cx={cx}
-          cy={cy}
-          rx={rx + 4}
-          ry={ry + 4}
-          fill="none"
-          stroke="rgba(255,255,255,0.06)"
-          strokeWidth="7"
-        />
+      {/* Glossy badge first; LED ring drawn above so it sits around the chrome. */}
+      <Image
+        src="/products/emblem.png"
+        alt=""
+        width={320}
+        height={180}
+        className="relative z-[1] h-[68%] w-auto max-w-[68%] object-contain drop-shadow-[0_6px_18px_rgba(0,0,0,0.7)]"
+        priority
+      />
+      <span
+        className="pointer-events-none absolute inset-[24%] z-[2] rounded-[45%] bg-[radial-gradient(ellipse_at_28%_22%,rgba(255,255,255,0.18),transparent_58%)] mix-blend-soft-light"
+        aria-hidden
+      />
+      <svg viewBox="0 0 160 92" className="absolute inset-0 z-[3] h-full w-full overflow-visible" aria-hidden>
         {leds.map((led, i) => (
           <ellipse
             key={i}
             cx={led.x}
             cy={led.y}
-            rx="3.6"
-            ry="2.4"
+            rx="3.2"
+            ry="2.2"
             transform={`rotate(${((i / n) * 360).toFixed(1)} ${led.x} ${led.y})`}
             fill={on ? rgbToCss(led.rgb, 0.98) : "rgba(255,255,255,0.16)"}
             style={on ? { filter: `drop-shadow(0 0 3.5px ${rgbToCss(led.rgb, 0.9)})` } : undefined}
           />
         ))}
       </svg>
-      {/* Glossy black overlay asset — same size/position as before; chrome remapped to deep black + sheen. */}
-      <Image
-        src="/products/emblem.png"
-        alt=""
-        width={320}
-        height={180}
-        className="relative z-[1] h-[72%] w-auto max-w-[72%] object-contain drop-shadow-[0_6px_18px_rgba(0,0,0,0.7)]"
-        priority
-      />
-      <span
-        className="pointer-events-none absolute inset-[22%] z-[2] rounded-[45%] bg-[radial-gradient(ellipse_at_28%_22%,rgba(255,255,255,0.18),transparent_58%)] mix-blend-soft-light"
-        aria-hidden
-      />
     </div>
   );
 }

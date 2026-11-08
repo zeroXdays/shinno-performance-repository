@@ -151,80 +151,100 @@ private struct EmblemStageGlyph: View {
     var controller: PairedController?
     var effect: LedEffect?
 
+    /// Matches `Emblem.png` pixel aspect so the LED ring can hug the chrome oval.
+    private static let emblemAspect: CGFloat = 520.0 / 282.0
+
     var body: some View {
         let on = controller?.power == true
         let glow = on ? (controller?.color ?? RGB(r: 196, g: 18, b: 32)) : nil
 
-        ZStack {
-            // Soft centered glow only — no offset softLight blob (that read as a random shadow).
-            if let glow {
-                Circle()
-                    .fill(
-                        Color(
-                            red: Double(glow.r) / 255,
-                            green: Double(glow.g) / 255,
-                            blue: Double(glow.b) / 255
-                        ).opacity(0.22)
-                    )
-                    .blur(radius: 10)
-                    .frame(width: 64, height: 64)
+        GeometryReader { geo in
+            let size = geo.size
+            // Shrink the badge a touch so LEDs can sit just outside it (not under it).
+            let hPad = max(22 as CGFloat, size.width * 0.12)
+            let vPad = max(8 as CGFloat, size.height * 0.10)
+            let availW = max(1, size.width - hPad * 2)
+            let availH = max(1, size.height - vPad * 2)
+            let fitH: CGFloat
+            let fitW: CGFloat
+            if availW / availH > Self.emblemAspect {
+                fitH = availH
+                fitW = availH * Self.emblemAspect
+            } else {
+                fitW = availW
+                fitH = availW / Self.emblemAspect
             }
+            // Ring just outside the fitted emblem — same center, same aspect.
+            let ledW: CGFloat = 5.2
+            let ledH: CGFloat = 3.4
+            let gap: CGFloat = 5
+            let edgePad = max(ledW, ledH) / 2 + 1
+            let cx = size.width / 2
+            let cy = size.height / 2
+            let rx = min(fitW / 2 + gap, size.width / 2 - edgePad)
+            let ry = min(fitH / 2 + gap, size.height / 2 - edgePad)
 
-            TimelineView(.animation(minimumInterval: (on && effect != nil) ? 1 / 20 : 60)) { timeline in
-                Canvas { context, size in
-                    // Keep LED footprints inside the tile — previous ry sat LEDs on the
-                    // clip edge so the top of the ring looked cut off.
-                    let ledW: CGFloat = 5.6
-                    let ledH: CGFloat = 3.6
-                    let margin = max(ledW, ledH) / 2 + 1.5
-                    let cx = size.width / 2
-                    let cy = size.height / 2
-                    let rx = max(8, min(size.width * 0.36, size.width / 2 - margin))
-                    let ry = max(8, min(size.height * 0.30, size.height / 2 - margin))
-                    let n = 28
-                    let elapsedMs = timeline.date.timeIntervalSinceReferenceDate * 1000
-                    let speed = controller?.effectSpeed ?? 50
-                    for i in 0..<n {
-                        let a = -Double.pi / 2 + (Double(i) / Double(n)) * Double.pi * 2
-                        let x = cx + cos(a) * rx
-                        let y = cy + sin(a) * ry
-                        let rgb: RGB = {
-                            guard on, let controller else {
-                                return RGB(r: 60, g: 60, b: 60)
-                            }
-                            if let effect {
-                                return EffectPreview.sampleLed(
-                                    effect: effect,
-                                    index: i,
-                                    count: n,
-                                    elapsedMs: elapsedMs,
-                                    speed: speed
-                                )
-                            }
-                            return controller.color
-                        }()
-                        let rect = CGRect(x: x - ledW / 2, y: y - ledH / 2, width: ledW, height: ledH)
-                        context.fill(
-                            Path(ellipseIn: rect),
-                            with: .color(
-                                on
-                                    ? Color(
-                                        red: Double(rgb.r) / 255,
-                                        green: Double(rgb.g) / 255,
-                                        blue: Double(rgb.b) / 255
-                                    )
-                                    : Color.white.opacity(0.16)
-                            )
+            ZStack {
+                if let glow {
+                    Ellipse()
+                        .fill(
+                            Color(
+                                red: Double(glow.r) / 255,
+                                green: Double(glow.g) / 255,
+                                blue: Double(glow.b) / 255
+                            ).opacity(0.22)
                         )
+                        .blur(radius: 10)
+                        .frame(width: fitW * 0.72, height: fitH * 0.72)
+                }
+
+                Image("Emblem")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: fitW, height: fitH)
+
+                TimelineView(.animation(minimumInterval: (on && effect != nil) ? 1 / 20 : 60)) { timeline in
+                    Canvas { context, _ in
+                        let n = 28
+                        let elapsedMs = timeline.date.timeIntervalSinceReferenceDate * 1000
+                        let speed = controller?.effectSpeed ?? 50
+                        for i in 0..<n {
+                            let a = -Double.pi / 2 + (Double(i) / Double(n)) * Double.pi * 2
+                            let x = cx + cos(a) * rx
+                            let y = cy + sin(a) * ry
+                            let rgb: RGB = {
+                                guard on, let controller else {
+                                    return RGB(r: 60, g: 60, b: 60)
+                                }
+                                if let effect {
+                                    return EffectPreview.sampleLed(
+                                        effect: effect,
+                                        index: i,
+                                        count: n,
+                                        elapsedMs: elapsedMs,
+                                        speed: speed
+                                    )
+                                }
+                                return controller.color
+                            }()
+                            let rect = CGRect(x: x - ledW / 2, y: y - ledH / 2, width: ledW, height: ledH)
+                            context.fill(
+                                Path(ellipseIn: rect),
+                                with: .color(
+                                    on
+                                        ? Color(
+                                            red: Double(rgb.r) / 255,
+                                            green: Double(rgb.g) / 255,
+                                            blue: Double(rgb.b) / 255
+                                        )
+                                        : Color.white.opacity(0.16)
+                                )
+                            )
+                        }
                     }
                 }
             }
-
-            Image("Emblem")
-                .resizable()
-                .scaledToFit()
-                .padding(.horizontal, 28)
-                .padding(.vertical, 10)
+            .frame(width: size.width, height: size.height)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
