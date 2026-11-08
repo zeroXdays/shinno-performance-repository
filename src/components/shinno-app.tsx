@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import { Bluetooth, Loader2, Power, Trash2, Unplug, Car, Plug, Palette, Sparkles, Cpu } from "lucide-react";
 import { ModeGlyph, PlayingBar } from "@/components/effect-preview";
@@ -10,7 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { VehicleStage } from "@/components/vehicle-stage";
 import { SettingsMenu } from "@/components/settings-menu";
-import { assignableZonesForCar, CARS, kitZonesForCar, type ZoneKind } from "@/lib/catalog";
+import {
+  assignableZonesForCar,
+  carSupportsZonePaths,
+  CARS,
+  kitZonesForCar,
+  type ZoneKind,
+} from "@/lib/catalog";
 import { useGarage } from "@/lib/garage-context";
 import { useI18n } from "@/lib/i18n";
 import { EFFECTS, EFFECT_GROUPS, type Rgb } from "@/lib/protocol";
@@ -314,9 +320,10 @@ function EmptyGarage({
 function EffectsPanel({ onGoScan }: { onGoScan: () => void }) {
   const garage = useGarage();
   const { t } = useI18n();
+  const pathsEnabled = carSupportsZonePaths(garage.car);
   const active = garage.selected[0]?.effectId;
   const speed = garage.activePathId ? garage.pathSpeed : (garage.selected[0]?.effectSpeed ?? 50);
-  const [group, setGroup] = useState<(typeof EFFECT_GROUPS)[number]["id"] | "paths">("paths");
+  const [group, setGroup] = useState<(typeof EFFECT_GROUPS)[number]["id"] | "paths">("run");
   const [query, setQuery] = useState("");
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -326,8 +333,15 @@ function EffectsPanel({ onGoScan }: { onGoScan: () => void }) {
   }, [group, query]);
   const carPaths = useMemo(() => pathsForCar(garage.car), [garage.car]);
   const pathZones = useMemo(() => kitZonesForCar(garage.car), [garage.car]);
-  const activePath = carPaths.find((path) => path.id === garage.activePathId);
+  const activePath = pathsEnabled
+    ? carPaths.find((path) => path.id === garage.activePathId)
+    : undefined;
   const empty = garage.controllers.length === 0;
+
+  useEffect(() => {
+    if (!pathsEnabled && group === "paths") setGroup("run");
+    if (!pathsEnabled && garage.activePathId) void garage.stopPath();
+  }, [pathsEnabled, group, garage.activePathId, garage]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col space-y-3">
@@ -343,7 +357,7 @@ function EffectsPanel({ onGoScan }: { onGoScan: () => void }) {
           </Button>
         </div>
       ) : null}
-      {garage.activePathId ? (
+      {pathsEnabled && garage.activePathId ? (
         <div className="overflow-hidden rounded-xl border border-[#c41220]/40 bg-[#0a0a0a] px-3 py-3">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -398,7 +412,7 @@ function EffectsPanel({ onGoScan }: { onGoScan: () => void }) {
           onValueChange={(value) => {
             const next = Array.isArray(value) ? value[0] : value;
             if (typeof next !== "number") return;
-            if (garage.activePathId || group === "paths") garage.setPathSpeed(next);
+            if (pathsEnabled && (garage.activePathId || group === "paths")) garage.setPathSpeed(next);
             else void garage.setEffectSpeed(next);
           }}
         />
@@ -414,21 +428,23 @@ function EffectsPanel({ onGoScan }: { onGoScan: () => void }) {
         <p className="text-xs text-white/65">{t("paths.hint")}</p>
       )}
       <div className="no-scrollbar mb-1.5 flex gap-1.5 overflow-x-auto overscroll-x-contain pb-0.5 [-webkit-overflow-scrolling:touch]">
-        <button
-          type="button"
-          onClick={() => {
-            setGroup("paths");
-            setQuery("");
-          }}
-          className={cn(
-            "shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium transition",
-            !query && group === "paths"
-              ? "border-[#c41220] bg-[#c41220] text-white shadow-[0_4px_14px_rgba(196,18,32,0.35)]"
-              : "border-white/15 bg-white/[0.1] text-white/85",
-          )}
-        >
-          {t("paths.title")}
-        </button>
+        {pathsEnabled ? (
+          <button
+            type="button"
+            onClick={() => {
+              setGroup("paths");
+              setQuery("");
+            }}
+            className={cn(
+              "shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium transition",
+              !query && group === "paths"
+                ? "border-[#c41220] bg-[#c41220] text-white shadow-[0_4px_14px_rgba(196,18,32,0.35)]"
+                : "border-white/15 bg-white/[0.1] text-white/85",
+            )}
+          >
+            {t("paths.title")}
+          </button>
+        ) : null}
         {EFFECT_GROUPS.map((item) => (
           <button
             key={item.id}
@@ -448,7 +464,7 @@ function EffectsPanel({ onGoScan }: { onGoScan: () => void }) {
           </button>
         ))}
       </div>
-      {group === "paths" && !query ? (
+      {pathsEnabled && group === "paths" && !query ? (
         <div className="no-scrollbar grid min-h-0 flex-1 grid-cols-2 content-start gap-2.5 overflow-y-auto overscroll-y-contain rounded-xl border border-[#c41220]/35 bg-[#141414] p-2.5">
           {carPaths.map((path) => {
             const activePathTile = garage.activePathId === path.id;

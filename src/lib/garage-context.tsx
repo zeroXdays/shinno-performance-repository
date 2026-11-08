@@ -14,7 +14,7 @@ import {
 import type { BleTransport, DiscoveredDevice } from "@/lib/ble/types";
 import { WebBluetoothTransport, isChooserCancel, webBluetoothAvailable } from "@/lib/ble/web-bluetooth";
 import { registerAutoReconnect } from "@/lib/ble/auto-reconnect";
-import { kitZonesForCar, type CarId, type ZoneKind } from "@/lib/catalog";
+import { carSupportsZonePaths, kitZonesForCar, type CarId, type ZoneKind } from "@/lib/catalog";
 import { createController, guessZone, type Controller, type TabId } from "@/lib/controller";
 import {
   detectModel,
@@ -513,7 +513,9 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
   const startPath = useCallback(
     async (pathId: string) => {
-      const path = pathByIdForCar(getCar(), pathId);
+      const car = getCar();
+      if (!carSupportsZonePaths(car)) return;
+      const path = pathByIdForCar(car, pathId);
       if (!path) return;
       const garage = getGarageControllers();
       if (!garage.length) {

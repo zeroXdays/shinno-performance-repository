@@ -57,6 +57,11 @@ export function kitZonesForCar(car: CarId): ZoneKind[] {
   return KIT_ZONES_BY_CAR[car] ?? ["emblem"];
 }
 
+/** Multi-zone Paths UI — hidden on G37 until mirrors/bumper kits are supported. */
+export function carSupportsZonePaths(car: CarId): boolean {
+  return car === "q50";
+}
+
 export function isKitZoneForCar(car: CarId, zone: ZoneKind): boolean {
   return kitZonesForCar(car).includes(zone);
 }

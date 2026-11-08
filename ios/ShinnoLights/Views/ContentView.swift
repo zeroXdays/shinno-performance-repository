@@ -338,7 +338,7 @@ private enum ModesBrowser: Hashable {
 struct ModesScreen: View {
     @EnvironmentObject var garage: GarageStore
     @Binding var tab: AppTab
-    @State private var browser: ModesBrowser = .paths
+    @State private var browser: ModesBrowser = .group(.run)
     @State private var query = ""
 
     /// Prefer the dialect of a linked kit so G37/LEDDMX never shows Lotus ids.
@@ -349,6 +349,8 @@ struct ModesScreen: View {
         return garage.settings.car
     }
 
+    private var pathsEnabled: Bool { garage.settings.car.supportsZonePaths }
+
     var items: [LedEffect] {
         let catalog = EffectsCatalog.effects(for: effectCar)
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -358,11 +360,22 @@ struct ModesScreen: View {
     }
 
     var live: PairedController? { garage.selected.first }
-    var activePath: ZonePath? { ZonePaths.named(garage.activePathId ?? "") }
+    var activePath: ZonePath? {
+        guard pathsEnabled else { return nil }
+        return ZonePaths.named(garage.activePathId ?? "", for: garage.settings.car)
+    }
     var speed: Int {
         garage.activePathId == nil ? (live?.effectSpeed ?? 50) : garage.pathSpeed
     }
     var hasDevices: Bool { !garage.controllers.isEmpty }
+
+    private func ensureBrowserMatchesCar() {
+        if !pathsEnabled, browser == .paths {
+            browser = .group(.run)
+            query = ""
+            garage.stopPath()
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -420,11 +433,11 @@ struct ModesScreen: View {
                         value: Binding(
                             get: { Double(speed) },
                             set: {
-                                if garage.activePathId != nil || browser == .paths {
+                                if pathsEnabled && (garage.activePathId != nil || browser == .paths) {
                                     garage.pathSpeed = Int($0)
                                 } else if hasDevices {
                                     garage.setEffectSpeed(Int($0))
-                                } else {
+                                } else if pathsEnabled {
                                     garage.pathSpeed = Int($0)
                                 }
                             }
@@ -448,9 +461,11 @@ struct ModesScreen: View {
                     }
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {
-                            modeChip("Paths", selected: query.isEmpty && browser == .paths) {
-                                browser = .paths
-                                query = ""
+                            if pathsEnabled {
+                                modeChip("Paths", selected: query.isEmpty && browser == .paths) {
+                                    browser = .paths
+                                    query = ""
+                                }
                             }
                             ForEach(EffectGroup.allCases) { item in
                                 modeChip(item.title, selected: query.isEmpty && browser == .group(item)) {
@@ -468,7 +483,7 @@ struct ModesScreen: View {
 
             // Mode / path grid fills the remaining viewport.
             Group {
-                if browser == .paths && query.isEmpty {
+                if pathsEnabled && browser == .paths && query.isEmpty {
                     ScrollView(showsIndicators: false) {
                         LazyVGrid(
                             columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)],
@@ -587,6 +602,8 @@ struct ModesScreen: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .background(Color.black.ignoresSafeArea())
+        .onAppear { ensureBrowserMatchesCar() }
+        .onChange(of: garage.settings.car) { _, _ in ensureBrowserMatchesCar() }
     }
 
     private func modeChip(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
@@ -632,7 +649,7 @@ private struct ModePlayingBar: View {
                 Text("Now playing")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(shinnoRed)
-                Text(effect?.name ?? "Paths run across zones")
+                Text(effect?.name ?? "Pick a lighting mode")
                     .font(.caption.weight(.medium))
                     .foregroundStyle(Color.white.opacity(0.85))
                     .lineLimit(2)

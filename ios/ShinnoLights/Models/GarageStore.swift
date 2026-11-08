@@ -50,6 +50,14 @@ enum CarKind: String, CaseIterable, Identifiable, Codable {
             return [.emblem, .mirrors, .bumper]
         }
     }
+
+    /// Multi-zone Paths UI — hidden on G37 until mirrors/bumper kits are supported.
+    var supportsZonePaths: Bool {
+        switch self {
+        case .q50: return true
+        case .g37, .q60, .q70: return false
+        }
+    }
 }
 
 enum ControlTarget: Equatable, Hashable {
@@ -485,6 +493,7 @@ final class GarageStore: ObservableObject {
     }
 
     func startPath(_ id: String) {
+        guard settings.car.supportsZonePaths else { return }
         guard let path = ZonePaths.named(id, for: settings.car) else { return }
         guard !controllers.isEmpty else {
             lastError = "Add devices on Scan before running a zone path."

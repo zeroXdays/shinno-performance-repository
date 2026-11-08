@@ -57,8 +57,10 @@ enum ZonePaths {
         all.first { $0.id == id }
     }
 
-    /// Paths whose steps only use kit zones for this car (G37 emblem-only keeps Pulse).
+    /// Paths whose steps only use kit zones for this car.
+    /// Returns none when the car does not support Paths yet (G37 emblem-only).
     static func forCar(_ car: CarKind) -> [ZonePath] {
+        guard car.supportsZonePaths else { return [] }
         let allowed = Set(car.kitZones)
         return all.compactMap { path in
             let steps = path.steps.map { step in step.filter { allowed.contains($0) } }
