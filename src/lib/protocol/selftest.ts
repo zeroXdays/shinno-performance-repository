@@ -73,8 +73,15 @@ assert(
 const dmxSolid = encodeSolidColor(dmx, { r: 255, g: 0, b: 0 }, 100);
 assert("LEDDMX solid starts with power", hexFrame(dmxSolid[0]), "7b ff 04 03 ff ff ff ff bf");
 assert("LEDDMX solid clears mic", hexFrame(dmxSolid[1]), "7b ff 0b 00 00 ff ff ff bf");
-assert("LEDDMX solid clears pattern", hexFrame(dmxSolid[2]), "7b ff 03 00 ff ff ff ff bf");
-assert("LEDDMX solid then color", hexFrame(dmxSolid[3]), "7b ff 07 ff 00 00 00 ff bf");
+assert("LEDDMX solid preloads color", hexFrame(dmxSolid[2]), "7b ff 07 ff 00 00 00 ff bf");
+assert("LEDDMX solid clears pattern", hexFrame(dmxSolid[3]), "7b ff 03 00 ff ff ff ff bf");
+assert("LEDDMX solid then color", hexFrame(dmxSolid[4]), "7b ff 07 ff 00 00 00 ff bf");
+const dmxQuick = encodeSolidColor(dmx, { r: 255, g: 0, b: 0 }, 100, {
+  alreadyPowered: true,
+  exitPattern: false,
+});
+assert("LEDDMX quick solid is colour-only", String(dmxQuick.length), "2");
+assert("LEDDMX quick solid colour", hexFrame(dmxQuick[0]), "7b ff 07 ff 00 00 00 ff bf");
 const dmxPowerOff = encodePowerSequence(dmx, false);
 assert("LEDDMX power-off sequence length", String(dmxPowerOff.length), "4");
 assert("LEDDMX power-off ends with off", hexFrame(dmxPowerOff[3]), "7b ff 04 02 ff ff ff ff bf");

@@ -412,27 +412,36 @@ final class GarageStore: ObservableObject {
 
     func setColor(_ rgb: RGB, delivery: ColorDelivery = .commit) {
         stopPath()
-        // Update UI / state immediately.
-        for index in controllers.indices where matchesTarget(controllers[index]) {
-            controllers[index].color = rgb
-            controllers[index].power = true
-            controllers[index].effectId = nil
-        }
         colorWriteWork?.cancel()
+        colorWriteWork = nil
 
         switch delivery {
         case .live:
             // UI only while dragging. LEDDMX locks up if we stream BLE on every tick;
-            // swatches / finger-up use `.commit` (same path that already works).
-            break
+            // swatches / finger-up use `.commit`.
+            for index in controllers.indices where matchesTarget(controllers[index]) {
+                controllers[index].color = rgb
+                controllers[index].power = true
+                controllers[index].effectId = nil
+            }
         case .commit:
-            colorWriteWork?.cancel()
-            colorWriteWork = nil
             mutate { controller, peripheral, _ in
+                // Capture kit state before we clear effectId — re-sending power / pattern
+                // Off on every hex release makes G37 flash Dreaming / Flow for a beat.
+                let leavingEffect = controller.effectId != nil
+                let alreadyPowered = controller.power
+                controller.color = rgb
+                controller.power = true
+                controller.effectId = nil
                 let brightness = controller.brightness
-                let color = controller.color
                 writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
-                    solidColorFrames(model: model, rgb: color, brightness: brightness)
+                    solidColorFrames(
+                        model: model,
+                        rgb: rgb,
+                        brightness: brightness,
+                        alreadyPowered: alreadyPowered,
+                        exitPattern: leavingEffect || !alreadyPowered
+                    )
                 }
             }
         }
@@ -450,9 +459,16 @@ final class GarageStore: ObservableObject {
             controller.brightness = percent
             let color = controller.color
             let effectId = controller.effectId
+            let powered = controller.power
             writeFrames(to: peripheral, advertisedName: controller.advertisedName) { model in
                 if effectId == nil {
-                    return solidColorFrames(model: model, rgb: color, brightness: percent)
+                    return solidColorFrames(
+                        model: model,
+                        rgb: color,
+                        brightness: percent,
+                        alreadyPowered: powered,
+                        exitPattern: false
+                    )
                 }
                 return [
                     ElkProtocol.brightness(model, percent: percent),
@@ -461,12 +477,27 @@ final class GarageStore: ObservableObject {
         }
     }
 
-    /// Solid colour for LEDDMX must leave music + built-in pattern modes first.
-    private func solidColorFrames(model: ModelProfile, rgb: RGB, brightness: Int) -> [Data] {
-        var frames: [Data] = [ElkProtocol.power(model, on: true)]
-        if ElkProtocol.isLedDmx(model) {
+    /// Solid colour for LEDDMX.
+    /// - Hex / swatch while already solid: colour + brightness only (no power/pattern spam).
+    /// - Leaving a mode or first power-on: clear mic + pattern, with colour loaded first so
+    ///   the emblem does not flash Flow / Dreaming between pattern-Off and the RGB frame.
+    private func solidColorFrames(
+        model: ModelProfile,
+        rgb: RGB,
+        brightness: Int,
+        alreadyPowered: Bool = false,
+        exitPattern: Bool = true
+    ) -> [Data] {
+        var frames: [Data] = []
+        if !alreadyPowered {
+            frames.append(ElkProtocol.power(model, on: true))
+        }
+        if ElkProtocol.isLedDmx(model), exitPattern {
             frames.append(ElkProtocol.ledDmxMicOff)
+            frames.append(ElkProtocol.color(model, rgb: rgb))
             frames.append(ElkProtocol.effect(model, id: ElkProtocol.ledDmxPatternOff))
+        } else if ElkProtocol.isLedDmx(model), !alreadyPowered {
+            frames.append(ElkProtocol.ledDmxMicOff)
         }
         frames.append(ElkProtocol.color(model, rgb: rgb))
         frames.append(ElkProtocol.brightness(model, percent: brightness))

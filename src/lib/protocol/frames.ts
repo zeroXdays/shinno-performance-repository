@@ -57,16 +57,37 @@ export function encodePowerSequence(model: ModelProfile, on: boolean): Uint8Arra
   ];
 }
 
-/** Power on + (mic/pattern Off for LEDDMX) + colour + brightness. */
+export interface SolidColorOptions {
+  /** Skip power-on when the kit is already lit. */
+  alreadyPowered?: boolean;
+  /**
+   * Leave Dreaming / a built-in pattern (LEDDMX). When false, only colour +
+   * brightness are sent — used for hex-wheel release while already solid so
+   * the emblem does not flash Flow between pattern-Off and RGB.
+   */
+  exitPattern?: boolean;
+}
+
+/** Solid colour. LEDDMX optionally clears mic + pattern first. */
 export function encodeSolidColor(
   model: ModelProfile,
   rgb: Rgb,
   brightness: number,
+  options: SolidColorOptions = {},
 ): Uint8Array[] {
-  const frames: Uint8Array[] = [encodePower(model, true)];
-  if (isLedDmxModel(model)) {
+  const alreadyPowered = options.alreadyPowered ?? false;
+  const exitPattern = options.exitPattern ?? true;
+  const frames: Uint8Array[] = [];
+  if (!alreadyPowered) {
+    frames.push(encodePower(model, true));
+  }
+  if (isLedDmxModel(model) && exitPattern) {
     frames.push(LEDDMX_MIC_OFF);
+    // Colour before pattern-Off so the strip is already loaded when the mode exits.
+    frames.push(encodeColor(model, rgb));
     frames.push(encodeEffect(model, LEDDMX_PATTERN_OFF));
+  } else if (isLedDmxModel(model) && !alreadyPowered) {
+    frames.push(LEDDMX_MIC_OFF);
   }
   frames.push(encodeColor(model, rgb));
   frames.push(encodeBrightness(model, brightness));

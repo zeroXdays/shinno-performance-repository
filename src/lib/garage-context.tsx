@@ -580,12 +580,22 @@ export function GarageProvider({ children }: { children: ReactNode }) {
   );
 
   const flushColor = useCallback(
-    async (color: Rgb, list: Controller[]) => {
+    async (
+      color: Rgb,
+      list: Controller[],
+      opts: { alreadyPowered: boolean; exitPattern: boolean },
+    ) => {
       await enqueue(async () => {
         for (const [index, controller] of list.entries()) {
           const live = await ensureConnected(controller);
           const model = detectModel(live.advertisedName);
-          await writeTo(live, encodeSolidColor(model, color, live.brightness));
+          await writeTo(
+            live,
+            encodeSolidColor(model, color, live.brightness, {
+              alreadyPowered: opts.alreadyPowered,
+              exitPattern: opts.exitPattern,
+            }),
+          );
           if (index < list.length - 1) await sleep(24);
         }
       });
@@ -597,11 +607,16 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     async (color: Rgb) => {
       haltPathTimer();
       const list = selected;
+      const leavingEffect = list.some((c) => c.effectId != null);
+      const alreadyPowered = list.some((c) => c.power);
       applyLocal({ color, power: true, effectId: undefined }, list.map((c) => c.id));
       setLastError(null);
       if (colorTimer.current) clearTimeout(colorTimer.current);
       colorTimer.current = setTimeout(() => {
-        void flushColor(color, list);
+        void flushColor(color, list, {
+          alreadyPowered,
+          exitPattern: leavingEffect || !alreadyPowered,
+        });
       }, 60);
     },
     [applyLocal, flushColor, haltPathTimer, selected],
@@ -612,7 +627,13 @@ export function GarageProvider({ children }: { children: ReactNode }) {
       await forEachSelected(async (controller) => {
         const model = detectModel(controller.advertisedName);
         if (controller.effectId == null) {
-          await writeTo(controller, encodeSolidColor(model, controller.color, percent));
+          await writeTo(
+            controller,
+            encodeSolidColor(model, controller.color, percent, {
+              alreadyPowered: controller.power,
+              exitPattern: false,
+            }),
+          );
         } else {
           await writeTo(controller, [encodeBrightness(model, percent)]);
         }
