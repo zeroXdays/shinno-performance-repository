@@ -84,7 +84,9 @@ struct ShinnoHeader: View {
                 Image("ShinnoLogo")
                     .resizable()
                     .scaledToFit()
+                    // Cap width so a mis-scaled asset can never blow past the header on first paint.
                     .frame(height: 28)
+                    .frame(maxWidth: 160)
                 Text("SYNC")
                     .font(.caption.weight(.semibold))
                     .tracking(2)
