@@ -742,7 +742,7 @@ struct ScanScreen: View {
 
                 Section("Nearby") {
                     if unpaired.isEmpty, garage.hub.bluetoothState == .poweredOn {
-                        Text("No kits yet. Power the lighting boxes, stand near the car, then tap Rescan.")
+                        Text("No kits yet. Power the Shinno products, stand near the car, then tap Rescan.")
                             .foregroundStyle(.secondary)
                     }
                     ForEach(unpaired) { item in
