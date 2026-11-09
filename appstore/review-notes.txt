@@ -1,12 +1,53 @@
-Shinno Sync is a native Bluetooth Low Energy controller for physical Shinno RGB kits. It is not a website wrapper. Reviewers need:
+APP REVIEW INFORMATION — paste into App Store Connect → Version → App Review Information → Notes
 
-1. An iPhone with Bluetooth on.
-2. Powered lighting devices from a Shinno Q50 or G37 kit. They advertise as ELK-BLEDOM, ELK-BLEDOB, MELK, or LEDBLE (Magic Lantern / Lotus Lamp X family). One device per kit: emblem, mirrors, bumper (G37: emblem only in this build).
-3. Allow the Bluetooth permission prompt. The app scans continuously while Bluetooth is on (including bluetooth-central so saved devices can reconnect when they power on). Add each device once on Scan, then assign the zone on Devices. After that, turning a kit off and on should reconnect and restore the last color/mode without scanning again.
-4. Color, brightness, power, Modes, and Paths write BLE frames to the devices. There is no login, no IAP, and no demo/simulator mode — the binary does nothing useful without the hardware.
+=== 1) APP PURPOSE / AUDIENCE ===
+Shinno Sync (com.shinnoperformance.lights) is a native iPhone Bluetooth Low Energy controller for Shinno Performance RGB lighting kits installed on Infiniti Q50 and G37 vehicles (emblem, side mirrors, and front bumper zones).
 
-Please review this iOS binary (com.shinnoperformance.lights). Shinno Sync is a native iPhone app.
+Target audience: Shinno kit owners who already purchased the physical lighting hardware from Shin No Performance LLC (https://shinnoperformance.com).
 
-Q60/Q70 rows in the car picker are intentionally disabled (labeled “soon”). Q50 and G37 are selectable. The header car picker can hold both vehicles with separate paired kits. Grille is not offered in this build.
+Problem solved: kits ship with generic BLE lighting modules; customers need a branded, zone-aware controller to set color, brightness, power, and lighting modes per vehicle without a third-party “magic lantern” style app.
 
-If a device does not appear, confirm it is powered and within a few meters. Contact support@shinnoperformance.com if you need a hardware sample for review.
+Value: pairs each lighting module once, assigns it to Emblem / Mirrors / Bumper, then controls that zone from Color and Modes. Garage state stays on-device. No account. No in-app purchases. No ads. No social or user-generated content.
+
+=== 2) WHY HARDWARE IS REQUIRED (Guideline 2.1 completeness) ===
+This app is an accessory controller. Without powered Shinno lighting modules in Bluetooth range, Scan finds nothing and Color/Modes cannot demonstrate output. There is intentionally no demo/simulator mode and no login.
+
+Reviewers need:
+• iPhone with Bluetooth on, running a current iOS release
+• One or more powered Shinno kit modules (advertise as ELK-BLEDOM, ELK-BLEDOB, MELK, or LEDBLE / Magic Lantern / Lotus Lamp X family)
+• Q50: emblem + mirrors + bumper modules possible. G37: emblem-only in this version
+• Allow the Bluetooth permission prompt when asked
+
+We will ship a hardware sample for App Review on request. Contact: support@shinnoperformance.com — Shin No Performance LLC. Please reply with a shipping address / case ID and we will send a kit promptly.
+
+=== 3) SETUP / HOW TO REACH MAIN FEATURES (no credentials) ===
+There is no account registration, login, password, or paid unlock. No demo account exists because none is used.
+
+Typical flow on a physical device:
+1. Launch Shinno Sync → choose Q50 or G37 in the car picker (Q60/Q70 are labeled “soon” and disabled on purpose; grille is not in this build).
+2. Open Scan → power the Shinno products near the phone → Rescan if needed → add each discovered module.
+3. Open Devices → assign each module to Emblem, Mirrors, or Bumper.
+4. Open Color → select a zone card → toggle power → pick a color / brightness.
+5. Open Modes → pick a mode tile → adjust Speed (0 = slow, 100 = fast). On Q50, Paths can sequence across paired zones; Paths are hidden on G37 in this build.
+6. Settings contains Privacy policy, Agreement, and how-to copy only — no account screens.
+
+Screen recording: we can attach / provide a device recording of this flow with kits powered. If Review needs it attached to the resolution center thread, tell us and we will upload immediately. Recording shows Scan → pair → Color → Modes with live LED response (no login, no UGC report/block UI — those features do not exist).
+
+=== 4) EXTERNAL SERVICES / TOOLS / PLATFORMS ===
+• CoreBluetooth only for discovery and control of the lighting modules
+• Optional HTTPS call to https://shinnoperformance.com/api/verify-purchase only if / when a purchase license check is used; core lighting control does not require the network
+• No third-party analytics, ads, auth providers, social SDKs, maps, payments, or AI services
+• No cloud account backend for the garage — paired devices and settings use on-device storage (UserDefaults; PrivacyInfo reason CA92.1)
+
+=== 5) REGIONAL DIFFERENCES ===
+Functionality is the same in all regions. There are no region-locked features, stores, or content catalogs.
+
+=== 6) REGULATED INDUSTRIES / THIRD-PARTY IP ===
+Not a highly regulated industry app (not banking, gambling, healthcare, cannabis, etc.).
+Hardware and branding are from Shin No Performance LLC. Vehicle marks (Infiniti / model names) are used only to identify compatible cars for aftermarket accessory control. No third-party copyrighted media is embedded for redistribution.
+
+=== CONTACT ===
+Shin No Performance LLC
+support@shinnoperformance.com
+https://shinnoperformance.com
+Bundle ID: com.shinnoperformance.lights
