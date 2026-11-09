@@ -4,7 +4,7 @@ Shinno Sync (com.shinnoperformance.lights) is our iPhone app for controlling Shi
 
 Who it’s for: people who already own a Shinno kit. There’s no account, no login, no in-app purchases, no ads, and no user-generated content. Everything about the garage stays on the phone.
 
-Important for review: this only works with real powered kits nearby. We don’t ship a demo or simulator mode on purpose — without the lights, Scan is empty and Color/Modes won’t show anything useful. If you need hardware, email support@shinnoperformance.com and we’ll send a sample. Please include a shipping address and your case ID.
+Important for review: this only works with real powered kits nearby. We don’t ship a demo or simulator mode on purpose — without the lights, Scan is empty and Color/Modes won’t show anything useful. If you need hardware, email support@shinnoperformance.com and we’ll send a sample. Just include a shipping address.
 
 How to use it on a review phone:
 1. Turn Bluetooth on and open the app.
@@ -22,7 +22,7 @@ We can also send a screen recording of the full flow with kits running if that h
 Other details you asked about:
 - No login credentials — there isn’t an account system.
 - No region-specific features; same app everywhere.
-- Networking: Bluetooth for the lights. Optional check against https://shinnoperformance.com/api/verify-purchase only if a license check runs; lighting control itself doesn’t need the internet. No analytics, ads, auth SDKs, or AI services.
+- Networking: Bluetooth for the lights. The app doesn’t need the internet to control kits. No analytics, ads, auth SDKs, or AI services.
 - Not a regulated-industry app. Hardware and branding are ours (Shin No Performance LLC).
 
 Shin No Performance LLC
