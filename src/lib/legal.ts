@@ -9,7 +9,7 @@ export const PRIVACY_TITLE = "Privacy policy";
 export const PRIVACY_BODY = `Shinno Sync is provided by Shin No Performance LLC. This policy describes how the iPhone app handles information.
 
 What the app does
-Shinno Sync is a Bluetooth controller for Shinno RGB lighting kits on Infiniti Q50 and G37 — emblem, mirrors, and bumper. It finds nearby lighting devices and sends color, brightness, power, and mode commands over Bluetooth Low Energy. There is no account and no in-app shop.
+Shinno Sync is a Bluetooth controller for Shinno RGB lighting kits for Q50 and G37 — emblem, mirrors, and bumper. It finds nearby lighting devices and sends color, brightness, power, and mode commands over Bluetooth Low Energy. There is no account and no in-app shop. Shin No Performance LLC is not affiliated with the vehicle manufacturer.
 
 Information stored on this iPhone
 Pairing names, Bluetooth identifiers of devices you add, zones you assign, last color, brightness, power, mode, and app settings stay in on-device storage (UserDefaults). This information is used only to run the garage on this phone. We do not upload it. We do not create an account. We do not sell information. We do not use analytics, advertising, or tracking SDKs. We do not collect precise location.

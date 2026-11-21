@@ -1,6 +1,6 @@
 # Shinno Sync
 
-Apple-first controller from **Shin No Performance LLC** for [Shinno Performance](https://shinnoperformance.com) RGB kits on Infiniti **Q50** and **G37**. Q60 and Q70 are in the picker as “soon” and cannot be selected yet.
+Apple-first controller from **Shin No Performance LLC** for [Shinno Performance](https://shinnoperformance.com) RGB kits for **Q50** and **G37**. Q60 and Q70 are in the picker as “soon” and cannot be selected yet.
 
 The garage holds **multiple vehicles** — Q50 and G37 can both be saved, switched in the header picker, and each keeps its own paired kits. Q50 uses **emblem, mirrors, bumper**. G37 is **emblem-only** until mirrors/bumper kits land. Grille badge support is in the code, commented out, until we have a kit to test. Paths and BLE writes always target the **active** car.
 

@@ -9,7 +9,7 @@ Category:
 Utilities
 
 Description:
-Control the Shinno RGB kits on your Infiniti Q50 or G37 from your iPhone — emblem, mirrors, and bumper.
+Control Shinno RGB kits for Q50 and G37 from your iPhone — emblem, mirrors, and bumper.
 
 Turn the kits on, allow Bluetooth, and add each lighting device in Scan. Assign the zone, then set color, brightness, and modes. Speed goes from 0 (slow) to 100 (fast).
 

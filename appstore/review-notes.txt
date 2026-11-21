@@ -1,6 +1,8 @@
 Paste into App Store Connect → App Review Information → Notes
 
-Shinno Sync (com.shinnoperformance.lights) is our iPhone app for controlling Shinno RGB kits on Infiniti Q50 and G37 — emblem, mirrors, and bumper. Customers buy the hardware from us at shinnoperformance.com; this app is how they set color, brightness, power, and modes over Bluetooth.
+Shinno Sync (com.shinnoperformance.lights) is our iPhone app for controlling Shinno RGB kits made for Q50 and G37 — emblem, mirrors, and bumper. Customers buy the hardware from us at shinnoperformance.com; this app is how they set color, brightness, power, and modes over Bluetooth.
+
+Shin No Performance LLC is not affiliated with, endorsed by, or sponsored by the vehicle manufacturer. “Q50” and “G37” are used only to describe kit fitment.
 
 Who it’s for: people who already own a Shinno kit. There’s no account, no login, no in-app purchases, no ads, and no user-generated content. Everything about the garage stays on the phone.
 

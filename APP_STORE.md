@@ -18,7 +18,7 @@ This file is a helper. It does not submit the app. You still complete App Store 
 
 **Description:**
 
-Shinno Sync is the iPhone controller for Shinno RGB kits on Infiniti Q50 and G37 — emblem, mirrors, and bumper.
+Shinno Sync is the iPhone controller for Shinno RGB kits for Q50 and G37 — emblem, mirrors, and bumper.
 
 Power the lighting devices that shipped with your kits, allow Bluetooth, and the app scans for them. Add each device, assign a zone, then set color, brightness, power, and lighting modes. Speed 0 is slow, 100 is fast.
 
@@ -42,7 +42,7 @@ Do not upload mock or placeholder screenshots. Capture the real iPhone app on a 
 Shinno Sync is provided by Shin No Performance LLC. This policy describes how the iPhone app handles information.
 
 What the app does
-Shinno Sync is a Bluetooth controller for Shinno RGB lighting kits on Infiniti Q50 and G37 — emblem, mirrors, and bumper. It finds nearby lighting devices and sends color, brightness, power, and mode commands over Bluetooth Low Energy. There is no account and no in-app shop.
+Shinno Sync is a Bluetooth controller for Shinno RGB lighting kits for Q50 and G37 — emblem, mirrors, and bumper. It finds nearby lighting devices and sends color, brightness, power, and mode commands over Bluetooth Low Energy. There is no account and no in-app shop.
 
 Information stored on this iPhone
 Pairing names, Bluetooth identifiers of devices you add, zones you assign, last color, brightness, power, mode, and app settings stay in on-device storage (UserDefaults). This information is used only to run the garage on this phone. We do not upload it. We do not create an account. We do not sell information. We do not use analytics, advertising, or tracking SDKs. We do not collect precise location.
