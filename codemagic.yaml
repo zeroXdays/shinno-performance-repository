@@ -23,6 +23,8 @@ workflows:
     integrations:
       app_store_connect: shinno
     environment:
+      # iOS 27 SDK — satisfies ITMS-90725 (required for uploads from April 2027).
+      xcode: 27.2
       # Script-based signing below — do not also set ios_signing here (conflicts / missing key).
       vars:
         XCODE_PROJECT: "ios/ShinnoLights.xcodeproj"
@@ -30,9 +32,7 @@ workflows:
         BUNDLE_ID: "com.shinnoperformance.lights"
         # Numeric App Store Connect Apple ID for Shinno Sync.
         APP_STORE_APPLE_ID: "6830956380"
-        # Xcode 26+ altool often fails to resolve the app / reports success then
-        # Magic Actions post-process cannot find the build. Force the ASC app id
-        # and the legacy altool path (Codemagic KB: Xcode 26.2 altool error 19).
+        # Keep altool pointed at the ASC app id (and legacy path if needed).
         APP_STORE_CONNECT_ALTOOL_ADDITIONAL_ARGUMENTS: "--apple-id 6830956380 --use-old-altool"
       groups:
         - appstore
