@@ -163,21 +163,24 @@ export function ShinnoApp() {
                   </button>
                 </div>
                 <ColorWheel color={color} onChange={(next) => void garage.setColor(next)} />
-                <div>
-                  <div className="mb-1.5 flex justify-between text-sm text-white/55">
-                    <span>{t("color.brightness")}</span>
-                    <span className="tabular-nums text-white/75">{brightness}%</span>
+                {/* Brightness under the hex for solid colours (hidden while a mode is running). */}
+                {live?.effectId == null ? (
+                  <div>
+                    <div className="mb-1.5 flex justify-between text-sm text-white/55">
+                      <span>{t("color.brightness")}</span>
+                      <span className="tabular-nums text-white/75">{brightness}%</span>
+                    </div>
+                    <Slider
+                      min={1}
+                      max={100}
+                      value={[brightness]}
+                      onValueChange={(value) => {
+                        const next = Array.isArray(value) ? value[0] : value;
+                        if (typeof next === "number") void garage.setBrightness(next);
+                      }}
+                    />
                   </div>
-                  <Slider
-                    min={1}
-                    max={100}
-                    value={[brightness]}
-                    onValueChange={(value) => {
-                      const next = Array.isArray(value) ? value[0] : value;
-                      if (typeof next === "number") void garage.setBrightness(next);
-                    }}
-                  />
-                </div>
+                ) : null}
                 <div className="grid grid-cols-8 gap-1.5 px-0.5">
                   {SWATCHES.map((swatch) => {
                     const active = sameRgb(swatch, color);

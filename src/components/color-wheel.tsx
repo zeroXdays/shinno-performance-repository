@@ -1,12 +1,20 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, type PointerEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent,
+} from "react";
 import type { Rgb } from "@/lib/protocol";
 import { hexToRgb, rgbToHex } from "@/lib/scenes";
 import { cn } from "@/lib/utils";
 
 /** Pointy-top hexagon that fits a square (vertices on the circumscribed circle). */
-export const HEX_CLIP = "polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%)";
+export const HEX_CLIP =
+  "polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%)";
 
 export function rgbToHsv(rgb: Rgb): { h: number; s: number; v: number } {
   const r = rgb.r / 255;
@@ -47,6 +55,50 @@ export function hsvToRgb(h: number, s: number, v: number): Rgb {
   };
 }
 
+/** Unit radius of the hexagon edge at a hue angle (0° = up). */
+export function hexRadiusAt(angle: number): number {
+  const sector = ((angle % 60) + 60) % 60;
+  const phi = ((sector - 30) * Math.PI) / 180;
+  return Math.cos(Math.PI / 6) / Math.cos(phi);
+}
+
+function polar(hue: number, sat: number): { x: number; y: number } {
+  const r = sat * hexRadiusAt(hue);
+  const rad = ((hue - 90) * Math.PI) / 180;
+  return { x: Math.cos(rad) * r, y: Math.sin(rad) * r };
+}
+
+/** Raster whose every pixel matches pick math (hex-normalized HSV). */
+function buildHexWheelDataUrl(dim = 320): string {
+  const canvas = document.createElement("canvas");
+  canvas.width = dim;
+  canvas.height = dim;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "";
+  const image = ctx.createImageData(dim, dim);
+  const half = dim / 2;
+  for (let y = 0; y < dim; y++) {
+    for (let x = 0; x < dim; x++) {
+      const dx = x + 0.5 - half;
+      const dy = y + 0.5 - half;
+      const dist = Math.hypot(dx, dy) / half;
+      let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+      if (angle < 0) angle += 360;
+      const edge = hexRadiusAt(angle);
+      const i = (y * dim + x) * 4;
+      if (dist > edge + 0.002) continue;
+      const sat = Math.min(dist / edge, 1);
+      const rgb = hsvToRgb(angle, sat, 1);
+      image.data[i] = rgb.r;
+      image.data[i + 1] = rgb.g;
+      image.data[i + 2] = rgb.b;
+      image.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(image, 0, 0);
+  return canvas.toDataURL("image/png");
+}
+
 interface ColorWheelProps {
   color: Rgb;
   onChange: (color: Rgb) => void;
@@ -57,7 +109,12 @@ export function ColorWheel({ color, onChange, disabled }: ColorWheelProps) {
   const hsv = useMemo(() => rgbToHsv(color), [color]);
   const disk = useRef<HTMLDivElement>(null);
   const [draftHex, setDraftHex] = useState<string | null>(null);
+  const [wheelUrl, setWheelUrl] = useState<string>("");
   const hexValue = draftHex ?? rgbToHex(color).toUpperCase();
+
+  useEffect(() => {
+    setWheelUrl(buildHexWheelDataUrl(320));
+  }, []);
 
   const pick = useCallback(
     (clientX: number, clientY: number) => {
@@ -66,13 +123,21 @@ export function ColorWheel({ color, onChange, disabled }: ColorWheelProps) {
       const rect = el.getBoundingClientRect();
       const cx = rect.left + rect.width / 2;
       const cy = rect.top + rect.height / 2;
-      const dx = clientX - cx;
-      const dy = clientY - cy;
+      let dx = clientX - cx;
+      let dy = clientY - cy;
       const radius = rect.width / 2;
       let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
       if (angle < 0) angle += 360;
-      const dist = Math.hypot(dx, dy) / radius;
-      const sat = Math.min(dist / hexRadiusAt(angle), 1);
+      const maxDist = radius * hexRadiusAt(angle);
+      const distPx = Math.hypot(dx, dy);
+      if (distPx > maxDist && distPx > 0.5) {
+        const scale = maxDist / distPx;
+        dx *= scale;
+        dy *= scale;
+        angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+        if (angle < 0) angle += 360;
+      }
+      const sat = Math.min(Math.hypot(dx, dy) / radius / hexRadiusAt(angle), 1);
       onChange(hsvToRgb(angle, sat, 1));
     },
     [disabled, onChange],
@@ -118,36 +183,12 @@ export function ColorWheel({ color, onChange, disabled }: ColorWheelProps) {
           )}
           style={{
             clipPath: HEX_CLIP,
-            background: [
-              "radial-gradient(circle at 50% 50%, #ffffff 0%, rgba(255,255,255,0.55) 18%, rgba(255,255,255,0) 58%)",
-              "conic-gradient(from 0deg, #ff0040, #ffea00, #00ff6a, #00d4ff, #2a4bff, #d000ff, #ff0040)",
-            ].join(", "),
+            backgroundColor: "#111",
+            backgroundImage: wheelUrl ? `url(${wheelUrl})` : undefined,
+            backgroundSize: "100% 100%",
             boxShadow: "inset 0 0 28px rgba(0,0,0,0.28)",
           }}
         >
-          <svg
-            viewBox="0 0 100 100"
-            className="pointer-events-none absolute inset-0 h-full w-full opacity-35 mix-blend-overlay"
-            aria-hidden
-          >
-            {HEX_VERTS.map((pt, i) => (
-              <line
-                key={i}
-                x1="50"
-                y1="50"
-                x2={pt.x}
-                y2={pt.y}
-                stroke="white"
-                strokeWidth="0.6"
-              />
-            ))}
-            <polygon
-              points={HEX_VERTS.map((pt) => `${pt.x},${pt.y}`).join(" ")}
-              fill="none"
-              stroke="white"
-              strokeWidth="1.4"
-            />
-          </svg>
           <div
             className="pointer-events-none absolute left-1/2 top-1/2 size-[22%] -translate-x-1/2 -translate-y-1/2"
             style={{
@@ -159,8 +200,8 @@ export function ColorWheel({ color, onChange, disabled }: ColorWheelProps) {
           <div
             className="pointer-events-none absolute size-5 -translate-x-1/2 -translate-y-1/2 border-2 border-white shadow-md"
             style={{
-              left: `${50 + knob.x * 46}%`,
-              top: `${50 + knob.y * 46}%`,
+              left: `${50 + knob.x * 50}%`,
+              top: `${50 + knob.y * 50}%`,
               clipPath: HEX_CLIP,
               background: css,
             }}
@@ -204,26 +245,4 @@ export function ColorWheel({ color, onChange, disabled }: ColorWheelProps) {
       </label>
     </div>
   );
-}
-
-const HEX_VERTS = [
-  { x: 50, y: 0 },
-  { x: 93.3, y: 25 },
-  { x: 93.3, y: 75 },
-  { x: 50, y: 100 },
-  { x: 6.7, y: 75 },
-  { x: 6.7, y: 25 },
-];
-
-/** Unit radius of the hexagon edge at a hue angle (0° = up). */
-export function hexRadiusAt(angle: number): number {
-  const sector = ((angle % 60) + 60) % 60;
-  const phi = ((sector - 30) * Math.PI) / 180;
-  return Math.cos(Math.PI / 6) / Math.cos(phi);
-}
-
-function polar(hue: number, sat: number): { x: number; y: number } {
-  const r = sat * hexRadiusAt(hue);
-  const rad = ((hue - 90) * Math.PI) / 180;
-  return { x: Math.cos(rad) * r, y: Math.sin(rad) * r };
 }

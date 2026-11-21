@@ -251,27 +251,32 @@ struct ColorScreen: View {
                             onChange: { garage.setColor($0, delivery: .live) },
                             onCommit: { garage.setColor($0, delivery: .commit) }
                         )
+                        // Brightness for solid colours — sits directly under the hex wheel.
+                        if live?.effectId == nil {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("Brightness")
+                                        .font(.subheadline.weight(.medium))
+                                    Spacer()
+                                    Text("\(live?.brightness ?? 80)%")
+                                        .monospacedDigit()
+                                        .foregroundStyle(.secondary)
+                                }
+                                Slider(
+                                    value: Binding(
+                                        get: { Double(live?.brightness ?? 80) },
+                                        set: { garage.setBrightness(Int($0)) }
+                                    ),
+                                    in: 1...100
+                                )
+                                .tint(shinnoRed)
+                            }
+                            .padding(.horizontal, 4)
+                        }
                         Text("Drag to preview · release to set on the kit")
                             .font(.caption2)
                             .foregroundStyle(Color.white.opacity(0.4))
                             .frame(maxWidth: .infinity, alignment: .center)
-                        VStack(alignment: .leading) {
-                            HStack {
-                                Text("Brightness")
-                                Spacer()
-                                Text("\(live?.brightness ?? 80)%")
-                                    .monospacedDigit()
-                                    .foregroundStyle(.secondary)
-                            }
-                            Slider(
-                                value: Binding(
-                                    get: { Double(live?.brightness ?? 80) },
-                                    set: { garage.setBrightness(Int($0)) }
-                                ),
-                                in: 1...100
-                            )
-                            .tint(shinnoRed)
-                        }
                         HStack(spacing: 8) {
                             ForEach(Self.swatches, id: \.self) { swatch in
                                 Button { garage.setColor(swatch) } label: {

@@ -67,12 +67,6 @@ export function SettingsMenu() {
                 {t("settings.bluetooth")}
               </h3>
               <Toggle
-                label={t("settings.autoAdd")}
-                hint={t("settings.autoAddHint")}
-                checked={settings.autoAdd}
-                onChange={(autoAdd) => updateSettings({ autoAdd })}
-              />
-              <Toggle
                 label={t("settings.autoConnect")}
                 hint={t("settings.autoConnectHint")}
                 checked={settings.autoConnect}

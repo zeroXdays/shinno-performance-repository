@@ -73,7 +73,8 @@ enum ControlTarget: Equatable, Hashable {
 }
 
 struct AppSettings: Codable, Equatable {
-    var autoAdd = true
+    /// Kept for decode compatibility — auto-add of new devices is removed; Scan → Add only.
+    var autoAdd = false
     var autoConnect = true
     var rememberDevices = true
     var car: CarKind = .q50
@@ -272,12 +273,8 @@ final class GarageStore: ObservableObject {
     }
 
     func adopt(_ peripherals: [CBPeripheral]) async {
-        guard settings.autoAdd else { return }
-        for peripheral in peripherals {
-            let name = hub.displayName(for: peripheral.identifier)
-            guard ElkProtocol.allowed(for: settings.car, name: name) else { continue }
-            await pair(peripheral)
-        }
+        // New devices are never auto-paired — users add them from Scan.
+        _ = peripherals
     }
 
     func restoreConnections() {
@@ -710,6 +707,8 @@ final class GarageStore: ObservableObject {
               let decoded = try? JSONDecoder().decode(AppSettings.self, from: data)
         else { return }
         settings = decoded
+        // Feature removed — force off for anyone who still had it enabled.
+        settings.autoAdd = false
         if !settings.car.enabled {
             settings.car = .q50
         }

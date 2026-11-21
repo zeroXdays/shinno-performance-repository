@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ColorWheelView: View {
     var color: RGB
@@ -11,43 +12,50 @@ struct ColorWheelView: View {
         VStack(spacing: 14) {
             GeometryReader { geo in
                 let size = min(geo.size.width, geo.size.height)
+                let wheel = HexWheelRaster.image(side: size)
+                let knob = location(for: color, size: size)
+
                 ZStack {
                     HexCell()
                         .fill(color.color)
                         .blur(radius: 22)
-                        .opacity(0.55)
-                        .scaleEffect(1.08)
-                    HexCell()
-                        .fill(
-                            AngularGradient(
-                                colors: [.red, .yellow, .green, .cyan, .blue, .purple, .red],
-                                center: .center
-                            )
-                        )
-                    HexCell()
-                        .fill(
-                            RadialGradient(
-                                colors: [.white, .white.opacity(0)],
-                                center: .center,
-                                startRadius: 0,
-                                endRadius: size * 0.38
-                            )
-                        )
+                        .opacity(0.45)
+                        .scaleEffect(1.06)
+
+                    Image(uiImage: wheel)
+                        .resizable()
+                        .interpolation(.high)
+                        .frame(width: size, height: size)
+                        .clipShape(HexCell())
+
                     HexCell()
                         .stroke(.white.opacity(0.35), lineWidth: 1.4)
+
+                    // Selected colour chip — matches the sampled wheel under the finger.
                     HexCell()
                         .fill(color.color)
-                        .frame(width: size * 0.3, height: size * 0.3)
-                        .shadow(color: color.color.opacity(0.85), radius: 16)
+                        .frame(width: size * 0.28, height: size * 0.28)
+                        .shadow(color: color.color.opacity(0.85), radius: 14)
+
+                    // Drag knob on the wheel face.
+                    HexCell()
+                        .fill(color.color)
+                        .overlay(HexCell().stroke(.white, lineWidth: 2))
+                        .frame(width: 18, height: 18)
+                        .position(knob)
+                        .shadow(color: .black.opacity(0.35), radius: 3)
                 }
                 .frame(width: size, height: size)
+                .contentShape(HexCell())
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { value in
-                            onChange(colorAt(value.location, size: size))
+                            let clamped = clampToHex(value.location, size: size)
+                            onChange(colorAt(clamped, size: size))
                         }
                         .onEnded { value in
-                            let rgb = colorAt(value.location, size: size)
+                            let clamped = clampToHex(value.location, size: size)
+                            let rgb = colorAt(clamped, size: size)
                             onChange(rgb)
                             onCommit?(rgb)
                         }
@@ -85,6 +93,53 @@ struct HexCell: Shape {
     }
 }
 
+/// Pre-rasterised hex HSV disk so paint pixels match `colorAt` / drag math.
+private enum HexWheelRaster {
+    private static var cached: UIImage?
+
+    static func image(side: CGFloat) -> UIImage {
+        if let cached { return cached }
+
+        // Fixed working resolution — sharp enough when scaled to the view.
+        let dim = 320
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        format.opaque = false
+        let renderer = UIGraphicsImageRenderer(
+            size: CGSize(width: dim, height: dim),
+            format: format
+        )
+        let image = renderer.image { ctx in
+            let cg = ctx.cgContext
+            let half = CGFloat(dim) / 2
+            for y in 0..<dim {
+                for x in 0..<dim {
+                    let dx = CGFloat(x) + 0.5 - half
+                    let dy = CGFloat(y) + 0.5 - half
+                    let dist = hypot(dx, dy) / half
+                    var hue = Double(atan2(dy, dx) * 180 / .pi + 90)
+                    if hue < 0 { hue += 360 }
+                    let edge = hexRadius(hue)
+                    if Double(dist) > edge + 0.002 { continue }
+                    let sat = min(Double(dist) / edge, 1)
+                    let rgb = hsv(h: hue, s: sat, v: 1)
+                    cg.setFillColor(
+                        UIColor(
+                            red: CGFloat(rgb.r) / 255,
+                            green: CGFloat(rgb.g) / 255,
+                            blue: CGFloat(rgb.b) / 255,
+                            alpha: 1
+                        ).cgColor
+                    )
+                    cg.fill(CGRect(x: x, y: y, width: 1, height: 1))
+                }
+            }
+        }
+        cached = image
+        return image
+    }
+}
+
 private func colorAt(_ location: CGPoint, size: CGFloat) -> RGB {
     let center = CGPoint(x: size / 2, y: size / 2)
     let dx = location.x - center.x
@@ -94,6 +149,30 @@ private func colorAt(_ location: CGPoint, size: CGFloat) -> RGB {
     if hue < 0 { hue += 360 }
     let sat = min(dist / hexRadius(hue), 1)
     return hsv(h: hue, s: sat, v: 1)
+}
+
+private func clampToHex(_ location: CGPoint, size: CGFloat) -> CGPoint {
+    let center = CGPoint(x: size / 2, y: size / 2)
+    let dx = location.x - center.x
+    let dy = location.y - center.y
+    let dist = hypot(dx, dy)
+    if dist < 0.5 { return center }
+    var hue = atan2(dy, dx) * 180 / .pi + 90
+    if hue < 0 { hue += 360 }
+    let maxDist = (size / 2) * hexRadius(hue)
+    if dist <= maxDist { return location }
+    let scale = maxDist / dist
+    return CGPoint(x: center.x + dx * scale, y: center.y + dy * scale)
+}
+
+private func location(for color: RGB, size: CGFloat) -> CGPoint {
+    let hsv = rgbToHsv(color)
+    let r = (size / 2) * hsv.s * hexRadius(hsv.h)
+    let rad = (hsv.h - 90) * .pi / 180
+    return CGPoint(
+        x: size / 2 + cos(rad) * r,
+        y: size / 2 + sin(rad) * r
+    )
 }
 
 private func hexRadius(_ angle: Double) -> Double {
@@ -120,6 +199,29 @@ private func hsv(h: Double, s: Double, v: Double) -> RGB {
         g: Int(((rgb.1 + m) * 255).rounded()),
         b: Int(((rgb.2 + m) * 255).rounded())
     )
+}
+
+private func rgbToHsv(_ rgb: RGB) -> (h: Double, s: Double, v: Double) {
+    let r = Double(rgb.r) / 255
+    let g = Double(rgb.g) / 255
+    let b = Double(rgb.b) / 255
+    let maxV = max(r, g, b)
+    let minV = min(r, g, b)
+    let d = maxV - minV
+    var h = 0.0
+    if d != 0 {
+        if maxV == r {
+            h = ((g - b) / d).truncatingRemainder(dividingBy: 6)
+        } else if maxV == g {
+            h = (b - r) / d + 2
+        } else {
+            h = (r - g) / d + 4
+        }
+        h *= 60
+        if h < 0 { h += 360 }
+    }
+    let s = maxV == 0 ? 0 : d / maxV
+    return (h, s, maxV)
 }
 
 private extension RGB {

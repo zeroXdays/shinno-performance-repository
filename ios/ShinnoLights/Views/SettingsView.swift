@@ -14,12 +14,6 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .textCase(.uppercase)
-                    Toggle(isOn: $garage.settings.autoAdd) {
-                        settingLabel(
-                            "Add devices automatically",
-                            "Nearby lighting devices join the garage when Scan finds them."
-                        )
-                    }
                     Toggle(isOn: $garage.settings.autoConnect) {
                         settingLabel(
                             "Connect automatically",

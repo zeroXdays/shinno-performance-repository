@@ -368,11 +368,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
           prev.some((d) => d.id === device.id) ? prev : [...prev, device],
         );
       });
-      if (getSettings().autoAdd) {
-        for (const device of found) {
-          await pair(device);
-        }
-      }
+      // New devices are never auto-paired — user adds them from Scan.
     } catch (error) {
       if (isChooserCancel(error)) {
         setScanError(null);

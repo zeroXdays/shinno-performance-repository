@@ -14,7 +14,8 @@ export const APP_VERSION = "1.0";
 export { LEGAL_NAME, SUPPORT_EMAIL } from "./legal";
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  autoAdd: true,
+  // Auto-add removed — Scan still lists devices; user taps Add.
+  autoAdd: false,
   autoConnect: true,
   rememberConnect: true,
   theme: "night",
@@ -32,7 +33,8 @@ function read(): AppSettings {
     const raw = window.localStorage.getItem(SETTINGS_KEY);
     if (!raw) return SERVER_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<AppSettings>;
-    return { ...DEFAULT_SETTINGS, ...parsed };
+    // Force auto-add off for anyone who still had it enabled.
+    return { ...DEFAULT_SETTINGS, ...parsed, autoAdd: false };
   } catch {
     return SERVER_SETTINGS;
   }
